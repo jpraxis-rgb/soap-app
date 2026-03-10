@@ -91,7 +91,7 @@ export const contentItems = pgTable('content_items', {
   format: varchar('format', { length: 20 }).notNull(),
   title: varchar('title', { length: 500 }).notNull(),
   body: jsonb('body').notNull(),
-  status: varchar('status', { length: 20 }).notNull().default('draft'),
+  status: varchar('status', { length: 20 }).notNull().default('review'),
   professorId: varchar('professor_id', { length: 255 }),
   professorName: varchar('professor_name', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow(),

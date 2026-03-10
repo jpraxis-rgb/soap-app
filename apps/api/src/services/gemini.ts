@@ -139,7 +139,7 @@ ${EXTRACTION_PROMPT}`;
         if (d && typeof d.name === 'string' && d.name.trim()) {
           disciplinas.push({
             name: d.name.trim(),
-            weight: typeof d.weight === 'number' && d.weight > 0 ? d.weight : 1,
+            weight: typeof d.weight === 'number' ? Math.max(1, Math.min(10, d.weight)) : 1,
             topics: Array.isArray(d.topics)
               ? d.topics.filter((t: unknown) => typeof t === 'string' && (t as string).trim())
               : [],

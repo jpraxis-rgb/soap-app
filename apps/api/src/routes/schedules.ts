@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
+import { eq, and, asc, gte, lte } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { scheduleBlocks } from '../db/schema.js';
 import { validateBody } from '../middleware/validate.js';
@@ -26,6 +26,38 @@ const generateScheduleSchema = z.object({
   .refine(data => data.hours_per_week, { message: 'hours_per_week is required' })
   .refine(data => data.available_days && data.available_days.length > 0, { message: 'available_days must be a non-empty array' })
   .refine(data => data.exam_date, { message: 'exam_date is required' });
+
+/**
+ * GET /schedules
+ * List schedule blocks for the authenticated user with optional filtering.
+ */
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const { edital_id, from, to, status } = req.query;
+
+    const conditions = [eq(scheduleBlocks.userId, userId)];
+    if (edital_id) conditions.push(eq(scheduleBlocks.editalId, edital_id as string));
+    if (status) conditions.push(eq(scheduleBlocks.status, status as string));
+    if (from) conditions.push(gte(scheduleBlocks.scheduledDate, from as string));
+    if (to) conditions.push(lte(scheduleBlocks.scheduledDate, to as string));
+
+    const blocks = await db
+      .select()
+      .from(scheduleBlocks)
+      .where(and(...conditions))
+      .orderBy(asc(scheduleBlocks.scheduledDate), asc(scheduleBlocks.startTime));
+
+    res.json(blocks);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch schedule blocks' });
+  }
+});
 
 /**
  * POST /schedules/generate
@@ -127,6 +159,35 @@ router.put('/:id/recalculate', async (req: Request, res: Response) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });
+  }
+});
+
+/**
+ * DELETE /schedules/:id
+ * Delete a schedule block owned by the authenticated user.
+ */
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const blockId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const [deleted] = await db
+      .delete(scheduleBlocks)
+      .where(and(eq(scheduleBlocks.id, blockId), eq(scheduleBlocks.userId, userId)))
+      .returning();
+
+    if (!deleted) {
+      res.status(404).json({ error: 'Schedule block not found' });
+      return;
+    }
+
+    res.json({ message: 'Schedule block deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete schedule block' });
   }
 });
 

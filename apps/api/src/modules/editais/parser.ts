@@ -108,7 +108,7 @@ export async function parseEdital(
       .values({
         editalId: edital.id,
         name: d.name,
-        weight: d.weight,
+        weight: Math.max(1, Math.min(10, d.weight)),
         topics: { items: d.topics },
         orderIndex: i,
       })
@@ -226,7 +226,7 @@ export async function updateEdital(
         .values({
           editalId: editalId,
           name: d.name,
-          weight: d.weight,
+          weight: Math.max(1, Math.min(10, d.weight)),
           topics: d.topics || null,
           orderIndex: d.orderIndex,
         });

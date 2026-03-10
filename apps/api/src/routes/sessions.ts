@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { validateBody } from '../middleware/validate.js';
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
+import { studySessions } from '../db/schema.js';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 
 const router = Router();
@@ -191,6 +192,35 @@ router.get('/stats', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching stats:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * DELETE /sessions/:id
+ * Delete a study session owned by the authenticated user.
+ */
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const sessionId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const [deleted] = await db
+      .delete(studySessions)
+      .where(and(eq(studySessions.id, sessionId), eq(studySessions.userId, userId)))
+      .returning();
+
+    if (!deleted) {
+      res.status(404).json({ error: 'Session not found' });
+      return;
+    }
+
+    res.json({ message: 'Session deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete session' });
   }
 });
 

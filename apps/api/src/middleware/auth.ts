@@ -44,37 +44,42 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
   }
 }
 
-export function requireTier(...tiers: SubscriptionTier[]) {
+const TIER_HIERARCHY: Record<string, number> = {
+  free: 0,
+  premium: 1,
+  pro: 2,
+  mentor: 3,
+};
+
+/**
+ * Middleware that requires a minimum subscription tier.
+ * Must be used after authMiddleware.
+ */
+export function requireTier(minTier: string) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    if (!req.user) {
-      res.status(401).json({ error: 'Authentication required' });
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
       return;
     }
 
-    try {
-      const [user] = await db.select()
-        .from(schema.users)
-        .where(eq(schema.users.id, req.user.id))
-        .limit(1);
+    const [user] = await db
+      .select({ subscriptionTier: schema.users.subscriptionTier })
+      .from(schema.users)
+      .where(eq(schema.users.id, req.user.id));
 
-      if (!user) {
-        res.status(401).json({ error: 'User not found' });
-        return;
-      }
-
-      const userTier = user.subscriptionTier as SubscriptionTier;
-      if (!tiers.includes(userTier)) {
-        res.status(403).json({
-          error: 'Insufficient subscription tier',
-          required: tiers,
-          current: userTier,
-        });
-        return;
-      }
-
-      next();
-    } catch {
-      res.status(500).json({ error: 'Internal server error' });
+    if (!user) {
+      res.status(401).json({ error: 'User not found' });
+      return;
     }
+
+    const userTierLevel = TIER_HIERARCHY[user.subscriptionTier] ?? 0;
+    const requiredTierLevel = TIER_HIERARCHY[minTier] ?? 0;
+
+    if (userTierLevel < requiredTierLevel) {
+      res.status(403).json({ error: `This feature requires the '${minTier}' tier or higher` });
+      return;
+    }
+
+    next();
   };
 }

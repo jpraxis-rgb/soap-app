@@ -1,5 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
+import { eq, and, desc } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { editais } from '../db/schema.js';
 import { validateBody } from '../middleware/validate.js';
 import { parseEdital, getEditalWithDisciplinas, updateEdital } from '../modules/editais/parser.js';
 
@@ -42,6 +45,30 @@ const updateEditalSchema = z.object({
   status: data.status,
   disciplinas: data.disciplinas,
 }));
+
+/**
+ * GET /editais
+ * List all editais for the authenticated user.
+ */
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const userEditais = await db
+      .select()
+      .from(editais)
+      .where(eq(editais.userId, userId))
+      .orderBy(desc(editais.updatedAt));
+
+    res.json(userEditais);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch editais' });
+  }
+});
 
 /**
  * POST /editais/parse
@@ -136,6 +163,35 @@ router.put('/:id', validateBody(updateEditalSchema), async (req: Request, res: R
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });
+  }
+});
+
+/**
+ * DELETE /editais/:id
+ * Delete an edital owned by the authenticated user.
+ */
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const editalId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const [deleted] = await db
+      .delete(editais)
+      .where(and(eq(editais.id, editalId), eq(editais.userId, userId)))
+      .returning();
+
+    if (!deleted) {
+      res.status(404).json({ error: 'Edital not found' });
+      return;
+    }
+
+    res.json({ message: 'Edital deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete edital' });
   }
 });
 

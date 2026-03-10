@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, gte } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { editais, disciplinas, scheduleBlocks, studySessions } from '../../db/schema.js';
 import {
@@ -207,7 +207,7 @@ export async function recalculateExistingSchedule(
   const availableDaysSet = new Set(scheduledDates.map((d) => d.getDay()));
   const totalMinutesPerWeek = existingBlocks.reduce((sum, b) => sum + b.durationMinutes, 0);
   const weeks = Math.max(1, Math.ceil(existingBlocks.length / (availableDaysSet.size * 3)));
-  const hoursPerWeek = Math.round(totalMinutesPerWeek / weeks / 60);
+  const hoursPerWeek = totalMinutesPerWeek / weeks / 60;
 
   // Use edital exam date or last scheduled date + 1 week
   const examDate = edital.examDate
@@ -228,13 +228,18 @@ export async function recalculateExistingSchedule(
 
   const newBlocks = recalculateSchedule(disciplinaInputs, config, completedSessions);
 
-  // Delete old pending blocks (keep completed/skipped)
-  const pendingBlocks = existingBlocks.filter((b) => b.status === 'pending');
-  for (const block of pendingBlocks) {
-    await db
-      .delete(scheduleBlocks)
-      .where(eq(scheduleBlocks.id, block.id));
-  }
+  // Delete future pending blocks (date >= today, keep completed/skipped and past pending)
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  await db
+    .delete(scheduleBlocks)
+    .where(
+      and(
+        eq(scheduleBlocks.userId, userId),
+        eq(scheduleBlocks.editalId, editalId),
+        eq(scheduleBlocks.status, 'pending'),
+        gte(scheduleBlocks.scheduledDate, today),
+      ),
+    );
 
   // Insert new blocks
   const insertedBlocks = [];

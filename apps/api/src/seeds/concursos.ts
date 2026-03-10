@@ -1,6 +1,8 @@
 import { db } from '../db/index.js';
 import { concursos } from '../db/schema.js';
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 /**
  * Top 50 Brazilian concursos with banca, orgao, and historical topic frequency data.
  * Topic frequency is stored in metadata as a record of topic -> frequency score (1-10).
@@ -10,7 +12,7 @@ const SEED_CONCURSOS = [
     name: 'Auditor Fiscal da Receita Federal',
     banca: 'FGV',
     orgao: 'Receita Federal do Brasil',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Tributário': 10, 'Direito Constitucional': 9, 'Direito Administrativo': 9,
@@ -23,7 +25,7 @@ const SEED_CONCURSOS = [
     name: 'Analista Judiciário - TRF',
     banca: 'FCC',
     orgao: 'Tribunal Regional Federal',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Constitucional': 10, 'Direito Administrativo': 9, 'Direito Processual Civil': 8,
@@ -35,7 +37,7 @@ const SEED_CONCURSOS = [
     name: 'Técnico Judiciário - TRT',
     banca: 'FCC',
     orgao: 'Tribunal Regional do Trabalho',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito do Trabalho': 10, 'Direito Processual do Trabalho': 9, 'Português': 8,
@@ -47,7 +49,7 @@ const SEED_CONCURSOS = [
     name: 'Agente de Polícia Federal',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Polícia Federal',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Penal': 10, 'Direito Processual Penal': 9, 'Direito Constitucional': 8,
@@ -60,7 +62,7 @@ const SEED_CONCURSOS = [
     name: 'Delegado de Polícia Federal',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Polícia Federal',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Penal': 10, 'Direito Processual Penal': 10, 'Direito Constitucional': 9,
@@ -72,7 +74,7 @@ const SEED_CONCURSOS = [
     name: 'Analista do INSS',
     banca: 'CESPE/CEBRASPE',
     orgao: 'INSS',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Previdenciário': 10, 'Direito Constitucional': 8, 'Direito Administrativo': 7,
@@ -84,7 +86,7 @@ const SEED_CONCURSOS = [
     name: 'Técnico do INSS',
     banca: 'CESPE/CEBRASPE',
     orgao: 'INSS',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Previdenciário': 10, 'Português': 8, 'Raciocínio Lógico': 7,
@@ -96,7 +98,7 @@ const SEED_CONCURSOS = [
     name: 'Auditor Fiscal do Trabalho',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Ministério do Trabalho',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito do Trabalho': 10, 'Segurança e Saúde no Trabalho': 9,
@@ -108,7 +110,7 @@ const SEED_CONCURSOS = [
     name: 'Procurador da República',
     banca: 'MPF',
     orgao: 'Ministério Público Federal',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Constitucional': 10, 'Direito Penal': 9, 'Direito Processual Penal': 8,
@@ -120,7 +122,7 @@ const SEED_CONCURSOS = [
     name: 'Promotor de Justiça - MPSP',
     banca: 'MPSP',
     orgao: 'Ministério Público de São Paulo',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Constitucional': 10, 'Direito Penal': 10, 'Direito Civil': 9,
@@ -132,7 +134,7 @@ const SEED_CONCURSOS = [
     name: 'Juiz Federal',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Tribunal Regional Federal',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Constitucional': 10, 'Direito Civil': 9, 'Direito Processual Civil': 9,
@@ -144,7 +146,7 @@ const SEED_CONCURSOS = [
     name: 'Juiz do Trabalho',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Tribunal Regional do Trabalho',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito do Trabalho': 10, 'Direito Processual do Trabalho': 10,
@@ -156,7 +158,7 @@ const SEED_CONCURSOS = [
     name: 'Defensor Público Federal',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Defensoria Pública da União',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Constitucional': 10, 'Direitos Humanos': 9, 'Direito Penal': 8,
@@ -168,7 +170,7 @@ const SEED_CONCURSOS = [
     name: 'Analista Judiciário - STF',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Supremo Tribunal Federal',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Constitucional': 10, 'Direito Administrativo': 9, 'Português': 8,
@@ -180,7 +182,7 @@ const SEED_CONCURSOS = [
     name: 'Analista Judiciário - STJ',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Superior Tribunal de Justiça',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Constitucional': 10, 'Direito Administrativo': 9,
@@ -192,7 +194,7 @@ const SEED_CONCURSOS = [
     name: 'Analista Judiciário - TSE',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Tribunal Superior Eleitoral',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Eleitoral': 10, 'Direito Constitucional': 9, 'Direito Administrativo': 8,
@@ -204,7 +206,7 @@ const SEED_CONCURSOS = [
     name: 'Analista do Banco Central',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Banco Central do Brasil',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Economia': 10, 'Finanças': 9, 'Contabilidade': 8, 'Direito Econômico': 7,
@@ -216,7 +218,7 @@ const SEED_CONCURSOS = [
     name: 'Auditor Federal de Controle Externo - TCU',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Tribunal de Contas da União',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Controle Externo': 10, 'Direito Administrativo': 9, 'Contabilidade': 8,
@@ -229,7 +231,7 @@ const SEED_CONCURSOS = [
     name: 'Analista de Planejamento e Orçamento',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Ministério do Planejamento',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Administração Financeira e Orçamentária': 10, 'Economia': 9,
@@ -241,7 +243,7 @@ const SEED_CONCURSOS = [
     name: 'Diplomata - CACD',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Ministério das Relações Exteriores',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Política Internacional': 10, 'Direito Internacional': 9, 'Inglês': 9,
@@ -253,7 +255,7 @@ const SEED_CONCURSOS = [
     name: 'Auditor Fiscal - SEFAZ/SP',
     banca: 'FCC',
     orgao: 'Secretaria da Fazenda de São Paulo',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Tributário': 10, 'Contabilidade': 9, 'Legislação Tributária Estadual': 9,
@@ -265,7 +267,7 @@ const SEED_CONCURSOS = [
     name: 'Auditor Fiscal - SEFAZ/RS',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Secretaria da Fazenda do Rio Grande do Sul',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Tributário': 10, 'Contabilidade': 9, 'Legislação Tributária Estadual': 8,
@@ -277,7 +279,7 @@ const SEED_CONCURSOS = [
     name: 'Procurador do Estado - PGE/SP',
     banca: 'FCC',
     orgao: 'Procuradoria Geral do Estado de São Paulo',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Constitucional': 10, 'Direito Administrativo': 10, 'Direito Tributário': 8,
@@ -289,7 +291,7 @@ const SEED_CONCURSOS = [
     name: 'Procurador do Município - PGM/SP',
     banca: 'VUNESP',
     orgao: 'Procuradoria Geral do Município de São Paulo',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Administrativo': 10, 'Direito Constitucional': 9, 'Direito Tributário': 8,
@@ -301,7 +303,7 @@ const SEED_CONCURSOS = [
     name: 'Analista Legislativo - Câmara dos Deputados',
     banca: 'FGV',
     orgao: 'Câmara dos Deputados',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Constitucional': 10, 'Processo Legislativo': 9, 'Regimento Interno': 8,
@@ -313,7 +315,7 @@ const SEED_CONCURSOS = [
     name: 'Analista Legislativo - Senado Federal',
     banca: 'FGV',
     orgao: 'Senado Federal',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Constitucional': 10, 'Processo Legislativo': 9, 'Regimento Interno': 8,
@@ -325,7 +327,7 @@ const SEED_CONCURSOS = [
     name: 'Analista do MPU',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Ministério Público da União',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Constitucional': 10, 'Direito Administrativo': 9, 'Legislação do MPU': 8,
@@ -337,7 +339,7 @@ const SEED_CONCURSOS = [
     name: 'Agente da Polícia Rodoviária Federal',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Polícia Rodoviária Federal',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Legislação de Trânsito': 10, 'Direito Penal': 8, 'Direito Constitucional': 7,
@@ -349,7 +351,7 @@ const SEED_CONCURSOS = [
     name: 'Escrivão da Polícia Federal',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Polícia Federal',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Penal': 10, 'Direito Processual Penal': 9, 'Direito Constitucional': 8,
@@ -361,7 +363,7 @@ const SEED_CONCURSOS = [
     name: 'Perito Criminal Federal',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Polícia Federal',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Penal': 8, 'Criminalística': 10, 'Informática Forense': 7,
@@ -373,7 +375,7 @@ const SEED_CONCURSOS = [
     name: 'Oficial de Justiça - TJ/SP',
     banca: 'VUNESP',
     orgao: 'Tribunal de Justiça de São Paulo',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Processual Civil': 10, 'Direito Civil': 8, 'Direito Constitucional': 7,
@@ -385,7 +387,7 @@ const SEED_CONCURSOS = [
     name: 'Escrevente Técnico Judiciário - TJ/SP',
     banca: 'VUNESP',
     orgao: 'Tribunal de Justiça de São Paulo',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Processual Civil': 9, 'Normas da Corregedoria': 8, 'Direito Penal': 7,
@@ -397,7 +399,7 @@ const SEED_CONCURSOS = [
     name: 'Analista Tributário da Receita Federal',
     banca: 'FGV',
     orgao: 'Receita Federal do Brasil',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Tributário': 10, 'Contabilidade': 8, 'Direito Constitucional': 7,
@@ -409,7 +411,7 @@ const SEED_CONCURSOS = [
     name: 'Técnico Administrativo - ANVISA',
     banca: 'CESPE/CEBRASPE',
     orgao: 'ANVISA',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Português': 8, 'Raciocínio Lógico': 7, 'Direito Administrativo': 7,
@@ -421,7 +423,7 @@ const SEED_CONCURSOS = [
     name: 'Especialista em Regulação - ANATEL',
     banca: 'CESPE/CEBRASPE',
     orgao: 'ANATEL',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Telecomunicações': 10, 'Direito Administrativo': 8, 'Regulação': 9,
@@ -433,7 +435,7 @@ const SEED_CONCURSOS = [
     name: 'Especialista em Regulação - ANEEL',
     banca: 'CESPE/CEBRASPE',
     orgao: 'ANEEL',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Energia Elétrica': 10, 'Regulação': 9, 'Direito Administrativo': 7,
@@ -445,7 +447,7 @@ const SEED_CONCURSOS = [
     name: 'Analista do Tesouro Nacional',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Secretaria do Tesouro Nacional',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Administração Financeira e Orçamentária': 10, 'Contabilidade Pública': 9,
@@ -457,7 +459,7 @@ const SEED_CONCURSOS = [
     name: 'Controlador de Tráfego Aéreo',
     banca: 'CESPE/CEBRASPE',
     orgao: 'DECEA',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Navegação Aérea': 10, 'Meteorologia': 8, 'Inglês Técnico': 9,
@@ -469,7 +471,7 @@ const SEED_CONCURSOS = [
     name: 'Analista Judiciário - TJ/RJ',
     banca: 'FGV',
     orgao: 'Tribunal de Justiça do Rio de Janeiro',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Constitucional': 9, 'Direito Administrativo': 9, 'Direito Civil': 8,
@@ -481,7 +483,7 @@ const SEED_CONCURSOS = [
     name: 'Analista Judiciário - TJ/MG',
     banca: 'CONSULPLAN',
     orgao: 'Tribunal de Justiça de Minas Gerais',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Constitucional': 9, 'Direito Administrativo': 8, 'Direito Civil': 8,
@@ -493,7 +495,7 @@ const SEED_CONCURSOS = [
     name: 'Analista de Comércio Exterior - MDIC',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Ministério do Desenvolvimento, Indústria e Comércio',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Comércio Internacional': 10, 'Economia Internacional': 9, 'Direito Aduaneiro': 8,
@@ -505,7 +507,7 @@ const SEED_CONCURSOS = [
     name: 'Auditor Fiscal Municipal - ISS/SP',
     banca: 'FCC',
     orgao: 'Prefeitura de São Paulo',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Tributário': 10, 'Contabilidade': 9, 'Legislação Municipal': 8,
@@ -517,7 +519,7 @@ const SEED_CONCURSOS = [
     name: 'Defensor Público do Estado - DPE/SP',
     banca: 'FCC',
     orgao: 'Defensoria Pública do Estado de São Paulo',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Constitucional': 10, 'Direitos Humanos': 9, 'Direito Penal': 8,
@@ -529,7 +531,7 @@ const SEED_CONCURSOS = [
     name: 'Delegado de Polícia Civil - PC/SP',
     banca: 'VUNESP',
     orgao: 'Polícia Civil de São Paulo',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Penal': 10, 'Direito Processual Penal': 10, 'Direito Constitucional': 8,
@@ -541,7 +543,7 @@ const SEED_CONCURSOS = [
     name: 'Investigador de Polícia - PC/SP',
     banca: 'VUNESP',
     orgao: 'Polícia Civil de São Paulo',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Penal': 9, 'Direito Processual Penal': 9, 'Direito Constitucional': 7,
@@ -553,7 +555,7 @@ const SEED_CONCURSOS = [
     name: 'Analista - CGU',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Controladoria-Geral da União',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Auditoria': 10, 'Contabilidade': 9, 'Direito Administrativo': 8,
@@ -565,7 +567,7 @@ const SEED_CONCURSOS = [
     name: 'Analista do Seguro Social - Serviço Social',
     banca: 'CESPE/CEBRASPE',
     orgao: 'INSS',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Serviço Social': 10, 'Direito Previdenciário': 9, 'Política Social': 8,
@@ -577,7 +579,7 @@ const SEED_CONCURSOS = [
     name: 'Analista em Tecnologia da Informação - SERPRO',
     banca: 'CESPE/CEBRASPE',
     orgao: 'SERPRO',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Desenvolvimento de Software': 10, 'Banco de Dados': 9, 'Redes': 8,
@@ -589,7 +591,7 @@ const SEED_CONCURSOS = [
     name: 'Analista de TI - DATAPREV',
     banca: 'CESPE/CEBRASPE',
     orgao: 'DATAPREV',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Desenvolvimento de Software': 10, 'Banco de Dados': 8, 'Infraestrutura': 7,
@@ -601,7 +603,7 @@ const SEED_CONCURSOS = [
     name: 'Analista Judiciário - TRE',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Tribunal Regional Eleitoral',
-    year: 2025,
+    year: CURRENT_YEAR,
     metadata: {
       topicFrequency: {
         'Direito Eleitoral': 10, 'Direito Constitucional': 9, 'Direito Administrativo': 8,
