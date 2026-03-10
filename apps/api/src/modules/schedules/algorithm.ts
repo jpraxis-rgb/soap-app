@@ -212,14 +212,31 @@ export function generateScheduleBlocks(
 }
 
 /**
+ * Performance multiplier based on average self-rating.
+ * Lower ratings get more study time, higher ratings less.
+ * Rating scale is 1-3 (poor, ok, good).
+ */
+export function performanceMultiplier(avgRating: number): number {
+  if (avgRating <= 1) return 1.5;
+  if (avgRating <= 1.5) return 1.3;
+  if (avgRating <= 2) return 1.0;
+  if (avgRating <= 2.5) return 0.85;
+  return 0.7;
+}
+
+/**
  * Recalculate schedule taking completed sessions into account.
  * Subtracts completed time from each disciplina/topic allocation and
  * redistributes remaining blocks.
+ *
+ * When performanceData is provided, disciplinas with low self-ratings
+ * get more study time and those with high ratings get less.
  */
 export function recalculateSchedule(
   disciplinas: DisciplinaInput[],
   config: ScheduleConfig,
   completedSessions: CompletedSession[],
+  performanceData?: Map<string, number>, // disciplinaId → avg self_rating (1-3)
 ): GeneratedBlock[] {
   if (disciplinas.length === 0 || config.hoursPerWeek <= 0) {
     return [];
@@ -267,7 +284,12 @@ export function recalculateSchedule(
 
     if (remainingMinutes >= MIN_BLOCK_MINUTES) {
       // Recalculate effective weight based on remaining work
-      const effectiveWeight = (remainingMinutes / totalAvailableMinutes) * totalWeight;
+      let effectiveWeight = (remainingMinutes / totalAvailableMinutes) * totalWeight;
+
+      // Apply performance multiplier if available
+      const rating = performanceData?.get(disciplina.id);
+      const perfMultiplier = rating !== undefined ? performanceMultiplier(rating) : 1.0;
+      effectiveWeight = effectiveWeight * perfMultiplier;
 
       // Filter out fully-covered topics
       const remainingTopics = disciplina.topics.filter((topic) => {

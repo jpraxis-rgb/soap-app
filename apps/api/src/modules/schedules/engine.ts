@@ -1,4 +1,4 @@
-import { eq, and, gte } from 'drizzle-orm';
+import { eq, and, gte, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { editais, disciplinas, scheduleBlocks, studySessions } from '../../db/schema.js';
 import {
@@ -226,7 +226,24 @@ export async function recalculateExistingSchedule(
     examDate: new Date(examDate),
   };
 
-  const newBlocks = recalculateSchedule(disciplinaInputs, config, completedSessions);
+  // Get avg self-rating per disciplina
+  const ratingResults = await db
+    .select({
+      disciplinaId: studySessions.disciplinaId,
+      avgRating: sql<number>`avg(${studySessions.selfRating})`,
+    })
+    .from(studySessions)
+    .where(eq(studySessions.userId, userId))
+    .groupBy(studySessions.disciplinaId);
+
+  const performanceData = new Map<string, number>();
+  for (const r of ratingResults) {
+    if (r.disciplinaId && r.avgRating) {
+      performanceData.set(r.disciplinaId, Number(r.avgRating));
+    }
+  }
+
+  const newBlocks = recalculateSchedule(disciplinaInputs, config, completedSessions, performanceData);
 
   // Delete future pending blocks (date >= today, keep completed/skipped and past pending)
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
