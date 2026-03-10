@@ -18,6 +18,8 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { SubscriptionScreen } from '../screens/SubscriptionScreen';
 import { WelcomeScreen, SignUpScreen, SignInScreen } from '../screens/Onboarding';
+import { PaywallScreen } from '../screens/PaywallScreen';
+import { CurationScreen } from '../screens/CurationScreen';
 
 const AuthStackNav = createNativeStackNavigator();
 const HomeStackNav = createNativeStackNavigator();
@@ -116,6 +118,16 @@ function StudyStack() {
         component={QuizScreen}
         options={{ title: 'Quiz' }}
       />
+      <StudyStackNav.Screen
+        name="Paywall"
+        component={PaywallScreen}
+        options={{ title: 'Planos' }}
+      />
+      <StudyStackNav.Screen
+        name="Curation"
+        component={CurationScreen}
+        options={{ title: 'Curadoria' }}
+      />
     </StudyStackNav.Navigator>
   );
 }
@@ -137,6 +149,11 @@ function ProfileStack() {
         name="Subscription"
         component={SubscriptionScreen}
         options={{ title: 'Assinatura' }}
+      />
+      <ProfileStackNav.Screen
+        name="PaywallProfile"
+        component={PaywallScreen}
+        options={{ title: 'Planos' }}
       />
     </ProfileStackNav.Navigator>
   );

@@ -1,0 +1,134 @@
+Agent 0 (Architect) is already complete. The project skeleton exists on main with:
+- Monorepo: /apps/mobile, /apps/api, /packages/shared
+- PostgreSQL schema + migrations
+- Shared TypeScript types
+- API route stubs (501 handlers)
+- React Native tab navigation (Home, Progresso, Estudar, Perfil)
+- Design system with gradient premium dark theme
+- Auth middleware stub
+
+Your job is to orchestrate Waves 2 through 4 — building all features, reviewing, and fixing.
+
+Read these docs first:
+- ./docs/SOAP Product Brief - Phase 1.docx (full product spec)
+- ./docs/SOAP - Agent Architecture.md (agent plan and merge order)
+
+---
+
+## WAVE 2 — Build (spawn 4 sub-agents in PARALLEL)
+
+First, create 4 git worktrees so agents work in isolation:
+
+```
+git worktree add ../soap-agent1 -b feat/module-1-parser-scheduler
+git worktree add ../soap-agent2 -b feat/module-2-sessions-progress
+git worktree add ../soap-agent3 -b feat/module-3-microlearning
+git worktree add ../soap-agent4 -b feat/auth-payments-settings
+```
+
+Then spawn exactly 4 sub-agents IN PARALLEL using the Task tool (all 4 in a single message). Each sub-agent must:
+
+**Sub-agent 1 — Parser + Schedule (backend only)**
+- Working directory: ../soap-agent1/
+- Read ./docs/agent-1-parser-schedule.txt for full instructions
+- Builds: Gemini API service, edital parser, concurso seeds, schedule engine, unit tests
+- Works ONLY in /apps/api/ and /packages/shared/
+- Commits to feat/module-1-parser-scheduler when done
+
+**Sub-agent 2 — Sessions + Progress (full stack)**
+- Working directory: ../soap-agent2/
+- Read ./docs/agent-2-sessions-progress.txt for full instructions
+- Builds: session CRUD, progress engine, notification stubs, Home screen, session log sheet, progress dashboard
+- Commits to feat/module-2-sessions-progress when done
+
+**Sub-agent 3 — Microlearning Content (full stack)**
+- Working directory: ../soap-agent3/
+- Read ./docs/agent-3-microlearning.txt for full instructions
+- Builds: content engine, SRS engine, quiz engine, study screens (summary, flashcard, quiz, mind map), paywall, professor panel
+- Commits to feat/module-3-microlearning when done
+
+**Sub-agent 4 — Auth + Payments + Settings (full stack)**
+- Working directory: ../soap-agent4/
+- Read ./docs/agent-4-auth-payments.txt for full instructions
+- Builds: auth flow, subscription module, onboarding screens, profile/settings, auth context, subscription gate
+- Commits to feat/auth-payments-settings when done
+
+CRITICAL: None of the sub-agents should modify /packages/shared/types/ — they use the types Agent 0 created.
+
+Wait for ALL 4 sub-agents to complete before proceeding.
+
+---
+
+## WAVE 2.5 — Merge
+
+After all 4 finish, merge in this exact order:
+
+```
+git checkout main
+
+# 1. Auth first (cross-cutting dependency)
+git merge feat/auth-payments-settings
+npm run typecheck  # fix any issues before next merge
+
+# 2. Parser + Schedule (data layer)
+git merge feat/module-1-parser-scheduler
+npm run typecheck
+
+# 3. Sessions + Progress (uses schedule data)
+git merge feat/module-2-sessions-progress
+npm run typecheck
+
+# 4. Microlearning (uses everything above)
+git merge feat/module-3-microlearning
+npm run typecheck
+```
+
+For each merge:
+- Resolve conflicts (likely in: navigation config, API route index, package.json)
+- Run typecheck after each
+- Commit the merge
+
+Clean up worktrees after all merges:
+```
+git worktree remove ../soap-agent1
+git worktree remove ../soap-agent2
+git worktree remove ../soap-agent3
+git worktree remove ../soap-agent4
+```
+
+---
+
+## WAVE 3 — Review (spawn 3 sub-agents in PARALLEL)
+
+Spawn 3 review sub-agents IN PARALLEL using the Task tool:
+
+**Sub-agent 5 — UX Reviewer**
+- Read ./docs/agent-5-ux-reviewer.txt
+- Outputs: /docs/reviews/ux-audit.md
+- Does NOT modify source code
+
+**Sub-agent 6 — PM Auditor**
+- Read ./docs/agent-6-pm-auditor.txt
+- Outputs: /docs/reviews/pm-audit.md
+- Does NOT modify source code
+
+**Sub-agent 7 — SME Validator**
+- Read ./docs/agent-7-sme-validator.txt
+- Outputs: /docs/reviews/sme-validation.md
+- Does NOT modify source code
+
+Wait for all 3 to complete.
+
+---
+
+## WAVE 4 — Fix cycle
+
+Read all reports in /docs/reviews/. Address every item tagged:
+- [P0-BLOCKER] — must fix
+- [P1-FIX] — should fix
+
+Commit each fix separately with a message like: "fix(ux): add empty state to Home screen [P0]"
+
+Run `npm run typecheck` and `npm run test` at the end.
+
+Done.
