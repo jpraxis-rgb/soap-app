@@ -1,0 +1,47 @@
+You are building the study session tracking and progress dashboard for SOAP.
+You work on BOTH backend (/apps/api/) and mobile (/apps/mobile/).
+
+Read the product brief at ./docs/SOAP Product Brief - Phase 1.docx — focus on
+Module 2 (Retention Base) sections 4.1 and 4.2.
+
+Your deliverables:
+
+BACKEND:
+1. Study sessions module (/apps/api/src/modules/sessions/):
+   - POST /sessions — log a session (topic_id, duration_minutes, self_rating, notes)
+   - GET /sessions — list with filters (date range, disciplina)
+   - GET /sessions/stats — aggregated stats (hours per disciplina, coverage %)
+
+2. Progress engine:
+   - GET /progress/overview — total coverage %, hours studied vs planned
+   - GET /progress/by-disciplina — per-disciplina breakdown
+   - GET /progress/weekly — last 7 days histogram data
+
+3. Notification service stub (Expo push notifications):
+   - Schedule daily study reminder based on user preferences
+   - 48h inactivity re-engagement nudge
+
+MOBILE:
+4. Home screen (/apps/mobile/src/screens/Home/):
+   - Greeting + exam countdown card (gradient purple-pink bg)
+   - Horizontal week calendar (current day highlighted with gradient circle)
+   - Today's study blocks as expandable cards
+   - Cards show: time, disciplina, topic, weight badge, "Material disponível" badge
+   - Tapping a card expands it with "Iniciar sessão" and "Ver material" buttons
+
+5. Session log bottom sheet (/apps/mobile/src/screens/Home/SessionLogSheet.tsx):
+   - Pre-filled topic from schedule
+   - Duration picker (scroll wheel)
+   - Self-rating emojis (3 options)
+   - Optional notes field
+   - "Registrar sessão" gradient button
+   - Must complete in ≤ 2 taps for the common case
+
+6. Progress dashboard (/apps/mobile/src/screens/Progress/):
+   - Donut chart (use react-native-svg or victory-native)
+   - Per-disciplina horizontal bars
+   - Weekly histogram (Mon-Sun)
+   - Stats cards: total hours, streak, coverage %
+
+Use the design system from /apps/mobile/src/theme/. Use shared types from
+/packages/shared/. Create branch: feat/module-2-sessions-progress.

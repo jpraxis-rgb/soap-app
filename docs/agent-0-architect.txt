@@ -1,0 +1,33 @@
+You are setting up the project foundation for SOAP, a React Native mobile app
+with a Node.js backend. Your job is ONLY to create the skeleton — no feature
+logic.
+
+Read the product brief at ./docs/SOAP Product Brief - Phase 1.docx for full
+context, but your deliverables are:
+
+1. Monorepo structure: /apps/mobile (React Native), /apps/api (Node.js +
+   Express), /packages/shared (TypeScript types + constants)
+2. PostgreSQL schema covering ALL entities from the brief: users, concursos,
+   editais, disciplinas, schedule_blocks, study_sessions, content_items,
+   flashcard_reviews, quiz_attempts, subscriptions. Use migrations (drizzle-orm
+   or prisma).
+3. Shared TypeScript types that mirror the DB schema.
+4. API route structure with folders for /auth, /editais, /schedules, /sessions,
+   /content, /subscriptions. Each route file exports an Express router with
+   placeholder handlers that return 501.
+5. Auth middleware stub that reads a JWT from Authorization header (actual
+   provider TBD — just decode and attach user to req).
+6. React Native tab navigator with 4 tabs: Home, Progresso, Estudar, Perfil.
+   Each tab has its own stack navigator. Screens are empty placeholders.
+7. Design system in /apps/mobile/src/theme/: colors (dark theme — bg #111119,
+   cards #1A1A2E, accent gradient purple #7C5CFC to pink #FF6B9D, success
+   #00D4AA, warning #FFB347), typography, spacing, and shared components:
+   Button, Card, Badge, BottomSheet, GradientText.
+8. .env.example with all expected vars.
+9. package.json scripts: dev, build, typecheck, lint, test, db:migrate.
+
+Do NOT implement any business logic. Every API handler returns 501. Every screen
+shows only its name. The goal is that 4 other agents can start working in
+parallel on top of this skeleton without conflicts.
+
+Work in the main branch. Commit when done.

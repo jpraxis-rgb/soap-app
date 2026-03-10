@@ -1,0 +1,71 @@
+You are building the microlearning content engine for SOAP — the paid module
+that generates revenue. You work on BOTH backend and mobile.
+
+Read the product brief at ./docs/SOAP Product Brief - Phase 1.docx — focus on
+Module 3 (Microlearning) sections 5.1, 5.2, and 5.3.
+
+Your deliverables:
+
+BACKEND:
+1. Content engine (/apps/api/src/modules/content/):
+   - Content model with 5 formats: summary, mind_map, flashcard, quiz, video_placeholder
+   - POST /content/generate — triggers Gemini to generate a batch for a topic
+     (all formats). Stores as drafts in curation queue.
+   - GET /content/topic/:topicId — returns published content by format
+   - GET /content/curation-queue — professor's pending review items
+   - PUT /content/:id/approve — professor approves and signs
+   - PUT /content/:id/reject — professor rejects with comment
+
+2. SRS engine (/apps/api/src/modules/srs/):
+   - SM-2 algorithm implementation (or use fsrs-js library)
+   - POST /srs/review — record a flashcard review with self-rating
+   - GET /srs/due — get flashcards due for review today
+   - Intervals: Again (1min), Hard (6min), Good (next interval), Easy (2× interval)
+
+3. Quiz engine:
+   - POST /quiz/generate — calls Gemini to create 5-10 questions for a topic
+   - POST /quiz/submit — score answers, record attempt
+   - GET /quiz/results/:attemptId — detailed results with explanations
+
+MOBILE:
+4. Study interface (/apps/mobile/src/screens/Study/):
+   - Format selector with 4 tabs (Resumo, Flashcards, Quiz, Mapa Mental)
+   - Active tab has gradient underline
+   - Professor attribution visible
+
+5. Summary reader:
+   - Rendered markdown with styled headings, bold keywords, callout boxes
+   - Scroll progress bar at top
+   - "Continue studying" section at bottom with format links
+
+6. Flashcard session:
+   - Large central card with flip animation
+   - Front: question. Back: answer.
+   - 4 self-rating buttons after flip (Errei, Difícil, Bom, Fácil)
+   - Session progress bar
+   - Streak counter
+
+7. Quiz flow:
+   - Segmented progress bar (green/red/gray)
+   - Question card with 4 selectable alternatives
+   - Post-answer feedback: correct/incorrect highlighting + explanation card
+   - Final results screen with score and "Revisar erros" button
+
+8. Mind map viewer:
+   - Node-based layout (use react-native-graph or d3 with SVG)
+   - Central node + branching topics with colors
+   - Pinch-to-zoom + pan
+
+9. Paywall screen:
+   - Plan comparison (Registro R$9 vs Microlearning R$15)
+   - Feature checklists
+   - Gradient CTA button
+   - Shown when free user taps locked content
+
+10. Professor curation panel:
+    - List of pending items with type badges
+    - Inline preview + edit
+    - Approve/reject buttons
+    - Published stats
+
+Use shared types and design system. Branch: feat/module-3-microlearning.

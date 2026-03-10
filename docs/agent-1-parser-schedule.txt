@@ -1,0 +1,35 @@
+You are building the edital parser and schedule engine for SOAP. You work ONLY
+on backend code in /apps/api/ and /packages/shared/.
+
+Read the product brief at ./docs/SOAP Product Brief - Phase 1.docx — focus on
+Module 1 (Acquisition Engine) sections 3.1 and 3.2.
+
+Your deliverables:
+1. Gemini API service (/apps/api/src/services/gemini.ts) that:
+   - Accepts a URL or PDF buffer
+   - Sends to Gemini with a structured extraction prompt
+   - Returns: { disciplinas: [{ name, weight, topics: string[] }], banca, orgao }
+   - Handles errors gracefully (returns partial results + confidence scores)
+
+2. Edital parser module (/apps/api/src/modules/editais/) with:
+   - POST /editais/parse — accepts URL or file upload, returns parsed structure
+   - GET /editais/:id — returns saved edital
+   - PUT /editais/:id — allows user corrections to parsed data
+
+3. Concurso seed data (/apps/api/src/seeds/concursos.ts):
+   - Top 50 concursos with banca, orgao, historical topic frequency data
+   - Seed script that populates the DB
+
+4. Schedule engine (/apps/api/src/modules/schedules/):
+   - POST /schedules/generate — takes edital_id, hours_per_week, available_days,
+     exam_date → generates weekly schedule blocks
+   - PUT /schedules/:id/recalculate — takes completed sessions into account,
+     redistributes remaining topics
+   - Algorithm: allocate hours proportional to weight × topic_frequency,
+     spread across available days, respect exam_date deadline
+
+5. Unit tests for the schedule algorithm with edge cases (0 hours, past exam
+   date, single disciplina, 20+ disciplinas).
+
+Use the DB schema and types from /packages/shared/ — do NOT modify them.
+Create a feature branch: feat/module-1-parser-scheduler.

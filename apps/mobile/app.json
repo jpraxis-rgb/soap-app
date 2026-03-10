@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "SOAP",
+    "slug": "soap",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "soap",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.soap.app"
+    },
+    "android": {
+      "package": "com.soap.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#111119"
+      }
+    }
+  }
+}
