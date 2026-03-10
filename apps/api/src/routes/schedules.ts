@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { scheduleBlocks } from '../db/schema.js';
 import { generateSchedule, recalculateExistingSchedule } from '../modules/schedules/engine.js';
@@ -54,7 +54,7 @@ router.post('/generate', async (req: Request, res: Response) => {
       return;
     }
 
-    res.status(201).json(result);
+    res.status(201).json({ data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });
@@ -89,7 +89,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       return;
     }
 
-    res.json(block);
+    res.json({ data: block });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });
@@ -120,7 +120,7 @@ router.put('/:id/recalculate', async (req: Request, res: Response) => {
       return;
     }
 
-    res.json(result);
+    res.json({ data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });

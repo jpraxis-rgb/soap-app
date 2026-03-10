@@ -83,25 +83,41 @@ export class GeminiService {
   }
 
   async parseEditalFromUrl(url: string): Promise<GeminiParseResult> {
+    // First, try to fetch the URL content via HTTP
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        const textContent = await response.text();
+        if (textContent && textContent.trim().length > 0) {
+          return this.parseEditalContent(textContent);
+        }
+      }
+    } catch {
+      // Fetch failed — fall back to asking Gemini to infer from the URL
+    }
+
+    // Fallback: ask Gemini to infer from the URL
     try {
       const model = this.genAI.getGenerativeModel({ model: this.modelName });
-      const prompt = `Acesse o seguinte URL de edital de concurso público e extraia as informações.
-Se não conseguir acessar o URL diretamente, analise a URL para identificar o concurso e forneça informações baseadas no seu conhecimento.
+      const prompt = `A seguinte URL aponta para um edital de concurso público. Não é possível acessar o conteúdo diretamente.
+Analise a URL para identificar o concurso e forneça informações baseadas no seu conhecimento.
 
 URL: ${url}
 
 ${EXTRACTION_PROMPT}`;
 
       const result = await model.generateContent(prompt);
-      const response = result.response;
-      const text = response.text();
+      const geminiResponse = result.response;
+      const text = geminiResponse.text();
       const cleanedText = text
         .replace(/^```json\s*/i, '')
         .replace(/^```\s*/i, '')
         .replace(/\s*```$/i, '')
         .trim();
       const parsed = JSON.parse(cleanedText) as GeminiParseResult;
-      return this.validateAndNormalize(parsed);
+      const normalized = this.validateAndNormalize(parsed);
+      normalized.warnings.push('Content was inferred from URL, not fetched directly. Verify the extracted data.');
+      return normalized;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       return {
@@ -189,7 +205,50 @@ interface MindMapBody {
   branches: Array<{ label: string; color: string; children: Array<{ label: string }> }>;
 }
 
+function isGeminiAvailable(): boolean {
+  return !!process.env.GEMINI_API_KEY;
+}
+
+async function generateWithGemini<T>(prompt: string): Promise<T> {
+  const service = getGeminiService();
+  const model = service['genAI'].getGenerativeModel({ model: service['modelName'] });
+  const result = await model.generateContent(prompt);
+  const text = result.response.text();
+  const cleanedText = text
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+  return JSON.parse(cleanedText) as T;
+}
+
 export async function generateSummary(topic: string, disciplina: string): Promise<{ title: string; body: SummaryBody }> {
+  if (isGeminiAvailable()) {
+    try {
+      const prompt = `Você é um professor especialista em ${disciplina} para concursos públicos brasileiros.
+Gere um resumo detalhado sobre "${topic}" no contexto de ${disciplina}.
+
+Responda APENAS com JSON válido no formato:
+{
+  "title": "Resumo: ${topic}",
+  "body": {
+    "sections": [
+      { "heading": "título da seção", "content": "texto do conteúdo", "keyPoints": ["ponto 1", "ponto 2"] }
+    ],
+    "keyTerms": [
+      { "term": "termo", "definition": "definição" }
+    ]
+  }
+}
+
+Inclua pelo menos 3 seções e 3 termos-chave. Sem markdown, apenas JSON.`;
+      return await generateWithGemini<{ title: string; body: SummaryBody }>(prompt);
+    } catch (error) {
+      console.warn('[GEMINI] Summary generation failed, using stub:', error instanceof Error ? error.message : error);
+    }
+  }
+
+  // Stub fallback
   return {
     title: `Resumo: ${topic}`,
     body: {
@@ -219,7 +278,30 @@ export async function generateSummary(topic: string, disciplina: string): Promis
   };
 }
 
-export async function generateFlashcards(topic: string, _disciplina: string): Promise<{ title: string; body: FlashcardBody }> {
+export async function generateFlashcards(topic: string, disciplina: string): Promise<{ title: string; body: FlashcardBody }> {
+  if (isGeminiAvailable()) {
+    try {
+      const prompt = `Você é um professor especialista em ${disciplina} para concursos públicos brasileiros.
+Gere flashcards sobre "${topic}" no contexto de ${disciplina}.
+
+Responda APENAS com JSON válido no formato:
+{
+  "title": "Flashcards: ${topic}",
+  "body": {
+    "cards": [
+      { "front": "pergunta", "back": "resposta", "hint": "dica opcional" }
+    ]
+  }
+}
+
+Gere pelo menos 5 flashcards. Sem markdown, apenas JSON.`;
+      return await generateWithGemini<{ title: string; body: FlashcardBody }>(prompt);
+    } catch (error) {
+      console.warn('[GEMINI] Flashcard generation failed, using stub:', error instanceof Error ? error.message : error);
+    }
+  }
+
+  // Stub fallback
   return {
     title: `Flashcards: ${topic}`,
     body: {
@@ -234,7 +316,41 @@ export async function generateFlashcards(topic: string, _disciplina: string): Pr
   };
 }
 
-export async function generateQuiz(topic: string, _disciplina: string): Promise<{ title: string; body: QuizBody }> {
+export async function generateQuiz(topic: string, disciplina: string): Promise<{ title: string; body: QuizBody }> {
+  if (isGeminiAvailable()) {
+    try {
+      const prompt = `Você é um professor especialista em ${disciplina} para concursos públicos brasileiros.
+Gere um quiz sobre "${topic}" no contexto de ${disciplina}.
+
+Responda APENAS com JSON válido no formato:
+{
+  "title": "Quiz: ${topic}",
+  "body": {
+    "questions": [
+      {
+        "id": "q1",
+        "question": "texto da pergunta",
+        "alternatives": [
+          { "label": "A", "text": "alternativa A" },
+          { "label": "B", "text": "alternativa B" },
+          { "label": "C", "text": "alternativa C" },
+          { "label": "D", "text": "alternativa D" }
+        ],
+        "correctAnswer": "B",
+        "explanation": "explicação da resposta"
+      }
+    ]
+  }
+}
+
+Gere 5 questões no estilo de concursos públicos. Sem markdown, apenas JSON.`;
+      return await generateWithGemini<{ title: string; body: QuizBody }>(prompt);
+    } catch (error) {
+      console.warn('[GEMINI] Quiz generation failed, using stub:', error instanceof Error ? error.message : error);
+    }
+  }
+
+  // Stub fallback
   return {
     title: `Quiz: ${topic}`,
     body: {
@@ -249,7 +365,31 @@ export async function generateQuiz(topic: string, _disciplina: string): Promise<
   };
 }
 
-export async function generateMindMap(topic: string, _disciplina: string): Promise<{ title: string; body: MindMapBody }> {
+export async function generateMindMap(topic: string, disciplina: string): Promise<{ title: string; body: MindMapBody }> {
+  if (isGeminiAvailable()) {
+    try {
+      const prompt = `Você é um professor especialista em ${disciplina} para concursos públicos brasileiros.
+Gere um mapa mental sobre "${topic}" no contexto de ${disciplina}.
+
+Responda APENAS com JSON válido no formato:
+{
+  "title": "Mapa Mental: ${topic}",
+  "body": {
+    "centralNode": "${topic}",
+    "branches": [
+      { "label": "rótulo", "color": "#hexcolor", "children": [{ "label": "filho" }] }
+    ]
+  }
+}
+
+Use as cores: #7C5CFC, #FF6B9D, #00D4AA, #FFB347. Gere pelo menos 4 ramos. Sem markdown, apenas JSON.`;
+      return await generateWithGemini<{ title: string; body: MindMapBody }>(prompt);
+    } catch (error) {
+      console.warn('[GEMINI] MindMap generation failed, using stub:', error instanceof Error ? error.message : error);
+    }
+  }
+
+  // Stub fallback
   return {
     title: `Mapa Mental: ${topic}`,
     body: {

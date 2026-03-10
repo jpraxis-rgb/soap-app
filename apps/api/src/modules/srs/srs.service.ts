@@ -5,12 +5,18 @@ import * as schema from '../../db/schema.js';
 /**
  * SM-2 Spaced Repetition Algorithm
  *
- * EaseFactor starts at 2.5, minimum 1.3
+ * EaseFactor starts at 2.5, minimum 1.3, maximum 3.5
  * Again: interval=1, ef -= 0.2
  * Hard: interval * 1.2, ef -= 0.15
  * Good: interval * ef
  * Easy: interval * ef * 1.3, ef += 0.15
+ *
+ * Intervals are capped at MAX_INTERVAL_DAYS (180 days).
  */
+
+const MAX_EASE_FACTOR = 3.5;
+const MIN_EASE_FACTOR = 1.3;
+const MAX_INTERVAL_DAYS = 180;
 
 interface SM2Result {
   intervalDays: number;
@@ -29,11 +35,11 @@ export function calculateSM2(
   switch (rating) {
     case 'again':
       interval = 1;
-      ef = Math.max(1.3, ef - 0.2);
+      ef = Math.max(MIN_EASE_FACTOR, ef - 0.2);
       break;
     case 'hard':
       interval = Math.max(1, Math.round(currentInterval * 1.2));
-      ef = Math.max(1.3, ef - 0.15);
+      ef = Math.max(MIN_EASE_FACTOR, ef - 0.15);
       break;
     case 'good':
       interval = currentInterval === 0
@@ -44,12 +50,18 @@ export function calculateSM2(
       interval = currentInterval === 0
         ? 4
         : Math.round(currentInterval * ef * 1.3);
-      ef = ef + 0.15;
+      ef = Math.min(MAX_EASE_FACTOR, ef + 0.15);
       break;
     default:
       interval = 1;
       break;
   }
+
+  // Cap interval at maximum
+  interval = Math.min(interval, MAX_INTERVAL_DAYS);
+
+  // Ensure ease factor stays within bounds
+  ef = Math.min(MAX_EASE_FACTOR, Math.max(MIN_EASE_FACTOR, ef));
 
   const nextReviewAt = new Date();
   nextReviewAt.setDate(nextReviewAt.getDate() + interval);

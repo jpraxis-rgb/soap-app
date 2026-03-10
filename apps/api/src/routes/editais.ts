@@ -36,7 +36,7 @@ router.post('/parse', async (req: Request, res: Response) => {
       concursoId: concurso_id,
     });
 
-    res.status(201).json(result);
+    res.status(201).json({ data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });
@@ -68,7 +68,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       return;
     }
 
-    res.json(result);
+    res.json({ data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });
@@ -104,7 +104,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       return;
     }
 
-    res.json(result);
+    res.json({ data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });

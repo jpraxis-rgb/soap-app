@@ -13,7 +13,7 @@ router.put('/me', async (req: Request, res: Response) => {
     }
 
     const user = await updateProfile(req.user!.id, { name, avatar_url });
-    res.json(user);
+    res.json({ data: user });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update profile';
     res.status(500).json({ error: message });
@@ -25,8 +25,10 @@ router.put('/me/notifications', async (req: Request, res: Response) => {
   // In a real app, store these in a user_preferences table
   const preferences = req.body;
   res.json({
-    message: 'Notification preferences updated',
-    preferences,
+    data: {
+      message: 'Notification preferences updated',
+      preferences,
+    },
   });
 });
 
@@ -41,8 +43,10 @@ router.put('/me/concurso', async (req: Request, res: Response) => {
   }
 
   res.json({
-    message: 'Active concurso updated',
-    concurso_id,
+    data: {
+      message: 'Active concurso updated',
+      concurso_id,
+    },
   });
 });
 

@@ -4,7 +4,6 @@ import {
   createSubscription,
   cancelSubscription,
   getCurrentSubscription,
-  handleWebhook,
 } from '../modules/subscriptions/index.js';
 
 const router = Router();
@@ -19,7 +18,7 @@ router.post('/create', async (req: Request, res: Response) => {
     }
 
     const subscription = await createSubscription(req.user!.id, tier as SubscriptionTier);
-    res.status(201).json(subscription);
+    res.status(201).json({ data: subscription });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create subscription';
     res.status(500).json({ error: message });
@@ -29,7 +28,7 @@ router.post('/create', async (req: Request, res: Response) => {
 router.post('/cancel', async (req: Request, res: Response) => {
   try {
     const subscription = await cancelSubscription(req.user!.id);
-    res.json(subscription);
+    res.json({ data: subscription });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to cancel subscription';
     const status = message === 'No active subscription found' ? 404 : 500;
@@ -40,21 +39,13 @@ router.post('/cancel', async (req: Request, res: Response) => {
 router.get('/current', async (req: Request, res: Response) => {
   try {
     const result = await getCurrentSubscription(req.user!.id);
-    res.json(result);
+    res.json({ data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to get subscription';
     res.status(500).json({ error: message });
   }
 });
 
-router.post('/webhook', async (req: Request, res: Response) => {
-  try {
-    const result = await handleWebhook(req.body);
-    res.json(result);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Webhook processing failed';
-    res.status(500).json({ error: message });
-  }
-});
+// Note: webhook endpoint is now public, registered in app.ts before authMiddleware
 
 export default router;

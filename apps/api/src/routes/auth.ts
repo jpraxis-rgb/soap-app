@@ -11,6 +11,9 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
+// Basic email validation regex
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 router.post('/register', async (req: Request, res: Response) => {
   try {
     const { email, password, name } = req.body;
@@ -20,13 +23,18 @@ router.post('/register', async (req: Request, res: Response) => {
       return;
     }
 
+    if (!EMAIL_REGEX.test(email)) {
+      res.status(400).json({ error: 'Invalid email format' });
+      return;
+    }
+
     if (password.length < 6) {
       res.status(400).json({ error: 'Password must be at least 6 characters' });
       return;
     }
 
     const result = await registerUser(email, password, name);
-    res.status(201).json(result);
+    res.status(201).json({ data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Registration failed';
     const status = message === 'Email already registered' ? 409 : 500;
@@ -44,7 +52,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     const result = await loginUser(email, password);
-    res.json(result);
+    res.json({ data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Login failed';
     res.status(401).json({ error: message });
@@ -61,7 +69,7 @@ router.post('/google', async (req: Request, res: Response) => {
     }
 
     const result = await googleAuth(token);
-    res.json(result);
+    res.json({ data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Google auth failed';
     res.status(500).json({ error: message });
@@ -78,7 +86,7 @@ router.post('/apple', async (req: Request, res: Response) => {
     }
 
     const result = await appleAuth(token);
-    res.json(result);
+    res.json({ data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Apple auth failed';
     res.status(500).json({ error: message });
@@ -95,7 +103,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
     }
 
     const result = await refreshTokenService(refreshToken);
-    res.json(result);
+    res.json({ data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Token refresh failed';
     res.status(401).json({ error: message });
@@ -105,7 +113,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
 router.get('/me', authMiddleware, async (req: Request, res: Response) => {
   try {
     const user = await getMe(req.user!.id);
-    res.json(user);
+    res.json({ data: user });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to get user';
     res.status(500).json({ error: message });

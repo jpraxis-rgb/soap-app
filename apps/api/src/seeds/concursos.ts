@@ -8,7 +8,7 @@ import { concursos } from '../db/schema.js';
 const SEED_CONCURSOS = [
   {
     name: 'Auditor Fiscal da Receita Federal',
-    banca: 'CESPE/CEBRASPE',
+    banca: 'FGV',
     orgao: 'Receita Federal do Brasil',
     year: 2025,
     metadata: {
@@ -395,7 +395,7 @@ const SEED_CONCURSOS = [
   },
   {
     name: 'Analista Tributário da Receita Federal',
-    banca: 'CESPE/CEBRASPE',
+    banca: 'FGV',
     orgao: 'Receita Federal do Brasil',
     year: 2025,
     metadata: {
