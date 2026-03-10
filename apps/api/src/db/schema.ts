@@ -53,6 +53,7 @@ export const disciplinas = pgTable('disciplinas', {
   name: varchar('name', { length: 255 }).notNull(),
   weight: real('weight').notNull(),
   topics: jsonb('topics'),
+  provaType: varchar('prova_type', { length: 20 }),  // 'objetiva' | 'discursiva' | 'mista'
   orderIndex: integer('order_index').notNull(),
   updatedAt: timestamp('updated_at').defaultNow().$onUpdateFn(() => new Date()),
 });
