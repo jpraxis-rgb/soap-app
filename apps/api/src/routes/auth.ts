@@ -1,4 +1,6 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
+import { validateBody } from '../middleware/validate.js';
 import {
   registerUser,
   loginUser,
@@ -11,28 +13,20 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
-// Basic email validation regex
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const registerSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  name: z.string().min(1),
+});
 
-router.post('/register', async (req: Request, res: Response) => {
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+router.post('/register', validateBody(registerSchema), async (req: Request, res: Response) => {
   try {
     const { email, password, name } = req.body;
-
-    if (!email || !password || !name) {
-      res.status(400).json({ error: 'Email, password, and name are required' });
-      return;
-    }
-
-    if (!EMAIL_REGEX.test(email)) {
-      res.status(400).json({ error: 'Invalid email format' });
-      return;
-    }
-
-    if (password.length < 6) {
-      res.status(400).json({ error: 'Password must be at least 6 characters' });
-      return;
-    }
-
     const result = await registerUser(email, password, name);
     res.status(201).json({ data: result });
   } catch (error) {
@@ -42,15 +36,9 @@ router.post('/register', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', validateBody(loginSchema), async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      res.status(400).json({ error: 'Email and password are required' });
-      return;
-    }
-
     const result = await loginUser(email, password);
     res.json({ data: result });
   } catch (error) {

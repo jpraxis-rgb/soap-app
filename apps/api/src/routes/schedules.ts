@@ -1,17 +1,37 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { scheduleBlocks } from '../db/schema.js';
+import { validateBody } from '../middleware/validate.js';
 import { generateSchedule, recalculateExistingSchedule } from '../modules/schedules/engine.js';
 
 const router = Router();
 
+const generateScheduleSchema = z.object({
+  edital_id: z.string().uuid().optional(),
+  editalId: z.string().uuid().optional(),
+  hours_per_week: z.number().min(1).max(80).optional(),
+  hoursPerWeek: z.number().min(1).max(80).optional(),
+  available_days: z.array(z.number().min(0).max(6)).optional(),
+  availableDays: z.array(z.number().min(0).max(6)).optional(),
+  exam_date: z.string().optional(),
+  examDate: z.string().optional(),
+}).transform(data => ({
+  edital_id: data.edital_id ?? data.editalId,
+  hours_per_week: data.hours_per_week ?? data.hoursPerWeek,
+  available_days: data.available_days ?? data.availableDays,
+  exam_date: data.exam_date ?? data.examDate,
+})).refine(data => data.edital_id, { message: 'edital_id is required' })
+  .refine(data => data.hours_per_week, { message: 'hours_per_week is required' })
+  .refine(data => data.available_days && data.available_days.length > 0, { message: 'available_days must be a non-empty array' })
+  .refine(data => data.exam_date, { message: 'exam_date is required' });
+
 /**
  * POST /schedules/generate
  * Generate a study schedule for an edital.
- * Body: { edital_id, hours_per_week, available_days: number[], exam_date: string }
  */
-router.post('/generate', async (req: Request, res: Response) => {
+router.post('/generate', validateBody(generateScheduleSchema), async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -20,23 +40,6 @@ router.post('/generate', async (req: Request, res: Response) => {
     }
 
     const { edital_id, hours_per_week, available_days, exam_date } = req.body;
-
-    if (!edital_id || !hours_per_week || !available_days || !exam_date) {
-      res.status(400).json({
-        error: 'edital_id, hours_per_week, available_days, and exam_date are required',
-      });
-      return;
-    }
-
-    if (!Array.isArray(available_days) || available_days.length === 0) {
-      res.status(400).json({ error: 'available_days must be a non-empty array of day numbers (0-6)' });
-      return;
-    }
-
-    if (typeof hours_per_week !== 'number' || hours_per_week <= 0) {
-      res.status(400).json({ error: 'hours_per_week must be a positive number' });
-      return;
-    }
 
     const result = await generateSchedule({
       userId,
