@@ -2,6 +2,7 @@ import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './src/navigation/AppNavigator';
+import { AuthProvider } from './src/contexts/AuthContext';
 import { colors } from './src/theme';
 
 const theme = {
@@ -24,9 +25,11 @@ const theme = {
 
 export default function App() {
   return (
-    <NavigationContainer theme={theme}>
-      <StatusBar style="light" />
-      <AppNavigator />
-    </NavigationContainer>
+    <AuthProvider>
+      <NavigationContainer theme={theme}>
+        <StatusBar style="light" />
+        <AppNavigator />
+      </NavigationContainer>
+    </AuthProvider>
   );
 }

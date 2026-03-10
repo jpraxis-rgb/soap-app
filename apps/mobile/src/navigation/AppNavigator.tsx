@@ -1,8 +1,10 @@
 import React from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme';
+import { useAuth } from '../contexts/AuthContext';
 
 import { HomeScreen } from '../screens/HomeScreen';
 import { ScheduleDetailScreen } from '../screens/ScheduleDetailScreen';
@@ -15,11 +17,14 @@ import { QuizScreen } from '../screens/QuizScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { SubscriptionScreen } from '../screens/SubscriptionScreen';
+import { WelcomeScreen, SignUpScreen, SignInScreen } from '../screens/Onboarding';
 
+const AuthStackNav = createNativeStackNavigator();
 const HomeStackNav = createNativeStackNavigator();
 const ProgressStackNav = createNativeStackNavigator();
 const StudyStackNav = createNativeStackNavigator();
 const ProfileStackNav = createNativeStackNavigator();
+const RootStackNav = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const screenOptions = {
@@ -27,6 +32,32 @@ const screenOptions = {
   headerTintColor: colors.text,
   headerShadowVisible: false,
 };
+
+function AuthStack() {
+  return (
+    <AuthStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStackNav.Screen name="Welcome" component={WelcomeScreen} />
+      <AuthStackNav.Screen
+        name="SignUp"
+        component={SignUpScreen}
+        options={{
+          ...screenOptions,
+          headerShown: true,
+          title: 'Criar conta',
+        }}
+      />
+      <AuthStackNav.Screen
+        name="SignIn"
+        component={SignInScreen}
+        options={{
+          ...screenOptions,
+          headerShown: true,
+          title: 'Entrar',
+        }}
+      />
+    </AuthStackNav.Navigator>
+  );
+}
 
 function HomeStack() {
   return (
@@ -111,7 +142,7 @@ function ProfileStack() {
   );
 }
 
-export default function AppNavigator() {
+function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -144,5 +175,27 @@ export default function AppNavigator() {
       <Tab.Screen name="Estudar" component={StudyStack} />
       <Tab.Screen name="Perfil" component={ProfileStack} />
     </Tab.Navigator>
+  );
+}
+
+export default function AppNavigator() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
+  }
+
+  return (
+    <RootStackNav.Navigator screenOptions={{ headerShown: false }}>
+      {isAuthenticated ? (
+        <RootStackNav.Screen name="Main" component={MainTabs} />
+      ) : (
+        <RootStackNav.Screen name="Auth" component={AuthStack} />
+      )}
+    </RootStackNav.Navigator>
   );
 }
