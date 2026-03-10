@@ -7,9 +7,12 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "db:migrate": "drizzle-kit migrate",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@soap/shared": "*",
     "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^3.0.3",
@@ -26,6 +29,7 @@
     "@types/jsonwebtoken": "^9.0.7",
     "drizzle-kit": "^0.30.4",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.0.18"
   }
 }
