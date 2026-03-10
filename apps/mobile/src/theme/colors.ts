@@ -8,5 +8,5 @@ export const colors = {
   warning: '#FFB347',
   error: '#FF4757',
   text: '#FFFFFF',
-  textSecondary: '#8888AA',
+  textSecondary: '#9999BB',
 } as const;

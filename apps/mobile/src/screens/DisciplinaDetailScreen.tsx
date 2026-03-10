@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -135,19 +136,36 @@ export function DisciplinaDetailScreen() {
   const [disciplina, setDisciplina] = useState<DisciplinaProgressData | null>(null);
   const [sessions, setSessions] = useState<StudySessionData[]>([]);
   const [topics, setTopics] = useState<{ name: string; completed: boolean }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getDisciplinaDetail(disciplinaId).then((result) => {
-      setDisciplina(result.disciplina);
-      setSessions(result.sessions);
-      setTopics(result.topics);
-    });
+    setLoading(true);
+    setError(null);
+    getDisciplinaDetail(disciplinaId)
+      .then((result) => {
+        setDisciplina(result.disciplina);
+        setSessions(result.sessions);
+        setTopics(result.topics);
+      })
+      .catch(() => setError('Não foi possível carregar a disciplina.'))
+      .finally(() => setLoading(false));
   }, [disciplinaId]);
 
-  if (!disciplina) {
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.accent} />
         <Text style={styles.loadingText}>Carregando...</Text>
+      </View>
+    );
+  }
+
+  if (error || !disciplina) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
+        <Text style={styles.errorText}>{error || 'Erro ao carregar dados.'}</Text>
       </View>
     );
   }
@@ -262,6 +280,13 @@ const styles = StyleSheet.create({
   loadingText: {
     color: colors.textSecondary,
     fontSize: typography.sizes.md,
+    marginTop: spacing.sm,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: typography.sizes.md,
+    textAlign: 'center',
+    marginTop: spacing.sm,
   },
   headerCard: {
     marginHorizontal: spacing.md,

@@ -7,6 +7,10 @@ import { SubscriptionTier } from '@soap/shared';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
+if (!process.env.JWT_SECRET) {
+  console.warn('[AUTH] WARNING: JWT_SECRET not set, using insecure default. Set JWT_SECRET in production.');
+}
+
 declare global {
   namespace Express {
     interface Request {

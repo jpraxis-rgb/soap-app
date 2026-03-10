@@ -16,17 +16,18 @@ export const users = pgTable('users', {
   email: varchar('email', { length: 255 }).unique().notNull(),
   name: varchar('name', { length: 255 }).notNull(),
   avatarUrl: text('avatar_url'),
+  passwordHash: text('password_hash'),
   authProvider: varchar('auth_provider', { length: 50 }).notNull(),
   subscriptionTier: varchar('subscription_tier', { length: 20 }).notNull().default('free'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const concursos = pgTable('concursos', {
   id: uuid('id').primaryKey().defaultRandom(),
-  name: varchar('name', { length: 255 }),
-  banca: varchar('banca', { length: 100 }),
-  orgao: varchar('orgao', { length: 255 }),
+  name: varchar('name', { length: 255 }).notNull(),
+  banca: varchar('banca', { length: 100 }).notNull(),
+  orgao: varchar('orgao', { length: 255 }).notNull(),
   year: integer('year'),
   isActive: boolean('is_active').default(true),
   metadata: jsonb('metadata'),
@@ -47,7 +48,7 @@ export const editais = pgTable('editais', {
 export const disciplinas = pgTable('disciplinas', {
   id: uuid('id').primaryKey().defaultRandom(),
   editalId: uuid('edital_id').references(() => editais.id),
-  name: varchar('name', { length: 255 }),
+  name: varchar('name', { length: 255 }).notNull(),
   weight: real('weight').notNull(),
   topics: jsonb('topics'),
   orderIndex: integer('order_index').notNull(),

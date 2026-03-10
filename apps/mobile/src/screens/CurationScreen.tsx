@@ -6,6 +6,7 @@ import {
   FlatList,
   Pressable,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '../theme';
@@ -34,6 +35,7 @@ const FORMAT_COLORS: Record<string, string> = {
 export function CurationScreen() {
   const [items, setItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,19 +44,25 @@ export function CurationScreen() {
 
   async function loadQueue() {
     setLoading(true);
+    setError(null);
     try {
       const data = await fetchCurationQueue();
       setItems(data);
     } catch {
-      setItems([]);
+      setError('Não foi possível carregar a fila de curadoria.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function handleApprove(id: string) {
-    const result = await approveContent(id);
-    if (result) {
-      setItems((prev) => prev.filter((item) => item.id !== id));
+    try {
+      const result = await approveContent(id);
+      if (result) {
+        setItems((prev) => prev.filter((item) => item.id !== id));
+      }
+    } catch {
+      Alert.alert('Erro', 'Não foi possível aprovar o conteúdo.');
     }
   }
 
@@ -68,9 +76,13 @@ export function CurationScreen() {
           text: 'Rejeitar',
           style: 'destructive',
           onPress: async () => {
-            const result = await rejectContent(id);
-            if (result) {
-              setItems((prev) => prev.filter((item) => item.id !== id));
+            try {
+              const result = await rejectContent(id);
+              if (result) {
+                setItems((prev) => prev.filter((item) => item.id !== id));
+              }
+            } catch {
+              Alert.alert('Erro', 'Não foi possível rejeitar o conteúdo.');
             }
           },
         },
@@ -159,7 +171,13 @@ export function CurationScreen() {
 
       {loading ? (
         <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
           <Text style={styles.emptyText}>Carregando...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
+          <Text style={styles.emptyText}>{error}</Text>
         </View>
       ) : items.length === 0 ? (
         <View style={styles.emptyContainer}>

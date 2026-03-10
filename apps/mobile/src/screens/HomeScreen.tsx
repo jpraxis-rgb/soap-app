@@ -10,6 +10,7 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -315,9 +316,16 @@ export function HomeScreen() {
   const [blocks, setBlocks] = useState<ScheduleBlockData[]>([]);
   const [sessionBlock, setSessionBlock] = useState<ScheduleBlockData | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   React.useEffect(() => {
-    getTodayScheduleBlocks().then(setBlocks);
+    setLoading(true);
+    setError(null);
+    getTodayScheduleBlocks()
+      .then(setBlocks)
+      .catch(() => setError('Não foi possível carregar os blocos de hoje.'))
+      .finally(() => setLoading(false));
   }, []);
 
   // Exam countdown - mock date 90 days from now
@@ -345,8 +353,39 @@ export function HomeScreen() {
     setSheetVisible(false);
     setSessionBlock(null);
     // Refresh blocks
-    getTodayScheduleBlocks().then(setBlocks);
+    getTodayScheduleBlocks().then(setBlocks).catch(() => {});
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.accent} />
+        <Text style={styles.loadingText}>Carregando...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
+        <Text style={styles.errorText}>{error}</Text>
+        <Pressable
+          onPress={() => {
+            setLoading(true);
+            setError(null);
+            getTodayScheduleBlocks()
+              .then(setBlocks)
+              .catch(() => setError('Não foi possível carregar os blocos de hoje.'))
+              .finally(() => setLoading(false));
+          }}
+          style={styles.retryButton}
+        >
+          <Text style={styles.retryText}>Tentar novamente</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -517,5 +556,35 @@ const styles = StyleSheet.create({
   emptySubtext: {
     color: colors.textSecondary,
     fontSize: typography.sizes.sm,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  loadingText: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.md,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: typography.sizes.md,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  retryButton: {
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  retryText: {
+    color: colors.accent,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
   },
 });

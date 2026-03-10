@@ -167,7 +167,7 @@ function MainTabs() {
         tabBarIcon: ({ color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
-          if (route.name === 'Home') {
+          if (route.name === 'Home' || route.name === 'Início') {
             iconName = 'home';
           } else if (route.name === 'Progresso') {
             iconName = 'stats-chart';
@@ -187,7 +187,7 @@ function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeStack} />
+      <Tab.Screen name="Home" component={HomeStack} options={{ title: 'Início' }} />
       <Tab.Screen name="Progresso" component={ProgressStack} />
       <Tab.Screen name="Estudar" component={StudyStack} />
       <Tab.Screen name="Perfil" component={ProfileStack} />

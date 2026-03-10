@@ -5,6 +5,7 @@ import {
   TextInput,
   StyleSheet,
   Pressable,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography } from '../theme';
@@ -54,8 +55,8 @@ export function SessionLogSheet({
         started_at: new Date().toISOString(),
       });
       onSessionLogged();
-    } catch (error) {
-      console.error('Error logging session:', error);
+    } catch (err) {
+      Alert.alert('Erro', 'Não foi possível registrar a sessão. Tente novamente.');
     } finally {
       setLoading(false);
     }

@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -317,17 +318,45 @@ export function ProgressScreen() {
   const [overview, setOverview] = useState<ProgressOverviewData | null>(null);
   const [disciplinas, setDisciplinas] = useState<DisciplinaProgressData[]>([]);
   const [weekly, setWeekly] = useState<WeeklyHistogramData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getProgressOverview().then(setOverview);
-    getProgressByDisciplina().then(setDisciplinas);
-    getWeeklyProgress().then(setWeekly);
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [ov, disc, wk] = await Promise.all([
+          getProgressOverview(),
+          getProgressByDisciplina(),
+          getWeeklyProgress(),
+        ]);
+        setOverview(ov);
+        setDisciplinas(disc);
+        setWeekly(wk);
+      } catch {
+        setError('Não foi possível carregar o progresso.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
 
-  if (!overview) {
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.accent} />
         <Text style={styles.loadingText}>Carregando...</Text>
+      </View>
+    );
+  }
+
+  if (error || !overview) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
+        <Text style={styles.errorText}>{error || 'Erro ao carregar dados.'}</Text>
       </View>
     );
   }
@@ -434,6 +463,13 @@ const styles = StyleSheet.create({
   loadingText: {
     color: colors.textSecondary,
     fontSize: typography.sizes.md,
+    marginTop: spacing.sm,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: typography.sizes.md,
+    textAlign: 'center',
+    marginTop: spacing.sm,
   },
   statsRow: {
     flexDirection: 'row',

@@ -11,14 +11,40 @@ import progressRoutes from './routes/progress';
 import srsRoutes from './modules/srs/srs.routes';
 import quizRoutes from './modules/quiz/quiz.routes';
 import { authMiddleware } from './middleware/auth';
+import { handleWebhook } from './modules/subscriptions/index.js';
 
 export const app = express();
 
-app.use(cors());
+// CORS configuration
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',')
+  : ['http://localhost:3000', 'http://localhost:8081', 'http://localhost:19006'];
+
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? allowedOrigins
+    : true, // Allow all origins in development
+}));
 app.use(express.json());
+
+// Health check
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // Public routes
 app.use('/api/v1/auth', authRoutes);
+
+// Public webhook endpoint (payment providers can't send JWTs)
+app.post('/api/v1/subscriptions/webhook', async (req, res) => {
+  try {
+    const result = await handleWebhook(req.body);
+    res.json({ data: result });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Webhook processing failed';
+    res.status(500).json({ error: message });
+  }
+});
 
 // Protected routes
 app.use('/api/v1/editais', authMiddleware, editaisRoutes);

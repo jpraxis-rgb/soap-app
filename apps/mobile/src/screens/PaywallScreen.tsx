@@ -27,7 +27,7 @@ interface Plan {
 const PLANS: Plan[] = [
   {
     name: 'Registro',
-    price: 'R$ 9',
+    price: 'R$ 19,90',
     period: '/mês',
     features: [
       { text: 'Upload de editais', included: true },
@@ -42,7 +42,7 @@ const PLANS: Plan[] = [
   },
   {
     name: 'Microlearning',
-    price: 'R$ 15',
+    price: 'R$ 39,90',
     period: '/mês',
     features: [
       { text: 'Upload de editais', included: true },

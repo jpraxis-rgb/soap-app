@@ -56,8 +56,8 @@ export async function parseEdital(
       .insert(concursos)
       .values({
         name: parseResult.orgao || 'Unknown',
-        banca: parseResult.banca,
-        orgao: parseResult.orgao,
+        banca: parseResult.banca || 'Unknown',
+        orgao: parseResult.orgao || 'Unknown',
         year: new Date().getFullYear(),
       })
       .returning();

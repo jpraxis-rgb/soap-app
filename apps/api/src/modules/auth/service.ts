@@ -5,6 +5,15 @@ import { db } from '../../db/index.js';
 import * as schema from '../../db/schema.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-change-me';
+
+if (!process.env.JWT_SECRET) {
+  console.warn('[AUTH] WARNING: JWT_SECRET not set, using insecure default. Set JWT_SECRET in production.');
+}
+if (!process.env.JWT_REFRESH_SECRET) {
+  console.warn('[AUTH] WARNING: JWT_REFRESH_SECRET not set, using insecure default. Set JWT_REFRESH_SECRET in production.');
+}
+
 // Use seconds: 7 days = 604800, 30 days = 2592000
 const JWT_EXPIRES_IN = 604800;
 const JWT_REFRESH_EXPIRES_IN = 2592000;
@@ -19,11 +28,15 @@ function signToken(payload: TokenPayload, expiresIn: number = JWT_EXPIRES_IN): s
 }
 
 function signRefreshToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN });
+  return jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN });
 }
 
 export function verifyToken(token: string): TokenPayload {
   return jwt.verify(token, JWT_SECRET) as TokenPayload;
+}
+
+export function verifyRefreshToken(token: string): TokenPayload {
+  return jwt.verify(token, JWT_REFRESH_SECRET) as TokenPayload;
 }
 
 export async function registerUser(email: string, password: string, name: string) {
@@ -39,19 +52,16 @@ export async function registerUser(email: string, password: string, name: string
     email,
     name,
     authProvider: 'email',
-    // Store password hash in a convention: we use avatarUrl field is not suitable,
-    // so we store it as part of authProvider metadata. In a real app, add a password_hash column.
-    // For now, we store "email:<hash>" in authProvider to keep schema untouched.
-    avatarUrl: `__pwdhash__:${passwordHash}`,
+    passwordHash,
   }).returning();
 
   const token = signToken({ id: user.id, email: user.email });
-  const refreshToken = signRefreshToken({ id: user.id, email: user.email });
+  const refreshTokenValue = signRefreshToken({ id: user.id, email: user.email });
 
   return {
     user: sanitizeUser(user),
     token,
-    refreshToken,
+    refreshToken: refreshTokenValue,
   };
 }
 
@@ -61,23 +71,22 @@ export async function loginUser(email: string, password: string) {
     throw new Error('Invalid email or password');
   }
 
-  if (!user.avatarUrl?.startsWith('__pwdhash__:')) {
+  if (!user.passwordHash) {
     throw new Error('Invalid email or password');
   }
 
-  const hash = user.avatarUrl.replace('__pwdhash__:', '');
-  const valid = await bcrypt.compare(password, hash);
+  const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
     throw new Error('Invalid email or password');
   }
 
   const token = signToken({ id: user.id, email: user.email });
-  const refreshToken = signRefreshToken({ id: user.id, email: user.email });
+  const refreshTokenValue = signRefreshToken({ id: user.id, email: user.email });
 
   return {
     user: sanitizeUser(user),
     token,
-    refreshToken,
+    refreshToken: refreshTokenValue,
   };
 }
 
@@ -98,12 +107,12 @@ export async function googleAuth(googleToken: string) {
   }
 
   const token = signToken({ id: user.id, email: user.email });
-  const refreshToken = signRefreshToken({ id: user.id, email: user.email });
+  const refreshTokenValue = signRefreshToken({ id: user.id, email: user.email });
 
   return {
     user: sanitizeUser(user),
     token,
-    refreshToken,
+    refreshToken: refreshTokenValue,
   };
 }
 
@@ -123,17 +132,17 @@ export async function appleAuth(appleToken: string) {
   }
 
   const token = signToken({ id: user.id, email: user.email });
-  const refreshToken = signRefreshToken({ id: user.id, email: user.email });
+  const refreshTokenValue = signRefreshToken({ id: user.id, email: user.email });
 
   return {
     user: sanitizeUser(user),
     token,
-    refreshToken,
+    refreshToken: refreshTokenValue,
   };
 }
 
 export async function refreshToken(token: string) {
-  const payload = verifyToken(token);
+  const payload = verifyRefreshToken(token);
   const [user] = await db.select().from(schema.users).where(eq(schema.users.id, payload.id)).limit(1);
   if (!user) {
     throw new Error('User not found');
@@ -177,7 +186,7 @@ function sanitizeUser(user: typeof schema.users.$inferSelect) {
     id: user.id,
     email: user.email,
     name: user.name,
-    avatar_url: user.avatarUrl?.startsWith('__pwdhash__:') ? null : user.avatarUrl,
+    avatar_url: user.avatarUrl,
     auth_provider: user.authProvider,
     subscription_tier: user.subscriptionTier,
     created_at: user.createdAt,

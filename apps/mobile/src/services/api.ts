@@ -229,7 +229,7 @@ const MOCK_SCHEDULE_BLOCKS: ScheduleBlockData[] = [
     id: '1',
     disciplina_id: 'd1',
     disciplina_name: 'Direito Constitucional',
-    topic: 'Principios Fundamentais',
+    topic: 'Princípios Fundamentais',
     scheduled_date: new Date().toISOString().split('T')[0],
     start_time: '08:00',
     duration_minutes: 60,
@@ -252,8 +252,8 @@ const MOCK_SCHEDULE_BLOCKS: ScheduleBlockData[] = [
   {
     id: '3',
     disciplina_id: 'd3',
-    disciplina_name: 'Portugues',
-    topic: 'Concordancia Verbal',
+    disciplina_name: 'Português',
+    topic: 'Concordância Verbal',
     scheduled_date: new Date().toISOString().split('T')[0],
     start_time: '14:00',
     duration_minutes: 30,
@@ -264,8 +264,8 @@ const MOCK_SCHEDULE_BLOCKS: ScheduleBlockData[] = [
   {
     id: '4',
     disciplina_id: 'd4',
-    disciplina_name: 'Raciocinio Logico',
-    topic: 'Proposicoes e Conectivos',
+    disciplina_name: 'Raciocínio Lógico',
+    topic: 'Proposições e Conectivos',
     scheduled_date: new Date().toISOString().split('T')[0],
     start_time: '16:00',
     duration_minutes: 45,
@@ -288,10 +288,10 @@ const MOCK_PROGRESS_OVERVIEW: ProgressOverviewData = {
 const MOCK_DISCIPLINA_PROGRESS: DisciplinaProgressData[] = [
   { disciplina_id: 'd1', disciplina_name: 'Direito Constitucional', weight: 3, hours_planned: 20, hours_studied: 12.5, session_count: 10, avg_rating: 2.3, completed_blocks: 8, total_blocks: 14, progress_percent: 57 },
   { disciplina_id: 'd2', disciplina_name: 'Direito Administrativo', weight: 2, hours_planned: 16, hours_studied: 10, session_count: 8, avg_rating: 2.0, completed_blocks: 7, total_blocks: 12, progress_percent: 58 },
-  { disciplina_id: 'd3', disciplina_name: 'Portugues', weight: 2, hours_planned: 14, hours_studied: 8, session_count: 7, avg_rating: 2.5, completed_blocks: 6, total_blocks: 10, progress_percent: 60 },
-  { disciplina_id: 'd4', disciplina_name: 'Raciocinio Logico', weight: 1, hours_planned: 12, hours_studied: 5, session_count: 5, avg_rating: 1.8, completed_blocks: 3, total_blocks: 8, progress_percent: 38 },
-  { disciplina_id: 'd5', disciplina_name: 'Informatica', weight: 1, hours_planned: 10, hours_studied: 4, session_count: 3, avg_rating: 2.7, completed_blocks: 2, total_blocks: 6, progress_percent: 33 },
-  { disciplina_id: 'd6', disciplina_name: 'Legislacao Especifica', weight: 2, hours_planned: 8, hours_studied: 3, session_count: 2, avg_rating: 2.0, completed_blocks: 2, total_blocks: 6, progress_percent: 33 },
+  { disciplina_id: 'd3', disciplina_name: 'Português', weight: 2, hours_planned: 14, hours_studied: 8, session_count: 7, avg_rating: 2.5, completed_blocks: 6, total_blocks: 10, progress_percent: 60 },
+  { disciplina_id: 'd4', disciplina_name: 'Raciocínio Lógico', weight: 1, hours_planned: 12, hours_studied: 5, session_count: 5, avg_rating: 1.8, completed_blocks: 3, total_blocks: 8, progress_percent: 38 },
+  { disciplina_id: 'd5', disciplina_name: 'Informática', weight: 1, hours_planned: 10, hours_studied: 4, session_count: 3, avg_rating: 2.7, completed_blocks: 2, total_blocks: 6, progress_percent: 33 },
+  { disciplina_id: 'd6', disciplina_name: 'Legislação Específica', weight: 2, hours_planned: 8, hours_studied: 3, session_count: 2, avg_rating: 2.0, completed_blocks: 2, total_blocks: 6, progress_percent: 33 },
 ];
 
 const MOCK_WEEKLY: WeeklyHistogramData[] = (() => {
@@ -376,15 +376,15 @@ export async function getDisciplinaDetail(disciplinaId: string): Promise<{
     return {
       disciplina,
       sessions: [
-        { id: '1', disciplina_id: disciplinaId, topic: 'Principios Fundamentais', duration_minutes: 60, self_rating: 2, started_at: new Date(Date.now() - 86400000).toISOString(), completed_at: new Date(Date.now() - 86400000 + 3600000).toISOString() },
+        { id: '1', disciplina_id: disciplinaId, topic: 'Princípios Fundamentais', duration_minutes: 60, self_rating: 2, started_at: new Date(Date.now() - 86400000).toISOString(), completed_at: new Date(Date.now() - 86400000 + 3600000).toISOString() },
         { id: '2', disciplina_id: disciplinaId, topic: 'Direitos e Garantias', duration_minutes: 45, self_rating: 3, started_at: new Date(Date.now() - 172800000).toISOString(), completed_at: new Date(Date.now() - 172800000 + 2700000).toISOString() },
-        { id: '3', disciplina_id: disciplinaId, topic: 'Organizacao do Estado', duration_minutes: 30, self_rating: 1, started_at: new Date(Date.now() - 259200000).toISOString(), completed_at: new Date(Date.now() - 259200000 + 1800000).toISOString() },
+        { id: '3', disciplina_id: disciplinaId, topic: 'Organização do Estado', duration_minutes: 30, self_rating: 1, started_at: new Date(Date.now() - 259200000).toISOString(), completed_at: new Date(Date.now() - 259200000 + 1800000).toISOString() },
       ],
       topics: [
-        { name: 'Principios Fundamentais', completed: true },
+        { name: 'Princípios Fundamentais', completed: true },
         { name: 'Direitos e Garantias', completed: true },
-        { name: 'Organizacao do Estado', completed: false },
-        { name: 'Organizacao dos Poderes', completed: false },
+        { name: 'Organização do Estado', completed: false },
+        { name: 'Organização dos Poderes', completed: false },
         { name: 'Controle de Constitucionalidade', completed: false },
       ],
     };
