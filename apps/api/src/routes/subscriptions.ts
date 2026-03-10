@@ -1,4 +1,6 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
+import { validateBody } from '../middleware/validate.js';
 import { SubscriptionTier } from '@soap/shared';
 import {
   createSubscription,
@@ -8,15 +10,13 @@ import {
 
 const router = Router();
 
-router.post('/create', async (req: Request, res: Response) => {
+const createSubscriptionSchema = z.object({
+  tier: z.enum(['free', 'premium', 'pro']),
+});
+
+router.post('/create', validateBody(createSubscriptionSchema), async (req: Request, res: Response) => {
   try {
     const { tier } = req.body;
-
-    if (!tier || !Object.values(SubscriptionTier).includes(tier)) {
-      res.status(400).json({ error: 'Valid subscription tier is required' });
-      return;
-    }
-
     const subscription = await createSubscription(req.user!.id, tier as SubscriptionTier);
     res.status(201).json({ data: subscription });
   } catch (error) {

@@ -82,6 +82,7 @@ export interface Disciplina {
   name: string;
   weight: number;
   topics: Record<string, unknown> | null;
+  prova_type?: 'objetiva' | 'discursiva' | 'mista' | null;
   order_index: number;
 }
 
@@ -90,6 +91,7 @@ export interface InsertDisciplina {
   name: string;
   weight: number;
   topics?: Record<string, unknown> | null;
+  prova_type?: 'objetiva' | 'discursiva' | 'mista' | null;
   order_index: number;
 }
 

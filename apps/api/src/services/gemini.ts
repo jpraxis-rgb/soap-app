@@ -6,6 +6,7 @@ export interface ParsedDisciplina {
   name: string;
   weight: number;
   topics: string[];
+  prova_type?: 'objetiva' | 'discursiva' | 'mista' | null;
 }
 
 export interface GeminiParseResult {
@@ -22,8 +23,9 @@ Analise o conteúdo do edital abaixo e extraia as seguintes informações em for
 
 1. "disciplinas": lista de disciplinas/matérias com:
    - "name": nome da disciplina
-   - "weight": peso relativo (número de 1 a 10, baseado na quantidade de questões ou peso indicado no edital)
+   - "weight": peso relativo (número de 1 a 10). Weight represents the relative importance of each disciplina for the exam, from 1 (least important) to 10 (most important). Base this on the number of questions, point value, or explicit weight stated in the edital.
    - "topics": lista de tópicos/assuntos da disciplina
+   - "prova_type": tipo de prova para esta disciplina: "objetiva" (múltipla escolha), "discursiva" (redação/dissertação), ou "mista" (ambos). Use null se não for possível determinar.
 
 2. "banca": nome da banca organizadora (ex: CESPE/CEBRASPE, FCC, FGV, VUNESP, etc.)
 
@@ -34,6 +36,23 @@ Analise o conteúdo do edital abaixo e extraia as seguintes informações em for
 5. "confidence": um número de 0.0 a 1.0 indicando sua confiança na extração
 
 6. "warnings": lista de avisos sobre dados que podem estar incompletos ou ambíguos
+
+Exemplo de estrutura JSON esperada:
+{
+  "disciplinas": [
+    {
+      "name": "Direito Constitucional",
+      "weight": 8,
+      "topics": ["Princípios Fundamentais", "Direitos e Garantias Fundamentais"],
+      "prova_type": "objetiva"
+    }
+  ],
+  "banca": "CESPE/CEBRASPE",
+  "orgao": "Tribunal Regional Federal",
+  "exam_date": "2026-06-15",
+  "confidence": 0.85,
+  "warnings": []
+}
 
 Responda APENAS com o JSON válido, sem markdown ou texto adicional.
 Se não conseguir extrair alguma informação, use null para campos string e array vazio para listas.
@@ -135,14 +154,19 @@ ${EXTRACTION_PROMPT}`;
     const warnings: string[] = raw.warnings || [];
     const disciplinas: ParsedDisciplina[] = [];
     if (Array.isArray(raw.disciplinas)) {
+      const validProvaTypes = ['objetiva', 'discursiva', 'mista'];
       for (const d of raw.disciplinas) {
         if (d && typeof d.name === 'string' && d.name.trim()) {
+          const provaType = typeof d.prova_type === 'string' && validProvaTypes.includes(d.prova_type)
+            ? d.prova_type as 'objetiva' | 'discursiva' | 'mista'
+            : null;
           disciplinas.push({
             name: d.name.trim(),
-            weight: typeof d.weight === 'number' && d.weight > 0 ? d.weight : 1,
+            weight: typeof d.weight === 'number' ? Math.max(1, Math.min(10, d.weight)) : 1,
             topics: Array.isArray(d.topics)
               ? d.topics.filter((t: unknown) => typeof t === 'string' && (t as string).trim())
               : [],
+            prova_type: provaType,
           });
         }
       }
@@ -205,8 +229,9 @@ interface MindMapBody {
   branches: Array<{ label: string; color: string; children: Array<{ label: string }> }>;
 }
 
-function isGeminiAvailable(): boolean {
-  return !!process.env.GEMINI_API_KEY;
+export function isGeminiAvailable(): boolean {
+  const key = process.env.GEMINI_API_KEY;
+  return !!key && key !== 'placeholder';
 }
 
 async function generateWithGemini<T>(prompt: string): Promise<T> {

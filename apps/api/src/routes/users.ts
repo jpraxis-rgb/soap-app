@@ -1,4 +1,7 @@
 import { Router, Request, Response } from 'express';
+import { eq } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { users } from '../db/schema.js';
 import { updateProfile } from '../modules/auth/index.js';
 
 const router = Router();
@@ -48,6 +51,34 @@ router.put('/me/concurso', async (req: Request, res: Response) => {
       concurso_id,
     },
   });
+});
+
+/**
+ * DELETE /users/me
+ * Delete the authenticated user's account.
+ */
+router.delete('/me', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const [deleted] = await db
+      .delete(users)
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!deleted) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    res.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete account' });
+  }
 });
 
 export default router;

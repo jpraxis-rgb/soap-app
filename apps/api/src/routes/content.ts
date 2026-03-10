@@ -1,4 +1,7 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
+import { validateBody } from '../middleware/validate.js';
+import { requireTier } from '../middleware/auth.js';
 import {
   generateContentBatch,
   getContentByTopic,
@@ -8,6 +11,17 @@ import {
 } from '../modules/content/content.service.js';
 
 const router = Router();
+
+const generateContentSchema = z.object({
+  topic: z.string().min(1),
+  disciplina_id: z.string().uuid().optional(),
+  disciplinaId: z.string().uuid().optional(),
+  disciplinaName: z.string().optional(),
+}).transform(data => ({
+  topic: data.topic,
+  disciplinaId: data.disciplina_id ?? data.disciplinaId,
+  disciplinaName: data.disciplinaName,
+}));
 
 // GET /content/topic/:topicId — returns published content by format
 router.get('/topic/:topicId', async (req: Request, res: Response) => {
@@ -25,14 +39,9 @@ router.get('/topic/:topicId', async (req: Request, res: Response) => {
 });
 
 // POST /content/generate — triggers content generation for a topic (all formats)
-router.post('/generate', async (req: Request, res: Response) => {
+router.post('/generate', validateBody(generateContentSchema), async (req: Request, res: Response) => {
   try {
     const { topic, disciplinaId, disciplinaName } = req.body;
-
-    if (!topic || !disciplinaId) {
-      res.status(400).json({ error: 'topic and disciplinaId are required' });
-      return;
-    }
 
     const items = await generateContentBatch(
       topic,
@@ -46,8 +55,8 @@ router.post('/generate', async (req: Request, res: Response) => {
   }
 });
 
-// GET /content/curation-queue — professor's pending review items
-router.get('/curation-queue', async (_req: Request, res: Response) => {
+// GET /content/curation-queue — professor's pending review items (mentor tier required)
+router.get('/curation-queue', requireTier('mentor'), async (_req: Request, res: Response) => {
   try {
     const items = await getCurationQueue();
     res.json({ data: items });
@@ -57,8 +66,8 @@ router.get('/curation-queue', async (_req: Request, res: Response) => {
   }
 });
 
-// PUT /content/:id/approve — professor approves content
-router.put('/:id/approve', async (req: Request, res: Response) => {
+// PUT /content/:id/approve — professor approves content (mentor tier required)
+router.put('/:id/approve', requireTier('mentor'), async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
     const professorId = req.user!.id;
@@ -78,8 +87,8 @@ router.put('/:id/approve', async (req: Request, res: Response) => {
   }
 });
 
-// PUT /content/:id/reject — professor rejects content with comment
-router.put('/:id/reject', async (req: Request, res: Response) => {
+// PUT /content/:id/reject — professor rejects content with comment (mentor tier required)
+router.put('/:id/reject', requireTier('mentor'), async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
     const professorId = req.user!.id;

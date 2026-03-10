@@ -1,14 +1,106 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
+import { eq, and, desc, inArray, asc } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { editais, disciplinas } from '../db/schema.js';
+import { validateBody } from '../middleware/validate.js';
 import { parseEdital, getEditalWithDisciplinas, updateEdital } from '../modules/editais/parser.js';
+import { uploadPdf } from '../middleware/upload.js';
+import { extractTextFromPdf } from '../services/pdf-extract.js';
 
 const router = Router();
+
+const parseEditalSchema = z.object({
+  source_url: z.string().url().optional(),
+  sourceUrl: z.string().url().optional(),
+  source_type: z.enum(['url', 'pdf']).optional(),
+  sourceType: z.enum(['url', 'pdf']).optional(),
+  raw_content: z.string().optional(),
+  rawContent: z.string().optional(),
+  concurso_id: z.string().uuid().optional(),
+  concursoId: z.string().uuid().optional(),
+}).transform(data => ({
+  source_url: data.source_url ?? data.sourceUrl,
+  source_type: data.source_type ?? data.sourceType,
+  raw_content: data.raw_content ?? data.rawContent,
+  concurso_id: data.concurso_id ?? data.concursoId,
+})).refine(data => data.source_url || data.raw_content, {
+  message: 'Either source_url or raw_content must be provided',
+});
+
+const updateEditalSchema = z.object({
+  parsed_data: z.record(z.string(), z.unknown()).optional(),
+  parsedData: z.record(z.string(), z.unknown()).optional(),
+  exam_date: z.string().optional(),
+  examDate: z.string().optional(),
+  status: z.string().optional(),
+  disciplinas: z.array(z.object({
+    name: z.string(),
+    weight: z.number(),
+    topics: z.unknown().optional(),
+    order_index: z.number().optional(),
+    orderIndex: z.number().optional(),
+  })).optional(),
+}).transform(data => ({
+  parsed_data: data.parsed_data ?? data.parsedData,
+  exam_date: data.exam_date ?? data.examDate,
+  status: data.status,
+  disciplinas: data.disciplinas,
+}));
+
+/**
+ * GET /editais
+ * List all editais for the authenticated user.
+ */
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const userEditais = await db
+      .select()
+      .from(editais)
+      .where(eq(editais.userId, userId))
+      .orderBy(desc(editais.updatedAt));
+
+    if (userEditais.length === 0) {
+      res.json([]);
+      return;
+    }
+
+    const editalIds = userEditais.map((e) => e.id);
+    const allDisciplinas = await db
+      .select()
+      .from(disciplinas)
+      .where(inArray(disciplinas.editalId, editalIds))
+      .orderBy(asc(disciplinas.orderIndex));
+
+    const disciplinasByEdital = new Map<string, typeof allDisciplinas>();
+    for (const d of allDisciplinas) {
+      const list = disciplinasByEdital.get(d.editalId!) ?? [];
+      list.push(d);
+      disciplinasByEdital.set(d.editalId!, list);
+    }
+
+    const enriched = userEditais.map((e) => ({
+      ...e,
+      disciplinas: disciplinasByEdital.get(e.id) ?? [],
+    }));
+
+    res.json(enriched);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch editais' });
+  }
+});
 
 /**
  * POST /editais/parse
  * Parse an edital from a URL or uploaded content.
- * Body: { source_url: string, source_type: 'url'|'pdf', raw_content?: string, concurso_id?: string }
  */
-router.post('/parse', async (req: Request, res: Response) => {
+router.post('/parse', validateBody(parseEditalSchema), async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -18,20 +110,10 @@ router.post('/parse', async (req: Request, res: Response) => {
 
     const { source_url, source_type, raw_content, concurso_id } = req.body;
 
-    if (!source_url || !source_type) {
-      res.status(400).json({ error: 'source_url and source_type are required' });
-      return;
-    }
-
-    if (source_type !== 'url' && source_type !== 'pdf') {
-      res.status(400).json({ error: 'source_type must be "url" or "pdf"' });
-      return;
-    }
-
     const result = await parseEdital({
       userId,
       sourceUrl: source_url,
-      sourceType: source_type,
+      sourceType: source_type ?? 'url',
       rawContent: raw_content,
       concursoId: concurso_id,
     });
@@ -39,6 +121,43 @@ router.post('/parse', async (req: Request, res: Response) => {
     res.status(201).json({ data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
+    res.status(500).json({ error: message });
+  }
+});
+
+/**
+ * POST /editais/parse-pdf
+ * Parse an edital from an uploaded PDF file.
+ */
+router.post('/parse-pdf', uploadPdf, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    if (!req.file) {
+      res.status(400).json({ error: 'PDF file is required' });
+      return;
+    }
+
+    const text = await extractTextFromPdf(req.file.buffer);
+    if (!text.trim()) {
+      res.status(400).json({ error: 'Could not extract text from PDF' });
+      return;
+    }
+
+    const result = await parseEdital({
+      userId,
+      sourceUrl: `upload://${req.file.originalname}`,
+      sourceType: 'pdf',
+      rawContent: text,
+    });
+
+    res.status(201).json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to parse PDF edital';
     res.status(500).json({ error: message });
   }
 });
@@ -78,9 +197,8 @@ router.get('/:id', async (req: Request, res: Response) => {
 /**
  * PUT /editais/:id
  * Update an edital (user corrections to parsed data).
- * Body: { parsed_data?, exam_date?, status?, disciplinas? }
  */
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', validateBody(updateEditalSchema), async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -108,6 +226,35 @@ router.put('/:id', async (req: Request, res: Response) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });
+  }
+});
+
+/**
+ * DELETE /editais/:id
+ * Delete an edital owned by the authenticated user.
+ */
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const editalId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const [deleted] = await db
+      .delete(editais)
+      .where(and(eq(editais.id, editalId), eq(editais.userId, userId)))
+      .returning();
+
+    if (!deleted) {
+      res.status(404).json({ error: 'Edital not found' });
+      return;
+    }
+
+    res.json({ message: 'Edital deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete edital' });
   }
 });
 

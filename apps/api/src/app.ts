@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import authRoutes from './routes/auth';
 import editaisRoutes from './routes/editais';
 import schedulesRoutes from './routes/schedules';
@@ -12,8 +13,12 @@ import srsRoutes from './modules/srs/srs.routes';
 import quizRoutes from './modules/quiz/quiz.routes';
 import { authMiddleware } from './middleware/auth';
 import { handleWebhook } from './modules/subscriptions/index.js';
+import { generalLimiter, authLimiter } from './middleware/rate-limit';
 
 export const app = express();
+
+// Security
+app.use(helmet());
 
 // CORS configuration
 const allowedOrigins = process.env.CORS_ORIGINS
@@ -25,7 +30,8 @@ app.use(cors({
     ? allowedOrigins
     : true, // Allow all origins in development
 }));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
+app.use(generalLimiter);
 
 // Health check
 app.get('/health', (_req, res) => {
@@ -33,7 +39,7 @@ app.get('/health', (_req, res) => {
 });
 
 // Public routes
-app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/auth', authLimiter, authRoutes);
 
 // Public webhook endpoint (payment providers can't send JWTs)
 app.post('/api/v1/subscriptions/webhook', async (req, res) => {

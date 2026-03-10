@@ -1,12 +1,41 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
+import { validateBody } from '../middleware/validate.js';
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
+import { studySessions } from '../db/schema.js';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 
 const router = Router();
 
+const createSessionSchema = z.object({
+  schedule_block_id: z.string().uuid().optional(),
+  scheduleBlockId: z.string().uuid().optional(),
+  disciplina_id: z.string().uuid().optional(),
+  disciplinaId: z.string().uuid().optional(),
+  topic: z.string().min(1),
+  duration_minutes: z.number().min(1).optional(),
+  durationMinutes: z.number().min(1).optional(),
+  self_rating: z.number().min(1).max(3).optional(),
+  selfRating: z.number().min(1).max(3).optional(),
+  notes: z.string().optional(),
+  started_at: z.string().optional(),
+  startedAt: z.string().optional(),
+  completed_at: z.string().optional(),
+  completedAt: z.string().optional(),
+}).transform(data => ({
+  schedule_block_id: data.schedule_block_id ?? data.scheduleBlockId,
+  disciplina_id: data.disciplina_id ?? data.disciplinaId,
+  topic: data.topic,
+  duration_minutes: data.duration_minutes ?? data.durationMinutes,
+  self_rating: data.self_rating ?? data.selfRating,
+  notes: data.notes,
+  started_at: data.started_at ?? data.startedAt,
+  completed_at: data.completed_at ?? data.completedAt,
+}));
+
 // POST /sessions — log a study session
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', validateBody(createSessionSchema), async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const {
@@ -163,6 +192,35 @@ router.get('/stats', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching stats:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * DELETE /sessions/:id
+ * Delete a study session owned by the authenticated user.
+ */
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const sessionId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const [deleted] = await db
+      .delete(studySessions)
+      .where(and(eq(studySessions.id, sessionId), eq(studySessions.userId, userId)))
+      .returning();
+
+    if (!deleted) {
+      res.status(404).json({ error: 'Session not found' });
+      return;
+    }
+
+    res.json({ message: 'Session deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete session' });
   }
 });
 

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   generateScheduleBlocks,
   recalculateSchedule,
+  performanceMultiplier,
   type DisciplinaInput,
   type ScheduleConfig,
   type CompletedSession,
@@ -231,6 +232,26 @@ describe('generateScheduleBlocks', () => {
       expect(hours).toBeLessThan(22);
     }
   });
+
+  it('disciplina with weight 0 should get no blocks when others have positive weight', () => {
+    const disciplinas: DisciplinaInput[] = [
+      { id: 'disc-1', name: 'Importante', weight: 5, topics: ['Topic A'] },
+      { id: 'disc-2', name: 'Zero Weight', weight: 0, topics: ['Topic B'] },
+    ];
+    const result = generateScheduleBlocks(disciplinas, defaultConfig);
+    // disc-2 with weight 0 gets 0 proportion of total minutes
+    const disc2Blocks = result.filter((b) => b.disciplinaId === 'disc-2');
+    expect(disc2Blocks.length).toBe(0);
+  });
+
+  it('all disciplinas with weight 0 should return empty', () => {
+    const disciplinas: DisciplinaInput[] = [
+      { id: 'disc-1', name: 'Zero A', weight: 0, topics: ['Topic A'] },
+      { id: 'disc-2', name: 'Zero B', weight: 0, topics: ['Topic B'] },
+    ];
+    const result = generateScheduleBlocks(disciplinas, defaultConfig);
+    expect(result).toEqual([]);
+  });
 });
 
 describe('recalculateSchedule', () => {
@@ -289,5 +310,120 @@ describe('recalculateSchedule', () => {
     const result = recalculateSchedule(singleDisciplina, defaultConfig, completedSessions);
     // Should return empty or very few blocks since everything is done
     expect(result.length).toBeLessThanOrEqual(0);
+  });
+});
+
+describe('proficiency-aware recalculation', () => {
+  const equalWeightDisciplinas: DisciplinaInput[] = [
+    {
+      id: 'disc-a',
+      name: 'Disciplina A',
+      weight: 5,
+      topics: ['Topic A1', 'Topic A2'],
+    },
+    {
+      id: 'disc-b',
+      name: 'Disciplina B',
+      weight: 5,
+      topics: ['Topic B1', 'Topic B2'],
+    },
+  ];
+
+  it('allocates more blocks to low-rated disciplinas', () => {
+    const performanceData = new Map<string, number>();
+    performanceData.set('disc-a', 1); // poor rating
+    performanceData.set('disc-b', 3); // good rating
+
+    const result = recalculateSchedule(
+      equalWeightDisciplinas,
+      defaultConfig,
+      [],
+      performanceData,
+    );
+
+    expect(result.length).toBeGreaterThan(0);
+
+    const minutesA = result
+      .filter((b) => b.disciplinaId === 'disc-a')
+      .reduce((sum, b) => sum + b.durationMinutes, 0);
+    const minutesB = result
+      .filter((b) => b.disciplinaId === 'disc-b')
+      .reduce((sum, b) => sum + b.durationMinutes, 0);
+
+    // disc-a (rating 1, multiplier 1.5) should get more than disc-b (rating 3, multiplier 0.7)
+    expect(minutesA).toBeGreaterThan(minutesB);
+    // The ratio should be roughly 1.5 / 0.7 ≈ 2.14
+    expect(minutesA / minutesB).toBeGreaterThan(1.5);
+  });
+
+  it('no performance data means unchanged behavior', () => {
+    const withoutPerf = recalculateSchedule(
+      equalWeightDisciplinas,
+      defaultConfig,
+      [],
+    );
+    const withUndefined = recalculateSchedule(
+      equalWeightDisciplinas,
+      defaultConfig,
+      [],
+      undefined,
+    );
+
+    // Both should produce the same number of blocks and same distribution
+    expect(withoutPerf.length).toBe(withUndefined.length);
+
+    const minutesWithout: Record<string, number> = {};
+    const minutesUndefined: Record<string, number> = {};
+
+    for (const b of withoutPerf) {
+      minutesWithout[b.disciplinaId] = (minutesWithout[b.disciplinaId] || 0) + b.durationMinutes;
+    }
+    for (const b of withUndefined) {
+      minutesUndefined[b.disciplinaId] = (minutesUndefined[b.disciplinaId] || 0) + b.durationMinutes;
+    }
+
+    expect(minutesWithout).toEqual(minutesUndefined);
+  });
+
+  it('all ratings equal means proportional to weight', () => {
+    const performanceData = new Map<string, number>();
+    performanceData.set('disc-a', 2);
+    performanceData.set('disc-b', 2);
+
+    const withPerf = recalculateSchedule(
+      equalWeightDisciplinas,
+      defaultConfig,
+      [],
+      performanceData,
+    );
+    const withoutPerf = recalculateSchedule(
+      equalWeightDisciplinas,
+      defaultConfig,
+      [],
+    );
+
+    // Rating 2 → multiplier 1.0, so weights stay as-is
+    const minutesWithPerf: Record<string, number> = {};
+    const minutesWithout: Record<string, number> = {};
+
+    for (const b of withPerf) {
+      minutesWithPerf[b.disciplinaId] = (minutesWithPerf[b.disciplinaId] || 0) + b.durationMinutes;
+    }
+    for (const b of withoutPerf) {
+      minutesWithout[b.disciplinaId] = (minutesWithout[b.disciplinaId] || 0) + b.durationMinutes;
+    }
+
+    expect(minutesWithPerf).toEqual(minutesWithout);
+  });
+
+  it('performanceMultiplier returns correct values', () => {
+    expect(performanceMultiplier(1)).toBe(1.5);
+    expect(performanceMultiplier(0.5)).toBe(1.5);
+    expect(performanceMultiplier(1.3)).toBe(1.3);
+    expect(performanceMultiplier(1.5)).toBe(1.3);
+    expect(performanceMultiplier(2)).toBe(1.0);
+    expect(performanceMultiplier(2.3)).toBe(0.85);
+    expect(performanceMultiplier(2.5)).toBe(0.85);
+    expect(performanceMultiplier(3)).toBe(0.7);
   });
 });
