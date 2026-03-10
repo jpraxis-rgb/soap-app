@@ -5,6 +5,8 @@ import { db } from '../db/index.js';
 import { editais } from '../db/schema.js';
 import { validateBody } from '../middleware/validate.js';
 import { parseEdital, getEditalWithDisciplinas, updateEdital } from '../modules/editais/parser.js';
+import { uploadPdf } from '../middleware/upload.js';
+import { extractTextFromPdf } from '../services/pdf-extract.js';
 
 const router = Router();
 
@@ -95,6 +97,43 @@ router.post('/parse', validateBody(parseEditalSchema), async (req: Request, res:
     res.status(201).json({ data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
+    res.status(500).json({ error: message });
+  }
+});
+
+/**
+ * POST /editais/parse-pdf
+ * Parse an edital from an uploaded PDF file.
+ */
+router.post('/parse-pdf', uploadPdf, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    if (!req.file) {
+      res.status(400).json({ error: 'PDF file is required' });
+      return;
+    }
+
+    const text = await extractTextFromPdf(req.file.buffer);
+    if (!text.trim()) {
+      res.status(400).json({ error: 'Could not extract text from PDF' });
+      return;
+    }
+
+    const result = await parseEdital({
+      userId,
+      sourceUrl: `upload://${req.file.originalname}`,
+      sourceType: 'pdf',
+      rawContent: text,
+    });
+
+    res.status(201).json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to parse PDF edital';
     res.status(500).json({ error: message });
   }
 });
