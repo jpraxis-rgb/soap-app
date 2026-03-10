@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
-import { eq, and, gte, sql } from 'drizzle-orm';
+import { eq, and, gte, desc, sql } from 'drizzle-orm';
 
 const router = Router();
 
@@ -150,6 +150,125 @@ router.get('/by-disciplina', async (req: Request, res: Response) => {
     res.json({ data: breakdown });
   } catch (error) {
     console.error('Error fetching disciplina breakdown:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /progress/by-disciplina/:id — detail for a single disciplina
+router.get('/by-disciplina/:id', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const disciplinaId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+    // Get disciplina stats (same pattern as the list, filtered to one)
+    const [stats] = await db
+      .select({
+        disciplinaId: schema.disciplinas.id,
+        disciplinaName: schema.disciplinas.name,
+        weight: schema.disciplinas.weight,
+        topics: schema.disciplinas.topics,
+        plannedMinutes: sql<number>`COALESCE(SUM(${schema.scheduleBlocks.durationMinutes}), 0)`.as('planned_minutes'),
+        totalBlocks: sql<number>`COUNT(${schema.scheduleBlocks.id})`.as('total_blocks'),
+        completedBlocks: sql<number>`SUM(CASE WHEN ${schema.scheduleBlocks.status} = 'completed' THEN 1 ELSE 0 END)`.as('completed_blocks'),
+      })
+      .from(schema.disciplinas)
+      .leftJoin(
+        schema.scheduleBlocks,
+        and(
+          eq(schema.scheduleBlocks.disciplinaId, schema.disciplinas.id),
+          eq(schema.scheduleBlocks.userId, userId),
+        ),
+      )
+      .where(eq(schema.disciplinas.id, disciplinaId))
+      .groupBy(schema.disciplinas.id, schema.disciplinas.name, schema.disciplinas.weight, schema.disciplinas.topics);
+
+    if (!stats) {
+      res.status(404).json({ error: 'Disciplina not found' });
+      return;
+    }
+
+    // Get studied hours for this disciplina
+    const [studied] = await db
+      .select({
+        studiedMinutes: sql<number>`COALESCE(SUM(${schema.studySessions.durationMinutes}), 0)`.as('studied_minutes'),
+        sessionCount: sql<number>`COUNT(${schema.studySessions.id})`.as('session_count'),
+        avgRating: sql<number>`ROUND(COALESCE(AVG(${schema.studySessions.selfRating}), 0), 1)`.as('avg_rating'),
+      })
+      .from(schema.studySessions)
+      .where(
+        and(
+          eq(schema.studySessions.userId, userId),
+          eq(schema.studySessions.disciplinaId, disciplinaId),
+        ),
+      );
+
+    const completed = Number(stats.completedBlocks);
+    const total = Number(stats.totalBlocks);
+
+    const disciplina = {
+      disciplina_id: stats.disciplinaId,
+      disciplina_name: stats.disciplinaName,
+      weight: stats.weight,
+      hours_planned: Math.round((Number(stats.plannedMinutes) / 60) * 10) / 10,
+      hours_studied: studied ? Math.round((Number(studied.studiedMinutes) / 60) * 10) / 10 : 0,
+      session_count: studied ? Number(studied.sessionCount) : 0,
+      avg_rating: studied ? Number(studied.avgRating) : 0,
+      completed_blocks: completed,
+      total_blocks: total,
+      progress_percent: total > 0 ? Math.round((completed / total) * 100) : 0,
+    };
+
+    // Get recent sessions for this disciplina
+    const recentSessions = await db
+      .select({
+        id: schema.studySessions.id,
+        topic: schema.studySessions.topic,
+        duration_minutes: schema.studySessions.durationMinutes,
+        self_rating: schema.studySessions.selfRating,
+        notes: schema.studySessions.notes,
+        started_at: schema.studySessions.startedAt,
+        completed_at: schema.studySessions.completedAt,
+      })
+      .from(schema.studySessions)
+      .where(
+        and(
+          eq(schema.studySessions.userId, userId),
+          eq(schema.studySessions.disciplinaId, disciplinaId),
+        ),
+      )
+      .orderBy(desc(schema.studySessions.startedAt))
+      .limit(20);
+
+    // Cross-reference topics with completed sessions
+    const completedTopics = await db
+      .select({ topic: schema.studySessions.topic })
+      .from(schema.studySessions)
+      .where(
+        and(
+          eq(schema.studySessions.userId, userId),
+          eq(schema.studySessions.disciplinaId, disciplinaId),
+        ),
+      )
+      .groupBy(schema.studySessions.topic);
+
+    const completedTopicSet = new Set(completedTopics.map((t) => t.topic));
+
+    const topicsList = Array.isArray(stats.topics)
+      ? (stats.topics as string[]).map((name: string) => ({
+          name,
+          completed: completedTopicSet.has(name),
+        }))
+      : [];
+
+    res.json({
+      data: {
+        disciplina,
+        sessions: recentSessions,
+        topics: topicsList,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching disciplina detail:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

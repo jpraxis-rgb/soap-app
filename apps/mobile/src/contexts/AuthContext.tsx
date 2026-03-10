@@ -34,6 +34,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   const loadUser = useCallback(async () => {
+    // Dev bypass: try real API first, fall back to mock user
+    if (__DEV__) {
+      try {
+        const result = await authApi.register('dev@soap.app', 'dev12345', 'Dev User')
+          .catch(() => authApi.login('dev@soap.app', 'dev12345'));
+        await tokenStorage.setToken(result.token);
+        await tokenStorage.setRefreshToken(result.refreshToken);
+        setUser(result.user as AuthUser);
+      } catch {
+        // API unreachable, use mock user
+        setUser({
+          id: 'dev-user-1',
+          email: 'dev@soap.app',
+          name: 'Dev User',
+          avatar_url: null,
+          auth_provider: 'email',
+          subscription_tier: 'mentor',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      }
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const token = await tokenStorage.getToken();
       if (!token) {

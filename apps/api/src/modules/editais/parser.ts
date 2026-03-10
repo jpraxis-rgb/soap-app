@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { editais, disciplinas, concursos } from '../../db/schema.js';
-import { GeminiService, getGeminiService } from '../../services/gemini.js';
+import { GeminiService, getGeminiService, isGeminiAvailable } from '../../services/gemini.js';
 import type { GeminiParseResult } from '../../services/gemini.js';
 import { EditalStatus } from '@soap/shared';
 
@@ -39,6 +39,11 @@ export async function parseEdital(
   input: ParseEditalInput,
   geminiService?: GeminiService,
 ): Promise<ParseEditalResult> {
+  // Check Gemini availability before attempting parse
+  if (!geminiService && !isGeminiAvailable()) {
+    throw new Error('GEMINI_API_KEY not configured. Set a valid API key in .env to parse editais.');
+  }
+
   const service = geminiService || getGeminiService();
 
   // Parse with Gemini

@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { eq, and, asc, gte, lte } from 'drizzle-orm';
+import { eq, and, asc, gte, lte, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { scheduleBlocks } from '../db/schema.js';
+import { scheduleBlocks, disciplinas, contentItems } from '../db/schema.js';
 import { validateBody } from '../middleware/validate.js';
 import { generateSchedule, recalculateExistingSchedule } from '../modules/schedules/engine.js';
 
@@ -47,13 +47,29 @@ router.get('/', async (req: Request, res: Response) => {
     if (from) conditions.push(gte(scheduleBlocks.scheduledDate, from as string));
     if (to) conditions.push(lte(scheduleBlocks.scheduledDate, to as string));
 
-    const blocks = await db
-      .select()
+    const rows = await db
+      .select({
+        id: scheduleBlocks.id,
+        disciplina_id: scheduleBlocks.disciplinaId,
+        disciplina_name: disciplinas.name,
+        topic: scheduleBlocks.topic,
+        scheduled_date: scheduleBlocks.scheduledDate,
+        start_time: scheduleBlocks.startTime,
+        duration_minutes: scheduleBlocks.durationMinutes,
+        status: scheduleBlocks.status,
+        weight: disciplinas.weight,
+        has_content: sql<boolean>`EXISTS (
+          SELECT 1 FROM content_items
+          WHERE content_items.disciplina_id = ${scheduleBlocks.disciplinaId}
+            AND content_items.topic = ${scheduleBlocks.topic}
+        )`.as('has_content'),
+      })
       .from(scheduleBlocks)
+      .innerJoin(disciplinas, eq(scheduleBlocks.disciplinaId, disciplinas.id))
       .where(and(...conditions))
       .orderBy(asc(scheduleBlocks.scheduledDate), asc(scheduleBlocks.startTime));
 
-    res.json(blocks);
+    res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch schedule blocks' });
   }
@@ -93,6 +109,54 @@ router.post('/generate', validateBody(generateScheduleSchema), async (req: Reque
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });
+  }
+});
+
+/**
+ * GET /schedules/today
+ * Get today's schedule blocks for the authenticated user.
+ */
+router.get('/today', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const blocks = await db
+      .select({
+        id: scheduleBlocks.id,
+        disciplina_id: scheduleBlocks.disciplinaId,
+        disciplina_name: disciplinas.name,
+        topic: scheduleBlocks.topic,
+        scheduled_date: scheduleBlocks.scheduledDate,
+        start_time: scheduleBlocks.startTime,
+        duration_minutes: scheduleBlocks.durationMinutes,
+        status: scheduleBlocks.status,
+        weight: disciplinas.weight,
+        has_content: sql<boolean>`EXISTS (
+          SELECT 1 FROM content_items
+          WHERE content_items.disciplina_id = ${scheduleBlocks.disciplinaId}
+            AND content_items.topic = ${scheduleBlocks.topic}
+        )`.as('has_content'),
+      })
+      .from(scheduleBlocks)
+      .innerJoin(disciplinas, eq(scheduleBlocks.disciplinaId, disciplinas.id))
+      .where(
+        and(
+          eq(scheduleBlocks.userId, userId),
+          eq(scheduleBlocks.scheduledDate, today),
+        ),
+      )
+      .orderBy(asc(scheduleBlocks.startTime));
+
+    res.json({ data: blocks });
+  } catch (error) {
+    console.error('Error fetching today schedule:', error);
+    res.status(500).json({ error: 'Failed to fetch today\'s schedule' });
   }
 });
 

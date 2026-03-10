@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray, asc } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { editais } from '../db/schema.js';
+import { editais, disciplinas } from '../db/schema.js';
 import { validateBody } from '../middleware/validate.js';
 import { parseEdital, getEditalWithDisciplinas, updateEdital } from '../modules/editais/parser.js';
 import { uploadPdf } from '../middleware/upload.js';
@@ -66,7 +66,31 @@ router.get('/', async (req: Request, res: Response) => {
       .where(eq(editais.userId, userId))
       .orderBy(desc(editais.updatedAt));
 
-    res.json(userEditais);
+    if (userEditais.length === 0) {
+      res.json([]);
+      return;
+    }
+
+    const editalIds = userEditais.map((e) => e.id);
+    const allDisciplinas = await db
+      .select()
+      .from(disciplinas)
+      .where(inArray(disciplinas.editalId, editalIds))
+      .orderBy(asc(disciplinas.orderIndex));
+
+    const disciplinasByEdital = new Map<string, typeof allDisciplinas>();
+    for (const d of allDisciplinas) {
+      const list = disciplinasByEdital.get(d.editalId!) ?? [];
+      list.push(d);
+      disciplinasByEdital.set(d.editalId!, list);
+    }
+
+    const enriched = userEditais.map((e) => ({
+      ...e,
+      disciplinas: disciplinasByEdital.get(e.id) ?? [],
+    }));
+
+    res.json(enriched);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch editais' });
   }

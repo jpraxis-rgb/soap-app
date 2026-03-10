@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '../theme';
 import { Card, Badge } from '../components';
 import { useAuth } from '../contexts/AuthContext';
+import { useConcurso } from '../contexts/ConcursoContext';
 
 const TIER_LABELS: Record<string, string> = {
   free: 'Gratuito',
@@ -28,11 +29,12 @@ const TIER_COLORS: Record<string, string> = {
 };
 
 interface ProfileScreenProps {
-  navigation: { navigate: (screen: string) => void };
+  navigation: { navigate: (screen: string, params?: any) => void };
 }
 
 export function ProfileScreen({ navigation }: ProfileScreenProps) {
   const { user, logout, subscriptionTier } = useAuth();
+  const { concursos, activeConcurso, setActiveConcurso, removeConcurso } = useConcurso();
   const [notifications, setNotifications] = useState({
     studyReminder: true,
     weeklySummary: true,
@@ -77,20 +79,58 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
         </View>
       </Card>
 
-      {/* Active Concurso Card */}
-      <Card header="Concurso Ativo" style={styles.section}>
-        <View style={styles.concursoRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.concursoName}>Nenhum selecionado</Text>
-            <Text style={styles.concursoDetail}>Selecione um concurso para comecar</Text>
+      {/* Concursos Card */}
+      <Card header={`Meus Concursos (${concursos.length})`} style={styles.section}>
+        {concursos.length === 0 ? (
+          <View style={styles.concursoRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.concursoName}>Nenhum concurso</Text>
+              <Text style={styles.concursoDetail}>Importe um edital para começar</Text>
+            </View>
+            <Pressable
+              style={styles.changeButton}
+              onPress={() => navigation.navigate('EditalImport')}
+            >
+              <Text style={styles.changeButtonText}>Importar</Text>
+            </Pressable>
           </View>
-          <Pressable
-            style={styles.changeButton}
-            onPress={() => Alert.alert('Trocar', 'Funcionalidade em breve')}
-          >
-            <Text style={styles.changeButtonText}>Trocar</Text>
-          </Pressable>
-        </View>
+        ) : (
+          <>
+            {concursos.map(c => (
+              <View key={c.id} style={[styles.concursoRow, { borderBottomWidth: 1, borderBottomColor: colors.surface, paddingVertical: spacing.sm }]}>
+                <Pressable style={{ flex: 1 }} onPress={() => setActiveConcurso(c.id)}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                    <Ionicons
+                      name={c.id === activeConcurso?.id ? 'radio-button-on' : 'radio-button-off'}
+                      size={18}
+                      color={c.id === activeConcurso?.id ? colors.accent : colors.textSecondary}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.concursoName} numberOfLines={1}>{c.edital.orgao}</Text>
+                      <Text style={styles.concursoDetail} numberOfLines={1}>{c.edital.cargo}</Text>
+                    </View>
+                  </View>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    Alert.alert('Remover concurso', `Remover ${c.edital.orgao}?`, [
+                      { text: 'Cancelar', style: 'cancel' },
+                      { text: 'Remover', style: 'destructive', onPress: () => removeConcurso(c.id) },
+                    ]);
+                  }}
+                >
+                  <Ionicons name="trash-outline" size={18} color={colors.error} />
+                </Pressable>
+              </View>
+            ))}
+            <Pressable
+              style={[styles.changeButton, { marginTop: spacing.sm, alignSelf: 'flex-start' }]}
+              onPress={() => navigation.navigate('EditalImport')}
+            >
+              <Text style={styles.changeButtonText}>+ Adicionar concurso</Text>
+            </Pressable>
+          </>
+        )}
       </Card>
 
       {/* Notification Toggles */}

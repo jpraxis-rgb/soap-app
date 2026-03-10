@@ -229,8 +229,9 @@ interface MindMapBody {
   branches: Array<{ label: string; color: string; children: Array<{ label: string }> }>;
 }
 
-function isGeminiAvailable(): boolean {
-  return !!process.env.GEMINI_API_KEY;
+export function isGeminiAvailable(): boolean {
+  const key = process.env.GEMINI_API_KEY;
+  return !!key && key !== 'placeholder';
 }
 
 async function generateWithGemini<T>(prompt: string): Promise<T> {

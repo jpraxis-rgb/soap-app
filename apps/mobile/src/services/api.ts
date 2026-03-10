@@ -8,7 +8,7 @@ const TOKEN_KEY = '@soap/auth_token';
 const REFRESH_TOKEN_KEY = '@soap/refresh_token';
 
 // Set this to true to use mock data instead of real API calls
-const USE_MOCK = true;
+const USE_MOCK = false;
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const token = await AsyncStorage.getItem(TOKEN_KEY);
@@ -155,6 +155,41 @@ export const subscriptionsApi = {
   getCurrent: () =>
     request<{ tier: string; subscription: unknown }>('/subscriptions/current'),
 };
+
+// ── Editais API ──────────────────────────────────────
+
+export function parseEdital(sourceUrl: string) {
+  return request<{ data: unknown }>('/editais/parse', {
+    method: 'POST',
+    body: JSON.stringify({ source_url: sourceUrl, source_type: 'url' }),
+  }).then(res => res.data);
+}
+
+export function getEditais() {
+  return request<{ data: unknown[] }>('/editais').then(res => res.data);
+}
+
+export function getEdital(id: string) {
+  return request<{ data: unknown }>(`/editais/${id}`).then(res => res.data);
+}
+
+export function deleteEdital(id: string) {
+  return request<void>(`/editais/${id}`, { method: 'DELETE' });
+}
+
+// ── Schedules API ────────────────────────────────────
+
+export function generateSchedule(params: {
+  edital_id: string;
+  hours_per_week: number;
+  available_days: number[];
+  exam_date: string;
+}) {
+  return request<{ data: unknown }>('/schedules/generate', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  }).then(res => res.data);
+}
 
 // ── Token Storage ─────────────────────────────────────
 
@@ -700,67 +735,95 @@ export interface ContentItem {
 }
 
 export async function fetchContentByTopic(
-  _topicId: string,
+  topicId: string,
   format?: string
 ): Promise<ContentItem[]> {
-  // In production: request<ContentItem[]>(`/content/topic/${_topicId}?format=${format}`)
-  const allItems = [
-    ...MOCK_SUMMARIES,
-    ...MOCK_FLASHCARDS,
-    ...MOCK_QUIZZES,
-    ...MOCK_MIND_MAPS,
-  ] as ContentItem[];
+  if (USE_MOCK) {
+    const allItems = [
+      ...MOCK_SUMMARIES,
+      ...MOCK_FLASHCARDS,
+      ...MOCK_QUIZZES,
+      ...MOCK_MIND_MAPS,
+    ] as ContentItem[];
 
-  if (format) {
-    return allItems.filter((item) => item.format === format);
+    if (format) {
+      return allItems.filter((item) => item.format === format);
+    }
+    return allItems;
   }
-  return allItems;
+  const result = await request<{ data: ContentItem[] }>(`/content/topic/${topicId}${format ? '?format=' + format : ''}`);
+  return result.data;
 }
 
 export async function fetchCurationQueue(): Promise<ContentItem[]> {
-  // In production: request<ContentItem[]>('/content/curation-queue')
-  return MOCK_CURATION_ITEMS as ContentItem[];
+  if (USE_MOCK) {
+    return MOCK_CURATION_ITEMS as ContentItem[];
+  }
+  const result = await request<{ data: ContentItem[] }>('/content/curation-queue');
+  return result.data;
 }
 
 export async function approveContent(id: string): Promise<ContentItem | null> {
-  // In production: request<ContentItem>(`/content/${id}/approve`, { method: 'PUT' })
-  const item = MOCK_CURATION_ITEMS.find((i) => i.id === id);
-  if (item) {
-    return { ...item, status: 'published', professor_name: 'Prof. Maria Santos' } as ContentItem;
+  if (USE_MOCK) {
+    const item = MOCK_CURATION_ITEMS.find((i) => i.id === id);
+    if (item) {
+      return { ...item, status: 'published', professor_name: 'Prof. Maria Santos' } as ContentItem;
+    }
+    return null;
   }
-  return null;
+  const result = await request<{ data: ContentItem }>(`/content/${id}/approve`, { method: 'PUT' });
+  return result.data;
 }
 
 export async function rejectContent(id: string): Promise<ContentItem | null> {
-  const item = MOCK_CURATION_ITEMS.find((i) => i.id === id);
-  if (item) {
-    return { ...item, status: 'rejected', professor_name: 'Prof. Maria Santos' } as ContentItem;
+  if (USE_MOCK) {
+    const item = MOCK_CURATION_ITEMS.find((i) => i.id === id);
+    if (item) {
+      return { ...item, status: 'rejected', professor_name: 'Prof. Maria Santos' } as ContentItem;
+    }
+    return null;
   }
-  return null;
+  const result = await request<{ data: ContentItem }>(`/content/${id}/reject`, { method: 'PUT' });
+  return result.data;
 }
 
 export async function fetchDueFlashcards(): Promise<ContentItem[]> {
-  // In production: request<ContentItem[]>('/srs/due')
-  return MOCK_FLASHCARDS as ContentItem[];
+  if (USE_MOCK) {
+    return MOCK_FLASHCARDS as ContentItem[];
+  }
+  const result = await request<{ data: ContentItem[] }>('/srs/due');
+  return result.data;
 }
 
 export async function submitFlashcardReview(
-  _contentItemId: string,
-  _rating: string
+  contentItemId: string,
+  rating: string
 ): Promise<void> {
-  // In production: request<void>('/srs/review', { method: 'POST', body: JSON.stringify({ contentItemId: _contentItemId, rating: _rating }) })
+  if (USE_MOCK) {
+    return;
+  }
+  await request<void>('/srs/review', {
+    method: 'POST',
+    body: JSON.stringify({ contentItemId, rating }),
+  });
 }
 
 export async function submitQuizAnswers(
-  _contentItemId: string,
-  _answers: Record<string, string>
+  contentItemId: string,
+  answers: Record<string, string>
 ): Promise<{ score: number; totalQuestions: number; answers: Record<string, unknown> }> {
-  // In production: request<...>('/quiz/submit', { method: 'POST', body: JSON.stringify({ contentItemId: _contentItemId, answers: _answers }) })
-  return {
-    score: 3,
-    totalQuestions: 5,
-    answers: {},
-  };
+  if (USE_MOCK) {
+    return {
+      score: 3,
+      totalQuestions: 5,
+      answers: {},
+    };
+  }
+  const result = await request<{ data: { score: number; totalQuestions: number; answers: Record<string, unknown> } }>('/quiz/submit', {
+    method: 'POST',
+    body: JSON.stringify({ contentItemId, answers }),
+  });
+  return result.data;
 }
 
 export { MOCK_SUMMARIES, MOCK_FLASHCARDS, MOCK_QUIZZES, MOCK_MIND_MAPS };

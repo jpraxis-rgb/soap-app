@@ -20,6 +20,10 @@ import { SubscriptionScreen } from '../screens/SubscriptionScreen';
 import { WelcomeScreen, SignUpScreen, SignInScreen } from '../screens/Onboarding';
 import { PaywallScreen } from '../screens/PaywallScreen';
 import { CurationScreen } from '../screens/CurationScreen';
+import { EditalImportScreen } from '../screens/EditalImportScreen';
+import { EditalReviewScreen } from '../screens/EditalReviewScreen';
+import { ScheduleConfigScreen } from '../screens/ScheduleConfigScreen';
+import { SchedulePreviewScreen } from '../screens/SchedulePreviewScreen';
 
 const AuthStackNav = createNativeStackNavigator();
 const HomeStackNav = createNativeStackNavigator();
@@ -73,6 +77,26 @@ function HomeStack() {
         name="ScheduleDetail"
         component={ScheduleDetailScreen}
         options={{ title: 'Cronograma' }}
+      />
+      <HomeStackNav.Screen
+        name="EditalImport"
+        component={EditalImportScreen}
+        options={{ title: 'Importar Edital' }}
+      />
+      <HomeStackNav.Screen
+        name="EditalReview"
+        component={EditalReviewScreen}
+        options={{ title: 'Revisar Edital' }}
+      />
+      <HomeStackNav.Screen
+        name="ScheduleConfig"
+        component={ScheduleConfigScreen as any}
+        options={{ title: 'Configurar Cronograma' }}
+      />
+      <HomeStackNav.Screen
+        name="SchedulePreview"
+        component={SchedulePreviewScreen as any}
+        options={{ title: 'Pré-visualizar' }}
       />
     </HomeStackNav.Navigator>
   );
@@ -154,6 +178,26 @@ function ProfileStack() {
         name="PaywallProfile"
         component={PaywallScreen}
         options={{ title: 'Planos' }}
+      />
+      <ProfileStackNav.Screen
+        name="EditalImport"
+        component={EditalImportScreen}
+        options={{ title: 'Importar Edital' }}
+      />
+      <ProfileStackNav.Screen
+        name="EditalReview"
+        component={EditalReviewScreen}
+        options={{ title: 'Revisar Edital' }}
+      />
+      <ProfileStackNav.Screen
+        name="ScheduleConfig"
+        component={ScheduleConfigScreen as any}
+        options={{ title: 'Configurar Cronograma' }}
+      />
+      <ProfileStackNav.Screen
+        name="SchedulePreview"
+        component={SchedulePreviewScreen as any}
+        options={{ title: 'Pré-visualizar' }}
       />
     </ProfileStackNav.Navigator>
   );

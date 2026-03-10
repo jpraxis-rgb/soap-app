@@ -18,6 +18,7 @@ import { colors, spacing, typography } from '../theme';
 import { Badge, Card } from '../components';
 import { getTodayScheduleBlocks, ScheduleBlockData } from '../services/api';
 import { SessionLogSheet } from './SessionLogSheet';
+import { useConcurso } from '../contexts/ConcursoContext';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -312,21 +313,32 @@ const blockStyles = StyleSheet.create({
 
 // ── Main Home Screen ───────────────────────────────────
 
-export function HomeScreen() {
+interface HomeScreenProps {
+  navigation: { navigate: (screen: string, params?: any) => void };
+}
+
+export function HomeScreen({ navigation }: HomeScreenProps) {
+  const { hasAnyConcurso, hasActiveSchedule, activeConcurso, concursos, setActiveConcurso } = useConcurso();
   const [blocks, setBlocks] = useState<ScheduleBlockData[]>([]);
   const [sessionBlock, setSessionBlock] = useState<ScheduleBlockData | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showConcursoSelector, setShowConcursoSelector] = useState(false);
 
   React.useEffect(() => {
+    if (!hasAnyConcurso || !hasActiveSchedule) {
+      setLoading(false);
+      setBlocks([]);
+      return;
+    }
     setLoading(true);
     setError(null);
     getTodayScheduleBlocks()
       .then(setBlocks)
       .catch(() => setError('Não foi possível carregar os blocos de hoje.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [hasAnyConcurso, hasActiveSchedule, activeConcurso?.id]);
 
   // Exam countdown - mock date 90 days from now
   const examDate = new Date();
@@ -355,6 +367,61 @@ export function HomeScreen() {
     // Refresh blocks
     getTodayScheduleBlocks().then(setBlocks).catch(() => {});
   };
+
+  // Empty state: no concurso imported yet
+  if (!hasAnyConcurso) {
+    return (
+      <View style={styles.container}>
+        <ScrollView contentContainerStyle={styles.emptyContainer}>
+          <Ionicons name="school-outline" size={80} color={colors.surface} />
+          <Text style={styles.emptyTitle}>Bem-vindo ao SOAP!</Text>
+          <Text style={styles.emptyDescription}>
+            Importe seu primeiro edital para começar a estudar de forma inteligente.
+          </Text>
+          <Pressable onPress={() => navigation.navigate('EditalImport')}>
+            <LinearGradient
+              colors={[colors.accent, colors.accentPink]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.importButton}
+            >
+              <Ionicons name="add-circle-outline" size={20} color={colors.text} />
+              <Text style={styles.importButtonText}>Importar edital</Text>
+            </LinearGradient>
+          </Pressable>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // Has concurso but no schedule yet
+  if (!hasActiveSchedule && activeConcurso) {
+    return (
+      <View style={styles.container}>
+        <ScrollView contentContainerStyle={styles.emptyContainer}>
+          <Ionicons name="calendar-outline" size={80} color={colors.surface} />
+          <Text style={styles.emptyTitle}>Edital importado!</Text>
+          <Text style={styles.emptyDescription}>
+            {activeConcurso.edital.orgao} — {activeConcurso.edital.cargo}
+          </Text>
+          <Text style={styles.emptyDescription}>
+            Configure seu cronograma de estudos para começar.
+          </Text>
+          <Pressable onPress={() => navigation.navigate('ScheduleConfig', { edital: activeConcurso.edital, concursoId: activeConcurso.id })}>
+            <LinearGradient
+              colors={[colors.accent, colors.accentPink]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.importButton}
+            >
+              <Ionicons name="calendar" size={20} color={colors.text} />
+              <Text style={styles.importButtonText}>Gerar cronograma</Text>
+            </LinearGradient>
+          </Pressable>
+        </ScrollView>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -390,6 +457,66 @@ export function HomeScreen() {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Concurso Selector (multi-concurso) */}
+        {concursos.length > 1 && (
+          <View style={styles.concursoSelectorWrapper}>
+            <Pressable
+              style={styles.concursoSelector}
+              onPress={() => {
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                setShowConcursoSelector(!showConcursoSelector);
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.concursoSelectorLabel}>Concurso ativo</Text>
+                <Text style={styles.concursoSelectorName} numberOfLines={1}>
+                  {activeConcurso?.edital.orgao} — {activeConcurso?.edital.cargo}
+                </Text>
+              </View>
+              <Ionicons
+                name={showConcursoSelector ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color={colors.textSecondary}
+              />
+            </Pressable>
+            {showConcursoSelector && (
+              <View style={styles.concursoDropdown}>
+                {concursos.map(c => (
+                  <Pressable
+                    key={c.id}
+                    style={[
+                      styles.concursoOption,
+                      c.id === activeConcurso?.id && styles.concursoOptionActive,
+                    ]}
+                    onPress={() => {
+                      setActiveConcurso(c.id);
+                      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                      setShowConcursoSelector(false);
+                    }}
+                  >
+                    <Text style={styles.concursoOptionText} numberOfLines={1}>
+                      {c.edital.orgao} — {c.edital.cargo}
+                    </Text>
+                    {c.id === activeConcurso?.id && (
+                      <Ionicons name="checkmark" size={18} color={colors.accent} />
+                    )}
+                  </Pressable>
+                ))}
+                <Pressable
+                  style={styles.concursoAddOption}
+                  onPress={() => {
+                    setShowConcursoSelector(false);
+                    navigation.navigate('EditalImport');
+                  }}
+                >
+                  <Ionicons name="add-circle-outline" size={18} color={colors.accent} />
+                  <Text style={styles.concursoAddText}>Adicionar concurso</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Greeting */}
         <View style={styles.greeting}>
           <Text style={styles.greetingText}>Bom dia!</Text>
@@ -586,5 +713,96 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxl * 2,
+    gap: spacing.md,
+  },
+  emptyTitle: {
+    color: colors.text,
+    fontSize: typography.sizes.xxl,
+    fontWeight: typography.weights.bold,
+    textAlign: 'center',
+  },
+  emptyDescription: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.md,
+    textAlign: 'center',
+    lineHeight: typography.sizes.md * 1.5,
+  },
+  importButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.xl,
+    borderRadius: 12,
+    marginTop: spacing.md,
+  },
+  importButtonText: {
+    color: colors.text,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+  },
+  concursoSelectorWrapper: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+  },
+  concursoSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: spacing.md,
+  },
+  concursoSelectorLabel: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
+  },
+  concursoSelectorName: {
+    color: colors.text,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    marginTop: 2,
+  },
+  concursoDropdown: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    marginTop: spacing.xs,
+    overflow: 'hidden',
+  },
+  concursoOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surface,
+  },
+  concursoOptionActive: {
+    backgroundColor: colors.surface,
+  },
+  concursoOptionText: {
+    color: colors.text,
+    fontSize: typography.sizes.sm,
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  concursoAddOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+  },
+  concursoAddText: {
+    color: colors.accent,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
   },
 });
