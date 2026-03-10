@@ -231,6 +231,26 @@ describe('generateScheduleBlocks', () => {
       expect(hours).toBeLessThan(22);
     }
   });
+
+  it('disciplina with weight 0 should get no blocks when others have positive weight', () => {
+    const disciplinas: DisciplinaInput[] = [
+      { id: 'disc-1', name: 'Importante', weight: 5, topics: ['Topic A'] },
+      { id: 'disc-2', name: 'Zero Weight', weight: 0, topics: ['Topic B'] },
+    ];
+    const result = generateScheduleBlocks(disciplinas, defaultConfig);
+    // disc-2 with weight 0 gets 0 proportion of total minutes
+    const disc2Blocks = result.filter((b) => b.disciplinaId === 'disc-2');
+    expect(disc2Blocks.length).toBe(0);
+  });
+
+  it('all disciplinas with weight 0 should return empty', () => {
+    const disciplinas: DisciplinaInput[] = [
+      { id: 'disc-1', name: 'Zero A', weight: 0, topics: ['Topic A'] },
+      { id: 'disc-2', name: 'Zero B', weight: 0, topics: ['Topic B'] },
+    ];
+    const result = generateScheduleBlocks(disciplinas, defaultConfig);
+    expect(result).toEqual([]);
+  });
 });
 
 describe('recalculateSchedule', () => {

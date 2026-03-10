@@ -109,6 +109,10 @@ export function generateScheduleBlocks(
   const topicBlocks: Array<{ disciplinaId: string; topic: string; minutes: number }> = [];
 
   for (const disciplina of disciplinas) {
+    if (disciplina.weight <= 0) {
+      continue;
+    }
+
     const proportion = disciplina.weight / totalWeight;
     const disciplinaMinutes = Math.round(totalAvailableMinutes * proportion);
 

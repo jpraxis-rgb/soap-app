@@ -11,7 +11,7 @@
     "build": "npm run build -w packages/shared && npm run build -w apps/api",
     "typecheck": "tsc --noEmit -p packages/shared/tsconfig.json && tsc --noEmit -p apps/api/tsconfig.json",
     "lint": "eslint 'packages/*/src/**/*.ts' 'apps/*/src/**/*.ts'",
-    "test": "echo \"No tests configured yet\"",
+    "test": "npm run test --workspace=apps/api",
     "db:migrate": "npm run db:migrate -w apps/api",
     "db:generate": "npm run db:generate -w apps/api"
   },
