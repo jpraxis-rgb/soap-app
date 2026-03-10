@@ -4,7 +4,7 @@ import GorhomBottomSheet, {
   BottomSheetBackdrop,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
-import { colors } from '../theme';
+import { colors, spacing } from '../theme';
 
 interface BottomSheetProps {
   isVisible: boolean;
@@ -66,6 +66,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: spacing.md,
   },
 });
