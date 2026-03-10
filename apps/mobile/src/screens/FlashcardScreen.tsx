@@ -15,7 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { colors, spacing, typography } from '../theme';
 import { MOCK_FLASHCARDS } from '../services/api';
 
@@ -35,6 +35,7 @@ const RATING_BUTTONS = [
 ];
 
 export function FlashcardScreen() {
+  const navigation = useNavigation();
   const route = useRoute<any>();
   const item = route.params?.item || MOCK_FLASHCARDS[0];
   const cards: FlashcardData[] = (item.body as any)?.cards || [];
@@ -122,6 +123,19 @@ export function FlashcardScreen() {
               <Text style={styles.streakText}>Sequência de {streak} acertos</Text>
             </View>
           )}
+          <Pressable
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <LinearGradient
+              colors={[colors.accent, colors.accentPink]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.backButtonGradient}
+            >
+              <Text style={styles.backButtonText}>Concluir</Text>
+            </LinearGradient>
+          </Pressable>
         </View>
       </View>
     );
@@ -377,5 +391,19 @@ const styles = StyleSheet.create({
     color: colors.warning,
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
+  },
+  backButton: {
+    marginTop: spacing.lg,
+    width: '80%',
+  },
+  backButtonGradient: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  backButtonText: {
+    color: colors.text,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
   },
 });
