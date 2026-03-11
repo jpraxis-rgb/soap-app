@@ -88,32 +88,45 @@ async function tryRefreshToken(): Promise<boolean> {
 
 // ── Auth API ──────────────────────────────────────────
 
+interface AuthResponse { user: unknown; token: string; refreshToken: string }
+
 export const authApi = {
-  register: (email: string, password: string, name: string) =>
-    request<{ user: unknown; token: string; refreshToken: string }>('/auth/register', {
+  register: async (email: string, password: string, name: string) => {
+    const res = await request<{ data: AuthResponse }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, name }),
-    }),
+    });
+    return res.data;
+  },
 
-  login: (email: string, password: string) =>
-    request<{ user: unknown; token: string; refreshToken: string }>('/auth/login', {
+  login: async (email: string, password: string) => {
+    const res = await request<{ data: AuthResponse }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
-    }),
+    });
+    return res.data;
+  },
 
-  googleAuth: (token: string) =>
-    request<{ user: unknown; token: string; refreshToken: string }>('/auth/google', {
+  googleAuth: async (token: string) => {
+    const res = await request<{ data: AuthResponse }>('/auth/google', {
       method: 'POST',
       body: JSON.stringify({ token }),
-    }),
+    });
+    return res.data;
+  },
 
-  appleAuth: (token: string) =>
-    request<{ user: unknown; token: string; refreshToken: string }>('/auth/apple', {
+  appleAuth: async (token: string) => {
+    const res = await request<{ data: AuthResponse }>('/auth/apple', {
       method: 'POST',
       body: JSON.stringify({ token }),
-    }),
+    });
+    return res.data;
+  },
 
-  getMe: () => request<unknown>('/auth/me'),
+  getMe: async () => {
+    const res = await request<{ data: unknown }>('/auth/me');
+    return res.data;
+  },
 };
 
 // ── Users API ─────────────────────────────────────────
@@ -175,6 +188,25 @@ export function getEdital(id: string) {
 
 export function deleteEdital(id: string) {
   return request<void>(`/editais/${id}`, { method: 'DELETE' });
+}
+
+export function updateEditalDisciplinas(
+  editalId: string,
+  cargo: string,
+  disciplinas: Array<{ name: string; weight: number; topics: string[]; orderIndex: number }>,
+) {
+  return request<{ data: unknown }>(`/editais/${editalId}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      parsed_data: { cargo },
+      disciplinas: disciplinas.map((d, i) => ({
+        name: d.name,
+        weight: d.weight,
+        topics: { items: d.topics },
+        order_index: d.orderIndex ?? i,
+      })),
+    }),
+  });
 }
 
 // ── Schedules API ────────────────────────────────────

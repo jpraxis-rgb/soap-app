@@ -31,7 +31,11 @@ Analise o conteúdo do edital abaixo e extraia as seguintes informações em for
 
 3. "orgao": órgão/instituição do concurso
 
-4. "exam_date": data da prova no formato YYYY-MM-DD, se mencionada (null se não encontrada)
+4. "exam_date": data provável de aplicação das provas OBJETIVAS, no formato YYYY-MM-DD.
+   Procure por: "data provável de aplicação", "data de realização da prova", cronograma com datas.
+   Geralmente está no corpo do edital ou no Anexo (cronograma). Se houver datas diferentes
+   para prova objetiva e discursiva, use a da prova objetiva.
+   Se encontrar apenas mês/ano, use dia 01. Retorne null se não encontrar.
 
 5. "confidence": um número de 0.0 a 1.0 indicando sua confiança na extração
 
@@ -71,7 +75,7 @@ export class GeminiService {
       throw new Error('GEMINI_API_KEY is required. Set it via environment variable or constructor parameter.');
     }
     this.genAI = new GoogleGenerativeAI(key);
-    this.modelName = modelName || 'gemini-1.5-flash';
+    this.modelName = modelName || 'gemini-2.0-flash';
   }
 
   async parseEditalContent(content: string): Promise<GeminiParseResult> {

@@ -24,6 +24,7 @@ import { EditalImportScreen } from '../screens/EditalImportScreen';
 import { EditalReviewScreen } from '../screens/EditalReviewScreen';
 import { ScheduleConfigScreen } from '../screens/ScheduleConfigScreen';
 import { SchedulePreviewScreen } from '../screens/SchedulePreviewScreen';
+import { CargoSelectScreen } from '../screens/CargoSelectScreen';
 
 const AuthStackNav = createNativeStackNavigator();
 const HomeStackNav = createNativeStackNavigator();
@@ -82,6 +83,11 @@ function HomeStack() {
         name="EditalImport"
         component={EditalImportScreen}
         options={{ title: 'Importar Edital' }}
+      />
+      <HomeStackNav.Screen
+        name="CargoSelect"
+        component={CargoSelectScreen as any}
+        options={{ title: 'Selecionar Cargo' }}
       />
       <HomeStackNav.Screen
         name="EditalReview"
@@ -183,6 +189,11 @@ function ProfileStack() {
         name="EditalImport"
         component={EditalImportScreen}
         options={{ title: 'Importar Edital' }}
+      />
+      <ProfileStackNav.Screen
+        name="CargoSelect"
+        component={CargoSelectScreen as any}
+        options={{ title: 'Selecionar Cargo' }}
       />
       <ProfileStackNav.Screen
         name="EditalReview"

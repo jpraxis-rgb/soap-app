@@ -24,6 +24,7 @@ interface Disciplina {
   name: string;
   weight: number;
   topics: string[];
+  category?: 'geral' | 'especifico';
 }
 
 interface ParsedEditalData {
@@ -85,6 +86,7 @@ function DisciplinaCard({ disciplina }: { disciplina: Disciplina }) {
 }
 
 function formatDate(dateStr: string): string {
+  if (!dateStr) return 'Data não definida';
   const [year, month, day] = dateStr.split('-');
   return `${day}/${month}/${year}`;
 }
@@ -94,6 +96,12 @@ export function EditalReviewScreen() {
   const navigation = useNavigation<any>();
   const { edital } = route.params as { edital: ParsedEditalData };
   const confidencePercent = Math.round(edital.confidence * 100);
+
+  // Group disciplines by category
+  const gerais = edital.disciplinas.filter(d => d.category === 'geral');
+  const especificos = edital.disciplinas.filter(d => d.category === 'especifico');
+  const uncategorized = edital.disciplinas.filter(d => !d.category);
+  const hasCategories = gerais.length > 0 || especificos.length > 0;
 
   const handleConfirm = () => {
     navigation.navigate('ScheduleConfig', { edital });
@@ -145,16 +153,47 @@ export function EditalReviewScreen() {
           </View>
         </Card>
 
-        {/* Disciplinas Header */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Disciplinas</Text>
-          <Text style={styles.sectionCount}>{edital.disciplinas.length} encontradas</Text>
-        </View>
+        {/* Disciplinas */}
+        {hasCategories ? (
+          <>
+            {/* Conhecimentos Gerais */}
+            {gerais.length > 0 && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Conhecimentos Gerais</Text>
+                  <Text style={styles.sectionCount}>{gerais.length}</Text>
+                </View>
+                {gerais.map((disciplina) => (
+                  <DisciplinaCard key={disciplina.id} disciplina={disciplina} />
+                ))}
+              </>
+            )}
 
-        {/* Disciplina Cards */}
-        {edital.disciplinas.map((disciplina) => (
-          <DisciplinaCard key={disciplina.id} disciplina={disciplina} />
-        ))}
+            {/* Conhecimentos Específicos */}
+            {especificos.length > 0 && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Conhecimentos Espec\u00edficos</Text>
+                  <Text style={styles.sectionCount}>{especificos.length}</Text>
+                </View>
+                {especificos.map((disciplina) => (
+                  <DisciplinaCard key={disciplina.id} disciplina={disciplina} />
+                ))}
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Uncategorized — backwards compatible */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Disciplinas</Text>
+              <Text style={styles.sectionCount}>{uncategorized.length} encontradas</Text>
+            </View>
+            {uncategorized.map((disciplina) => (
+              <DisciplinaCard key={disciplina.id} disciplina={disciplina} />
+            ))}
+          </>
+        )}
 
         <View style={{ height: spacing.xxl + spacing.xxl }} />
       </ScrollView>

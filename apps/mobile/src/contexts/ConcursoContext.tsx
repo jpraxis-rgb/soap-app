@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { parseEdital as apiParseEdital, getEditais, deleteEdital as apiDeleteEdital, generateSchedule } from '../services/api';
+import { parseEdital as apiParseEdital, getEditais, deleteEdital as apiDeleteEdital, generateSchedule, updateEditalDisciplinas } from '../services/api';
 
 const ACTIVE_CONCURSO_KEY = '@soap/active_concurso_id';
 
@@ -9,6 +9,7 @@ export interface ParsedDisciplina {
   name: string;
   weight: number;
   topics: string[];
+  category?: 'geral' | 'especifico';
 }
 
 export interface ParsedEditalData {
@@ -108,6 +109,18 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const confirmEdital = useCallback(async (edital: ParsedEditalData, config: ScheduleConfig) => {
+    // Sync disciplinas to DB before generating schedule
+    await updateEditalDisciplinas(
+      edital.id,
+      edital.cargo,
+      edital.disciplinas.map((d, i) => ({
+        name: d.name,
+        weight: d.weight,
+        topics: d.topics,
+        orderIndex: i,
+      })),
+    );
+
     await generateSchedule({
       edital_id: edital.id,
       hours_per_week: config.hours_per_week,

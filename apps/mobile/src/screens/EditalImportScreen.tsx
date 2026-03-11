@@ -31,7 +31,75 @@ export function EditalImportScreen() {
 
     setLoading(true);
     try {
-      const edital = await parseEdital(url.trim()) as ParsedEditalData;
+      const result = await parseEdital(url.trim()) as any;
+
+      // API returns { edital: { id, parsedData, ... }, disciplinas: [...], warnings: [...] }
+      const parsed = result.edital?.parsedData || result.parsedData || {};
+      const apiDisciplinas = result.disciplinas || [];
+      const cargos: Array<{ name: string; disciplinas: any[] }> = parsed.cargos || [];
+
+      // Helper to normalize disciplina arrays from API
+      const normalizeDisciplinas = (discs: any[]) => discs.map((d: any) => ({
+        id: d.id || `d-${Math.random().toString(36).slice(2)}`,
+        name: d.name || '',
+        weight: d.weight || 1,
+        topics: Array.isArray(d.topics) ? d.topics : d.topics?.items || [],
+      }));
+
+      const sharedDisciplinas = normalizeDisciplinas(apiDisciplinas);
+
+      // Check if parse actually returned useful data
+      const hasCargoDisciplinas = cargos.some(c => c.disciplinas?.length > 0);
+      if (sharedDisciplinas.length === 0 && !hasCargoDisciplinas) {
+        const warnings = result.warnings || parsed.warnings || [];
+        const warningMsg = warnings.length > 0
+          ? warnings[0].replace(/^Gemini.*?:\s*/, '').substring(0, 150)
+          : 'Nenhuma disciplina encontrada no edital.';
+        Alert.alert(
+          'Analise incompleta',
+          `Nao foi possivel extrair disciplinas do edital.\n\n${warningMsg}`,
+        );
+        return;
+      }
+
+      const editalBase = {
+        id: result.edital?.id || result.id || `edital-${Date.now()}`,
+        banca: parsed.banca || '',
+        orgao: parsed.orgao || '',
+        exam_date: parsed.exam_date || result.edital?.examDate || '',
+        confidence: parsed.confidence || 0,
+      };
+
+      // Multiple cargos → show cargo picker
+      if (cargos.length > 1) {
+        const normalizedCargos = cargos.map(c => ({
+          name: c.name,
+          disciplinas: c.disciplinas?.length > 0 ? normalizeDisciplinas(c.disciplinas) : [],
+        }));
+        navigation.navigate('CargoSelect', {
+          editalBase,
+          cargos: normalizedCargos,
+          sharedDisciplinas,
+        });
+        return;
+      }
+
+      // Single cargo or no cargo distinction → merge shared + cargo-specific
+      const cargoDisciplinas = cargos.length === 1 && cargos[0].disciplinas?.length > 0
+        ? normalizeDisciplinas(cargos[0].disciplinas)
+        : [];
+
+      const mergedDisciplinas = [
+        ...sharedDisciplinas.map(d => ({ ...d, category: 'geral' as const })),
+        ...cargoDisciplinas.map(d => ({ ...d, category: 'especifico' as const })),
+      ];
+
+      const edital: ParsedEditalData = {
+        ...editalBase,
+        cargo: cargos.length === 1 ? cargos[0].name : parsed.cargo || '',
+        disciplinas: mergedDisciplinas.length > 0 ? mergedDisciplinas : sharedDisciplinas,
+      };
+
       navigation.navigate('EditalReview', { edital });
     } catch (err: any) {
       Alert.alert('Erro ao analisar', err?.message || 'Nao foi possivel analisar o edital. Tente novamente.');
