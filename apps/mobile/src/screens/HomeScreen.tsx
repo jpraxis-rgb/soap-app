@@ -470,7 +470,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               <View style={{ flex: 1 }}>
                 <Text style={styles.concursoSelectorLabel}>Concurso ativo</Text>
                 <Text style={styles.concursoSelectorName} numberOfLines={1}>
-                  {activeConcurso?.edital.orgao} — {activeConcurso?.edital.cargo}
+                  {activeConcurso?.edital?.orgao || 'Concurso'} — {activeConcurso?.edital?.cargo || ''}
                 </Text>
               </View>
               <Ionicons

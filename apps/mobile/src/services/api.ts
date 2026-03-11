@@ -175,11 +175,11 @@ export function parseEdital(sourceUrl: string) {
   return request<{ data: unknown }>('/editais/parse', {
     method: 'POST',
     body: JSON.stringify({ source_url: sourceUrl, source_type: 'url' }),
-  }).then(res => res.data);
+  });
 }
 
 export function getEditais() {
-  return request<{ data: unknown[] }>('/editais').then(res => res.data);
+  return request<unknown[]>('/editais');
 }
 
 export function getEdital(id: string) {

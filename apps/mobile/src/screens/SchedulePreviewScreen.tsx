@@ -44,8 +44,10 @@ const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 // ── Schedule Generation Helpers ────────────────────────
 
 function computeWeeksUntilExam(examDate: string): number {
+  if (!examDate || !examDate.trim()) return 12;
   try {
     const exam = new Date(examDate);
+    if (isNaN(exam.getTime())) return 12;
     const now = new Date();
     const diffMs = exam.getTime() - now.getTime();
     const weeks = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 7)));

@@ -106,14 +106,14 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
                       color={c.id === activeConcurso?.id ? colors.accent : colors.textSecondary}
                     />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.concursoName} numberOfLines={1}>{c.edital.orgao}</Text>
-                      <Text style={styles.concursoDetail} numberOfLines={1}>{c.edital.cargo}</Text>
+                      <Text style={styles.concursoName} numberOfLines={1}>{c.edital?.orgao || (c as any).parsedData?.orgao || 'Concurso'}</Text>
+                      <Text style={styles.concursoDetail} numberOfLines={1}>{c.edital?.cargo || (c as any).parsedData?.cargo || c.edital?.banca || ''}</Text>
                     </View>
                   </View>
                 </Pressable>
                 <Pressable
                   onPress={() => {
-                    Alert.alert('Remover concurso', `Remover ${c.edital.orgao}?`, [
+                    Alert.alert('Remover concurso', `Remover ${c.edital?.orgao || (c as any).parsedData?.orgao || 'este concurso'}?`, [
                       { text: 'Cancelar', style: 'cancel' },
                       { text: 'Remover', style: 'destructive', onPress: () => removeConcurso(c.id) },
                     ]);
