@@ -409,7 +409,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           <Ionicons name="school-outline" size={80} color={colors.surface} />
           <Text style={styles.emptyTitle}>Bem-vindo ao SOAP!</Text>
           <Text style={styles.emptyDescription}>
-            Importe seu primeiro edital para começar a estudar de forma inteligente.
+            Escolha um concurso popular ou importe seu edital para começar a estudar de forma inteligente.
           </Text>
           <Pressable onPress={() => navigation.navigate('EditalImport')}>
             <LinearGradient
@@ -419,7 +419,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               style={styles.importButton}
             >
               <Ionicons name="add-circle-outline" size={20} color={colors.text} />
-              <Text style={styles.importButtonText}>Importar edital</Text>
+              <Text style={styles.importButtonText}>Selecionar concurso</Text>
             </LinearGradient>
           </Pressable>
         </ScrollView>
