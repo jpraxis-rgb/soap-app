@@ -263,7 +263,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
         `Seu plano de estudos para ${edital.orgao} - ${edital.cargo} foi criado com sucesso.`,
         [
           {
-            text: 'Ir para inicio',
+            text: 'Ir para início',
             onPress: () => {
               navigation.reset({
                 index: 0,
@@ -274,7 +274,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
         ],
       );
     } catch (err: any) {
-      Alert.alert('Erro', err?.message || 'Nao foi possivel salvar o cronograma.');
+      Alert.alert('Erro', err?.message || 'Não foi possível salvar o cronograma.');
     } finally {
       setSaving(false);
     }

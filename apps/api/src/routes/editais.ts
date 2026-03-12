@@ -36,7 +36,7 @@ const updateEditalSchema = z.object({
   status: z.string().optional(),
   disciplinas: z.array(z.object({
     name: z.string(),
-    weight: z.number(),
+    weight: z.number().nullable(),
     topics: z.unknown().optional(),
     order_index: z.number().optional(),
     orderIndex: z.number().optional(),
@@ -86,6 +86,9 @@ router.get('/templates', async (_req: Request, res: Response) => {
         hasCargos: cargos != null && cargos.length > 0,
         disciplinaCount: discs.length,
         examDate: t.examDate,
+        vagas: t.vagas,
+        nivel: t.nivel,
+        sourceUrl: t.sourceUrl,
         createdAt: t.createdAt,
         sortOrder: t.sortOrder,
       };

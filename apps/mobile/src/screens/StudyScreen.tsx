@@ -1,151 +1,194 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  Pressable,
   FlatList,
+  Pressable,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { colors, spacing, typography } from '../theme';
 import { Card } from '../components';
-import { fetchContentByTopic, ContentItem } from '../services/api';
-
-type FormatTab = 'summary' | 'flashcard' | 'quiz' | 'mind_map';
-
-const TABS: { key: FormatTab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: 'summary', label: 'Resumo', icon: 'document-text' },
-  { key: 'flashcard', label: 'Flashcards', icon: 'layers' },
-  { key: 'quiz', label: 'Quiz', icon: 'help-circle' },
-  { key: 'mind_map', label: 'Mapa Mental', icon: 'git-branch' },
-];
+import { useConcurso } from '../contexts/ConcursoContext';
+import { fetchContentForEdital, DisciplineContent, EditalContentMap } from '../services/api';
 
 export function StudyScreen() {
-  const [activeTab, setActiveTab] = useState<FormatTab>('summary');
-  const [items, setItems] = useState<ContentItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const { activeConcurso } = useConcurso();
+  const [contentMap, setContentMap] = useState<EditalContentMap | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadContent();
-  }, [activeTab]);
-
-  async function loadContent() {
-    setLoading(true);
+  const loadContent = useCallback(async () => {
+    if (!activeConcurso?.id) {
+      setContentMap(null);
+      setLoading(false);
+      return;
+    }
     try {
-      const data = await fetchContentByTopic('all', activeTab);
-      setItems(data);
-    } catch {
-      setItems([]);
+      setError(null);
+      const data = await fetchContentForEdital(activeConcurso.id);
+      setContentMap(data);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn('[StudyScreen] fetch error:', msg);
+      setError(msg);
+      setContentMap(null);
     }
     setLoading(false);
-  }
+    setRefreshing(false);
+  }, [activeConcurso?.id]);
 
-  function handleItemPress(item: ContentItem) {
-    switch (item.format) {
-      case 'summary':
-        navigation.navigate('Content', { item });
-        break;
-      case 'flashcard':
-        navigation.navigate('Flashcard', { item });
-        break;
-      case 'quiz':
-        navigation.navigate('Quiz', { item });
-        break;
-      case 'mind_map':
-        navigation.navigate('Content', { item, mode: 'mindmap' });
-        break;
+  useEffect(() => {
+    setLoading(true);
+    loadContent();
+  }, [loadContent]);
+
+  useFocusEffect(useCallback(() => {
+    loadContent();
+  }, [loadContent]));
+
+  // Use API data, or fall back to local discipline data from the concurso
+  const displayMap = useMemo<EditalContentMap | null>(() => {
+    if (contentMap) return contentMap;
+    if (!activeConcurso?.edital?.disciplinas?.length) return null;
+    return {
+      disciplines: activeConcurso.edital.disciplinas.map(d => ({
+        name: d.name,
+        topicCount: Array.isArray(d.topics) ? d.topics.length : 0,
+        completedCount: 0,
+        topics: (Array.isArray(d.topics) ? d.topics : []).map((t: string) => ({
+          name: t,
+          status: 'new' as const,
+          formats: {},
+        })),
+      })),
+    };
+  }, [contentMap, activeConcurso]);
+
+  // Auto-navigate to discipline when coming from HomeScreen "Ver material"
+  useEffect(() => {
+    const focusDiscipline = route.params?.focusDiscipline;
+    if (focusDiscipline && displayMap?.disciplines) {
+      const disc = displayMap.disciplines.find(d => d.name === focusDiscipline);
+      if (disc) {
+        navigation.navigate('TopicDetail', { discipline: disc });
+        navigation.setParams({ focusDiscipline: undefined });
+      }
     }
+  }, [route.params?.focusDiscipline, displayMap]);
+
+  const totalTopics = displayMap?.disciplines.reduce((s, d) => s + d.topicCount, 0) ?? 0;
+  const completedTopics = displayMap?.disciplines.reduce((s, d) => s + d.completedCount, 0) ?? 0;
+  const overallPercent = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+
+  function handleDisciplinePress(discipline: DisciplineContent) {
+    navigation.navigate('TopicDetail', { discipline });
   }
 
-  function renderItem({ item }: { item: ContentItem }) {
+  function renderDiscipline({ item }: { item: DisciplineContent }) {
+    const percent = item.topicCount > 0 ? Math.round((item.completedCount / item.topicCount) * 100) : 0;
+
     return (
-      <Pressable onPress={() => handleItemPress(item)}>
-        <Card style={styles.itemCard}>
-          <View style={styles.itemHeader}>
-            <View style={styles.formatBadge}>
-              <Text style={styles.formatBadgeText}>
-                {TABS.find((t) => t.key === item.format)?.label || item.format}
+      <Pressable onPress={() => handleDisciplinePress(item)}>
+        <Card style={styles.disciplineCard}>
+          <View style={styles.disciplineHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.disciplineName}>{item.name}</Text>
+              <Text style={styles.disciplineTopicCount}>
+                {item.topicCount} {item.topicCount === 1 ? 'tópico' : 'tópicos'}
               </Text>
             </View>
-            {item.professor_name && (
-              <Text style={styles.professorText}>{item.professor_name}</Text>
-            )}
+            <View style={styles.percentContainer}>
+              <Text style={styles.percentText}>{percent}%</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+            </View>
           </View>
-          <Text style={styles.itemTitle}>{item.title}</Text>
-          <Text style={styles.itemTopic}>{item.topic}</Text>
-          <View style={styles.itemFooter}>
-            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+          <View style={styles.progressBarBg}>
+            <LinearGradient
+              colors={[colors.accent, colors.accentPink]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.progressBarFill, { width: `${Math.max(percent, 2)}%` }]}
+            />
           </View>
         </Card>
       </Pressable>
     );
   }
 
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
+  }
+
+  if (!activeConcurso) {
+    return (
+      <View style={styles.centered}>
+        <Ionicons name="school-outline" size={64} color={colors.surface} />
+        <Text style={styles.emptyTitle}>Nenhum concurso selecionado</Text>
+        <Text style={styles.emptySubtext}>Importe um edital para começar a estudar</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {/* Tab selector */}
-      <View style={styles.tabContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
-          {TABS.map((tab) => (
-            <Pressable
-              key={tab.key}
-              onPress={() => setActiveTab(tab.key)}
-              style={styles.tabButton}
-            >
-              <View style={styles.tabContent}>
-                <Ionicons
-                  name={tab.icon}
-                  size={20}
-                  color={activeTab === tab.key ? colors.text : colors.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.tabLabel,
-                    activeTab === tab.key && styles.tabLabelActive,
-                  ]}
-                >
-                  {tab.label}
-                </Text>
-              </View>
-              {activeTab === tab.key && (
-                <LinearGradient
-                  colors={[colors.accent, colors.accentPink]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.tabIndicator}
-                />
-              )}
-            </Pressable>
-          ))}
-        </ScrollView>
+      {/* Overall progress */}
+      <View style={styles.overallContainer}>
+        <Text style={styles.overallLabel}>Progresso geral</Text>
+        <Text style={styles.overallPercent}>{overallPercent}%</Text>
+        <View style={styles.overallBarBg}>
+          <LinearGradient
+            colors={[colors.accent, colors.accentPink]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[styles.overallBarFill, { width: `${Math.max(overallPercent, 2)}%` }]}
+          />
+        </View>
+        <Text style={styles.overallDetail}>
+          {completedTopics} de {totalTopics} tópicos completos
+        </Text>
       </View>
 
-      {/* Content list */}
-      {loading ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Carregando...</Text>
-        </View>
-      ) : items.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="book-outline" size={48} color={colors.textSecondary} />
-          <Text style={styles.emptyText}>Nenhum conteúdo disponível</Text>
-          <Text style={styles.emptySubtext}>
-            Conteúdos serão adicionados pelo professor
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      {/* Discipline list */}
+      <FlatList
+        data={displayMap?.disciplines ?? []}
+        keyExtractor={(item) => item.name}
+        renderItem={renderDiscipline}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              loadContent();
+            }}
+            tintColor={colors.accent}
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.centered}>
+            <Ionicons name="book-outline" size={48} color={colors.textSecondary} />
+            <Text style={styles.emptyTitle}>
+              {error ? 'Erro ao carregar conteúdo' : 'Nenhum conteúdo disponível'}
+            </Text>
+            <Text style={styles.emptySubtext}>
+              {error || 'Os materiais de estudo serão gerados em breve'}
+            </Text>
+          </View>
+        }
+      />
     </View>
   );
 }
@@ -155,96 +198,98 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  tabContainer: {
-    backgroundColor: colors.card,
-    paddingTop: spacing.sm,
-  },
-  tabScroll: {
-    paddingHorizontal: spacing.md,
-    gap: spacing.lg,
-  },
-  tabButton: {
+  centered: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.xl,
+  },
+  overallContainer: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
     paddingBottom: spacing.sm,
   },
-  tabContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xs,
-  },
-  tabLabel: {
+  overallLabel: {
     color: colors.textSecondary,
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
   },
-  tabLabelActive: {
+  overallPercent: {
     color: colors.text,
-    fontWeight: typography.weights.semibold,
+    fontSize: typography.sizes.xxxl,
+    fontWeight: typography.weights.bold,
+    marginTop: spacing.xs,
   },
-  tabIndicator: {
-    height: 3,
-    width: '100%',
-    borderRadius: 1.5,
+  overallBarBg: {
+    height: 6,
+    backgroundColor: colors.surface,
+    borderRadius: 3,
+    marginTop: spacing.sm,
+    overflow: 'hidden',
+  },
+  overallBarFill: {
+    height: 6,
+    borderRadius: 3,
+  },
+  overallDetail: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.xs,
+    marginTop: spacing.xs,
   },
   listContent: {
     padding: spacing.md,
-    gap: spacing.md,
+    gap: spacing.sm,
   },
-  itemCard: {
-    marginBottom: spacing.sm,
+  disciplineCard: {
+    marginBottom: 0,
   },
-  itemHeader: {
+  disciplineHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
-  formatBadge: {
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 8,
-  },
-  formatBadgeText: {
-    color: colors.accent,
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.semibold,
-  },
-  professorText: {
-    color: colors.textSecondary,
-    fontSize: typography.sizes.xs,
-  },
-  itemTitle: {
+  disciplineName: {
     color: colors.text,
-    fontSize: typography.sizes.lg,
+    fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
-    marginBottom: spacing.xs,
   },
-  itemTopic: {
+  disciplineTopicCount: {
     color: colors.textSecondary,
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.xs,
+    marginTop: 2,
   },
-  itemFooter: {
-    alignItems: 'flex-end',
-    marginTop: spacing.sm,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  percentContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
-  emptyText: {
+  percentText: {
+    color: colors.text,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
+  },
+  progressBarBg: {
+    height: 4,
+    backgroundColor: colors.surface,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: 4,
+    borderRadius: 2,
+  },
+  emptyTitle: {
     color: colors.text,
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.medium,
+    textAlign: 'center',
   },
   emptySubtext: {
     color: colors.textSecondary,
     fontSize: typography.sizes.sm,
     textAlign: 'center',
-    paddingHorizontal: spacing.xl,
   },
 });

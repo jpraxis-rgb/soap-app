@@ -32,7 +32,7 @@ export function SettingsScreen() {
   const handleDeleteAccount = () => {
     Alert.alert(
       'Excluir conta',
-      'Tem certeza? Esta acao nao pode ser desfeita.',
+      'Tem certeza? Esta ação não pode ser desfeita.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -49,57 +49,57 @@ export function SettingsScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Notification Preferences */}
-      <Card header="Notificacoes" style={styles.section}>
+      <Card header="Notificações" style={styles.section}>
         <ToggleRow
           icon="notifications-outline"
           label="Lembrete de estudo"
-          subtitle="Receba lembretes diarios"
+          subtitle="Receba lembretes diários"
           value={notifications.studyReminder}
           onToggle={(v) => setNotifications(prev => ({ ...prev, studyReminder: v }))}
         />
         <ToggleRow
           icon="calendar-outline"
           label="Resumo semanal"
-          subtitle="Relatorio de progresso"
+          subtitle="Relatório de progresso"
           value={notifications.weeklySummary}
           onToggle={(v) => setNotifications(prev => ({ ...prev, weeklySummary: v }))}
         />
         <ToggleRow
           icon="document-text-outline"
-          label="Novo conteudo"
-          subtitle="Quando novo material estiver disponivel"
+          label="Novo conteúdo"
+          subtitle="Quando novo material estiver disponível"
           value={notifications.newContent}
           onToggle={(v) => setNotifications(prev => ({ ...prev, newContent: v }))}
         />
         <ToggleRow
           icon="moon-outline"
-          label="Horario silencioso"
-          subtitle="Sem notificacoes entre 22h e 7h"
+          label="Horário silencioso"
+          subtitle="Sem notificações entre 22h e 7h"
           value={notifications.quietHours}
           onToggle={(v) => setNotifications(prev => ({ ...prev, quietHours: v }))}
         />
       </Card>
 
       {/* App Preferences */}
-      <Card header="Preferencias" style={styles.section}>
+      <Card header="Preferências" style={styles.section}>
         <ToggleRow
           icon="moon"
           label="Tema escuro"
-          subtitle="Sempre ativado (em breve mais opcoes)"
+          subtitle="Sempre ativado (em breve mais opções)"
           value={preferences.darkTheme}
           onToggle={(v) => setPreferences(prev => ({ ...prev, darkTheme: v }))}
         />
         <ToggleRow
           icon="play-circle-outline"
-          label="Reproducao automatica"
-          subtitle="Iniciar videos automaticamente"
+          label="Reprodução automática"
+          subtitle="Iniciar vídeos automaticamente"
           value={preferences.autoPlay}
           onToggle={(v) => setPreferences(prev => ({ ...prev, autoPlay: v }))}
         />
         <ToggleRow
           icon="wifi-outline"
           label="Download via Wi-Fi"
-          subtitle="Baixar conteudo apenas no Wi-Fi"
+          subtitle="Baixar conteúdo apenas no Wi-Fi"
           value={preferences.downloadOverWifi}
           onToggle={(v) => setPreferences(prev => ({ ...prev, downloadOverWifi: v }))}
         />

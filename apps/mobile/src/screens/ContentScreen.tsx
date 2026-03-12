@@ -30,9 +30,16 @@ interface KeyTerm {
   definition: string;
 }
 
+interface Source {
+  title: string;
+  author?: string;
+  type: string;
+}
+
 interface SummaryBody {
   sections: Section[];
   keyTerms: KeyTerm[];
+  sources?: Source[];
 }
 
 interface MindMapBranch {
@@ -62,6 +69,7 @@ export function ContentScreen() {
   const body = item?.body as SummaryBody | undefined;
   const sections = body?.sections || [];
   const keyTerms = body?.keyTerms || [];
+  const sources = body?.sources || [];
 
   function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
@@ -134,6 +142,28 @@ export function ContentScreen() {
                 <Text style={styles.termName}>{term.term}</Text>
                 <Text style={styles.termDefinition}>{term.definition}</Text>
               </Card>
+            ))}
+          </View>
+        )}
+
+        {/* Sources */}
+        {sources.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sourcesHeader}>
+              <Ionicons name="library-outline" size={18} color={colors.textSecondary} />
+              <Text style={styles.sourcesTitle}>Fontes</Text>
+            </View>
+            {sources.map((source, index) => (
+              <View key={index} style={styles.sourceRow}>
+                <Text style={styles.sourceIndex}>{index + 1}.</Text>
+                <View style={styles.sourceInfo}>
+                  <Text style={styles.sourceTitle}>{source.title}</Text>
+                  {source.author && (
+                    <Text style={styles.sourceAuthor}>{source.author}</Text>
+                  )}
+                  <Text style={styles.sourceType}>{source.type}</Text>
+                </View>
+              </View>
             ))}
           </View>
         )}
@@ -393,6 +423,47 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: typography.sizes.sm,
     lineHeight: typography.sizes.sm * typography.lineHeights.normal,
+  },
+  sourcesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  sourcesTitle: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+  },
+  sourceRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  sourceIndex: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.sm,
+    marginTop: 1,
+  },
+  sourceInfo: {
+    flex: 1,
+  },
+  sourceTitle: {
+    color: colors.text,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+  },
+  sourceAuthor: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.xs,
+    fontStyle: 'italic',
+  },
+  sourceType: {
+    color: colors.accent,
+    fontSize: typography.sizes.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 2,
   },
   continueSection: {
     paddingHorizontal: spacing.md,

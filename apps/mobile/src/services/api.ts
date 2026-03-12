@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = __DEV__
   ? 'http://localhost:3000/api/v1'
-  : 'https://api.soap-app.com/api/v1';
+  : (process.env.EXPO_PUBLIC_API_URL || 'https://soap-api-production.up.railway.app/api/v1');
 
 const TOKEN_KEY = '@soap/auth_token';
 const REFRESH_TOKEN_KEY = '@soap/refresh_token';
@@ -223,6 +223,9 @@ export interface EditalTemplate {
   hasCargos: boolean;
   disciplinaCount: number;
   examDate: string | null;
+  vagas: number | null;
+  nivel: string | null;
+  sourceUrl: string | null;
   createdAt: string;
   sortOrder: number;
 }
@@ -834,6 +837,23 @@ export interface ContentItem {
   created_at: string;
 }
 
+export interface TopicContent {
+  name: string;
+  status: 'complete' | 'in_progress' | 'new';
+  formats: { summary?: string; flashcard?: string; quiz?: string; mind_map?: string };
+}
+
+export interface DisciplineContent {
+  name: string;
+  topicCount: number;
+  completedCount: number;
+  topics: TopicContent[];
+}
+
+export interface EditalContentMap {
+  disciplines: DisciplineContent[];
+}
+
 export async function fetchContentByTopic(
   topicId: string,
   format?: string
@@ -924,6 +944,22 @@ export async function submitQuizAnswers(
     body: JSON.stringify({ contentItemId, answers }),
   });
   return result.data;
+}
+
+export async function fetchContentForEdital(editalId: string): Promise<EditalContentMap> {
+  const result = await request<{ data: EditalContentMap }>(`/content/for-edital/${editalId}`);
+  return result.data;
+}
+
+export async function fetchContentForTopic(topic: string, disciplina: string, format?: string): Promise<ContentItem[]> {
+  const params = new URLSearchParams({ topic, disciplina });
+  if (format) params.set('format', format);
+  const result = await request<{ data: ContentItem[] }>(`/content/for-topic?${params}`);
+  return result.data;
+}
+
+export async function seedContentForEdital(editalId: string): Promise<void> {
+  await request<unknown>(`/content/seed-for-edital/${editalId}`, { method: 'POST' });
 }
 
 export { MOCK_SUMMARIES, MOCK_FLASHCARDS, MOCK_QUIZZES, MOCK_MIND_MAPS };

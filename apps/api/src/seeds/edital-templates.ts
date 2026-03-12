@@ -1,5 +1,6 @@
 import { db } from '../db/index.js';
 import { editalTemplates } from '../db/schema.js';
+import { eq } from 'drizzle-orm';
 
 interface TemplateDisciplina {
   name: string;
@@ -20,6 +21,9 @@ interface SeedTemplate {
   orgao: string;
   cargo: string;
   examDate: string | null;
+  vagas: number | null;
+  nivel: 'superior' | 'medio' | 'fundamental';
+  sourceUrl: string | null;
   disciplinas: TemplateDisciplina[];
   cargos: TemplateCargo[] | null;
   sortOrder: number;
@@ -31,7 +35,10 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     banca: 'FGV',
     orgao: 'Receita Federal do Brasil',
     cargo: 'Auditor Fiscal',
-    examDate: '2026-08-16',
+    examDate: null,
+    vagas: 699,
+    nivel: 'superior',
+    sourceUrl: null,
     sortOrder: 1,
     cargos: null,
     disciplinas: [
@@ -51,7 +58,10 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     banca: 'CESPE/CEBRASPE',
     orgao: 'Polícia Federal',
     cargo: 'Agente de Polícia Federal',
-    examDate: '2026-05-10',
+    examDate: '2025-07-27',
+    vagas: 630,
+    nivel: 'superior',
+    sourceUrl: 'https://cdn.cebraspe.org.br/concursos/pf_25/arquivos/Ed_1_PF_25_Abertura.pdf',
     sortOrder: 2,
     cargos: null,
     disciplinas: [
@@ -71,7 +81,10 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     banca: 'CESPE/CEBRASPE',
     orgao: 'INSS',
     cargo: 'Técnico do Seguro Social',
-    examDate: '2026-06-21',
+    examDate: null,
+    vagas: 6000,
+    nivel: 'medio',
+    sourceUrl: null,
     sortOrder: 3,
     cargos: null,
     disciplinas: [
@@ -86,11 +99,14 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     ],
   },
   {
-    name: 'Analista Judiciário - TRF',
+    name: 'Analista Judiciário - TRF 4ª Região',
     banca: 'FCC',
-    orgao: 'Tribunal Regional Federal',
+    orgao: 'TRF 4ª Região',
     cargo: '',
-    examDate: '2026-09-13',
+    examDate: '2025-07-13',
+    vagas: 30,
+    nivel: 'superior',
+    sourceUrl: 'https://www.concursosfcc.com.br/concursos/trf4r124/index.html',
     sortOrder: 4,
     cargos: [
       {
@@ -122,7 +138,10 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     banca: 'CESPE/CEBRASPE',
     orgao: 'Tribunal de Contas da União',
     cargo: 'Auditor Federal de Controle Externo',
-    examDate: '2026-10-04',
+    examDate: '2026-02-22',
+    vagas: 20,
+    nivel: 'superior',
+    sourceUrl: 'https://www.cebraspe.org.br/concursos/tcu_25_aufc',
     sortOrder: 5,
     cargos: null,
     disciplinas: [
@@ -141,7 +160,10 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     banca: 'CESPE/CEBRASPE',
     orgao: 'Banco Central do Brasil',
     cargo: 'Analista',
-    examDate: '2026-07-19',
+    examDate: null,
+    vagas: 100,
+    nivel: 'superior',
+    sourceUrl: null,
     sortOrder: 6,
     cargos: null,
     disciplinas: [
@@ -155,11 +177,14 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     ],
   },
   {
-    name: 'Técnico Judiciário - TRT',
+    name: 'Técnico Judiciário - TRT 2ª Região',
     banca: 'FCC',
-    orgao: 'Tribunal Regional do Trabalho',
+    orgao: 'TRT 2ª Região',
     cargo: 'Técnico Judiciário',
-    examDate: '2026-11-08',
+    examDate: '2025-08-03',
+    vagas: 7,
+    nivel: 'medio',
+    sourceUrl: 'https://www.concursosfcc.com.br/concursos/trt2r124/',
     sortOrder: 7,
     cargos: null,
     disciplinas: [
@@ -172,21 +197,25 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     ],
   },
   {
-    name: 'Procurador da Fazenda Nacional',
-    banca: 'ESAF',
-    orgao: 'Procuradoria-Geral da Fazenda Nacional',
-    cargo: 'Procurador da Fazenda Nacional',
-    examDate: null,
+    name: 'Técnico Federal de Controle Externo - TCU',
+    banca: 'CESPE/CEBRASPE',
+    orgao: 'Tribunal de Contas da União',
+    cargo: 'Técnico Federal de Controle Externo',
+    examDate: '2025-08-03',
+    vagas: 40,
+    nivel: 'medio',
+    sourceUrl: 'https://www.cebraspe.org.br/concursos/tcu_25_tefc',
     sortOrder: 8,
     cargos: null,
     disciplinas: [
-      { name: 'Direito Tributário', weight: null, category: 'especifico', orderIndex: 0, topics: ['Sistema Tributário Nacional', 'Competência Tributária', 'Obrigação Tributária', 'Crédito Tributário', 'Processo Judicial Tributário', 'Execução Fiscal'] },
-      { name: 'Direito Constitucional', weight: null, category: 'geral', orderIndex: 1, topics: ['Princípios Fundamentais', 'Direitos e Garantias', 'Sistema Tributário Nacional', 'Organização dos Poderes', 'Controle de Constitucionalidade'] },
-      { name: 'Direito Administrativo', weight: null, category: 'geral', orderIndex: 2, topics: ['Princípios da Administração', 'Atos Administrativos', 'Licitações e Contratos', 'Bens Públicos', 'Responsabilidade Civil'] },
-      { name: 'Direito Civil', weight: null, category: 'especifico', orderIndex: 3, topics: ['Parte Geral', 'Obrigações', 'Contratos', 'Responsabilidade Civil'] },
-      { name: 'Direito Processual Civil', weight: null, category: 'especifico', orderIndex: 4, topics: ['Processo de Conhecimento', 'Recursos', 'Execução', 'Fazenda Pública em Juízo'] },
-      { name: 'Direito Financeiro', weight: null, category: 'especifico', orderIndex: 5, topics: ['Orçamento Público', 'Receita Pública', 'Despesa Pública', 'Responsabilidade Fiscal'] },
-      { name: 'Língua Portuguesa', weight: null, category: 'geral', orderIndex: 6, topics: ['Interpretação de Texto', 'Gramática', 'Redação'] },
+      { name: 'Controle Externo', weight: null, category: 'especifico', orderIndex: 0, topics: ['Controle Externo na CF', 'Lei Orgânica do TCU', 'Regimento Interno do TCU', 'Tipos de Fiscalização', 'Processos no TCU'] },
+      { name: 'Administração Pública', weight: null, category: 'especifico', orderIndex: 1, topics: ['Gestão de Pessoas', 'Gestão de Processos', 'Planejamento Estratégico', 'Governança Pública'] },
+      { name: 'Administração Financeira e Orçamentária', weight: null, category: 'especifico', orderIndex: 2, topics: ['PPA, LDO e LOA', 'Ciclo Orçamentário', 'Receita e Despesa Pública', 'Responsabilidade Fiscal'] },
+      { name: 'Direito Constitucional', weight: null, category: 'geral', orderIndex: 3, topics: ['Organização do Estado', 'Poder Legislativo', 'Fiscalização Contábil e Financeira', 'Direitos e Garantias Fundamentais'] },
+      { name: 'Direito Administrativo', weight: null, category: 'geral', orderIndex: 4, topics: ['Princípios da Administração', 'Atos Administrativos', 'Licitações e Contratos', 'Servidores Públicos'] },
+      { name: 'Língua Portuguesa', weight: null, category: 'geral', orderIndex: 5, topics: ['Interpretação de Texto', 'Gramática', 'Redação Oficial'] },
+      { name: 'Raciocínio Lógico', weight: null, category: 'geral', orderIndex: 6, topics: ['Lógica Proposicional', 'Raciocínio Analítico', 'Análise Combinatória'] },
+      { name: 'Informática', weight: null, category: 'geral', orderIndex: 7, topics: ['Pacote Office', 'Internet', 'Segurança da Informação'] },
     ],
   },
   {
@@ -194,7 +223,10 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     banca: 'CESPE/CEBRASPE',
     orgao: 'Polícia Federal',
     cargo: 'Escrivão de Polícia Federal',
-    examDate: '2026-05-10',
+    examDate: '2025-07-27',
+    vagas: 160,
+    nivel: 'superior',
+    sourceUrl: 'https://cdn.cebraspe.org.br/concursos/pf_25/arquivos/Ed_1_PF_25_Abertura.pdf',
     sortOrder: 9,
     cargos: null,
     disciplinas: [
@@ -212,7 +244,10 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     banca: 'FGV',
     orgao: 'Receita Federal do Brasil',
     cargo: 'Analista Tributário',
-    examDate: '2026-08-16',
+    examDate: null,
+    vagas: 469,
+    nivel: 'superior',
+    sourceUrl: null,
     sortOrder: 10,
     cargos: null,
     disciplinas: [
@@ -233,6 +268,31 @@ export async function seedEditalTemplates(): Promise<{ inserted: number; skipped
 
   for (const template of SEED_TEMPLATES) {
     try {
+      // Check if template already exists by name
+      const [existing] = await db.select({ id: editalTemplates.id })
+        .from(editalTemplates)
+        .where(eq(editalTemplates.name, template.name))
+        .limit(1);
+
+      if (existing) {
+        // Update existing template with latest data
+        await db.update(editalTemplates)
+          .set({
+            banca: template.banca,
+            orgao: template.orgao,
+            examDate: template.examDate ? new Date(template.examDate) : null,
+            disciplinas: template.disciplinas,
+            cargos: template.cargos,
+            vagas: template.vagas,
+            nivel: template.nivel,
+            sourceUrl: template.sourceUrl,
+            sortOrder: template.sortOrder,
+          })
+          .where(eq(editalTemplates.id, existing.id));
+        skipped++;
+        continue;
+      }
+
       await db.insert(editalTemplates).values({
         name: template.name,
         banca: template.banca,
@@ -240,6 +300,9 @@ export async function seedEditalTemplates(): Promise<{ inserted: number; skipped
         examDate: template.examDate ? new Date(template.examDate) : null,
         disciplinas: template.disciplinas,
         cargos: template.cargos,
+        vagas: template.vagas,
+        nivel: template.nivel,
+        sourceUrl: template.sourceUrl,
         sortOrder: template.sortOrder,
         isActive: true,
       });

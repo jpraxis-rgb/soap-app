@@ -325,11 +325,14 @@ export function resetGeminiService(): void {
   _instance = null;
 }
 
+import { getStubSummaryContent } from './discipline-content.js';
+
 // ── Content Generation (Agent 3) ────────────────────────
 
 interface SummaryBody {
   sections: Array<{ heading: string; content: string; keyPoints: string[] }>;
   keyTerms: Array<{ term: string; definition: string }>;
+  sources: Array<{ title: string; author?: string; type: string }>;
 }
 
 interface FlashcardBody {
@@ -385,44 +388,25 @@ Responda APENAS com JSON válido no formato:
     ],
     "keyTerms": [
       { "term": "termo", "definition": "definição" }
+    ],
+    "sources": [
+      { "title": "título da fonte", "author": "autor (opcional)", "type": "lei|doutrina|jurisprudência|artigo" }
     ]
   }
 }
 
-Inclua pelo menos 3 seções e 3 termos-chave. Sem markdown, apenas JSON.`;
+Inclua pelo menos 3 seções, 3 termos-chave e 2-3 fontes relevantes (legislação, doutrina ou jurisprudência). Sem markdown, apenas JSON.`;
       return await generateWithGemini<{ title: string; body: SummaryBody }>(prompt);
     } catch (error) {
       console.warn('[GEMINI] Summary generation failed, using stub:', error instanceof Error ? error.message : error);
     }
   }
 
-  // Stub fallback
+  // Stub fallback — discipline-specific content
+  const stub = getStubSummaryContent(topic, disciplina);
   return {
     title: `Resumo: ${topic}`,
-    body: {
-      sections: [
-        {
-          heading: 'Conceito Fundamental',
-          content: `${topic} é um tema central em ${disciplina}. Compreender seus fundamentos é essencial para a aprovação em concursos públicos.`,
-          keyPoints: ['Princípio da legalidade aplica-se diretamente', 'Jurisprudência consolidada pelo STF', 'Aplicação prática em provas objetivas'],
-        },
-        {
-          heading: 'Aspectos Relevantes',
-          content: `Os aspectos mais cobrados em provas envolvem a interpretação sistemática do tema. É importante relacionar ${topic} com outros institutos da mesma disciplina.`,
-          keyPoints: ['Relação com princípios constitucionais', 'Exceções previstas em lei', 'Casos práticos frequentes em provas'],
-        },
-        {
-          heading: 'Pontos de Atenção',
-          content: 'As bancas costumam explorar sutilezas e exceções. Fique atento às mudanças legislativas recentes e à jurisprudência atualizada.',
-          keyPoints: ['Alterações legislativas recentes', 'Pegadinhas clássicas das bancas', 'Diferenças entre doutrina e jurisprudência'],
-        },
-      ],
-      keyTerms: [
-        { term: 'Princípio da Legalidade', definition: 'A administração pública só pode agir conforme a lei.' },
-        { term: 'Supremacia do Interesse Público', definition: 'O interesse coletivo prevalece sobre o individual.' },
-        { term: 'Autotutela', definition: 'A administração pode anular ou revogar seus próprios atos.' },
-      ],
-    },
+    body: stub,
   };
 }
 

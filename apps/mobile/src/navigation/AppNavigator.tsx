@@ -11,6 +11,7 @@ import { ScheduleDetailScreen } from '../screens/ScheduleDetailScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 import { DisciplinaDetailScreen } from '../screens/DisciplinaDetailScreen';
 import { StudyScreen } from '../screens/StudyScreen';
+import { TopicDetailScreen } from '../screens/TopicDetailScreen';
 import { ContentScreen } from '../screens/ContentScreen';
 import { FlashcardScreen } from '../screens/FlashcardScreen';
 import { QuizScreen } from '../screens/QuizScreen';
@@ -144,6 +145,11 @@ function StudyStack() {
         name="StudyMain"
         component={StudyScreen}
         options={{ title: 'Estudar' }}
+      />
+      <StudyStackNav.Screen
+        name="TopicDetail"
+        component={TopicDetailScreen}
+        options={({ route }: any) => ({ title: route.params?.discipline?.name || 'Disciplina' })}
       />
       <StudyStackNav.Screen
         name="Content"

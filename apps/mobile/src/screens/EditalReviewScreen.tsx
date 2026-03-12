@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
+  Linking,
   LayoutAnimation,
   Platform,
   UIManager,
@@ -35,6 +36,7 @@ interface ParsedEditalData {
   exam_date: string;
   confidence: number;
   disciplinas: Disciplina[];
+  sourceUrl?: string;
 }
 
 interface EditalReviewScreenProps {
@@ -86,7 +88,7 @@ function DisciplinaCard({
               {disciplina.name}
             </Text>
             <Text style={styles.topicCount}>
-              {disciplina.topics.length} {disciplina.topics.length === 1 ? 'topico' : 'topicos'}
+              {disciplina.topics.length} {disciplina.topics.length === 1 ? 'tópico' : 'tópicos'}
             </Text>
           </View>
           <View style={styles.disciplinaRight}>
@@ -194,7 +196,7 @@ export function EditalReviewScreen() {
           <View style={styles.summaryRow}>
             <Ionicons name="business-outline" size={20} color={colors.accent} />
             <View style={styles.summaryTextBlock}>
-              <Text style={styles.summaryLabel}>Orgao</Text>
+              <Text style={styles.summaryLabel}>Órgão</Text>
               <Text style={styles.summaryValue}>{edital.orgao}</Text>
             </View>
           </View>
@@ -221,12 +223,23 @@ export function EditalReviewScreen() {
           </View>
 
           <View style={styles.confidenceRow}>
-            <Text style={styles.confidenceLabel}>Confianca da analise</Text>
+            <Text style={styles.confidenceLabel}>Confiança da análise</Text>
             <Badge
               text={`${confidencePercent}%`}
               color={confidencePercent >= 80 ? colors.success + '30' : colors.warning + '30'}
             />
           </View>
+
+          {edital.sourceUrl && (
+            <Pressable
+              onPress={() => Linking.openURL(edital.sourceUrl!)}
+              style={styles.editalLinkRow}
+              hitSlop={8}
+            >
+              <Ionicons name="open-outline" size={16} color={colors.accent} />
+              <Text style={styles.editalLinkText}>Ver edital original</Text>
+            </Pressable>
+          )}
         </Card>
 
         {/* Disciplinas */}
@@ -349,6 +362,16 @@ const styles = StyleSheet.create({
   confidenceLabel: {
     color: colors.textSecondary,
     fontSize: typography.sizes.sm,
+  },
+  editalLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  editalLinkText: {
+    color: colors.accent,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
   },
   sectionHeader: {
     flexDirection: 'row',

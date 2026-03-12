@@ -26,9 +26,7 @@ const allowedOrigins = process.env.CORS_ORIGINS
   : ['http://localhost:3000', 'http://localhost:8081', 'http://localhost:19006'];
 
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? allowedOrigins
-    : true, // Allow all origins in development
+  origin: true, // Allow all origins for beta
 }));
 app.use(express.json({ limit: '1mb' }));
 app.use(generalLimiter);

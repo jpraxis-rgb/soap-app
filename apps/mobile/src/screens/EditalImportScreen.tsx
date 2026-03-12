@@ -76,6 +76,7 @@ export function EditalImportScreen() {
             orgao: detail.orgao,
             exam_date: detail.examDate || '',
             confidence: 1.0,
+            sourceUrl: template.sourceUrl,
           },
           cargos: normalizedCargos,
           sharedDisciplinas,
@@ -95,6 +96,7 @@ export function EditalImportScreen() {
           confidence: 1.0,
           cargo: parsed.cargo || '',
           disciplinas: sharedDisciplinas,
+          sourceUrl: template.sourceUrl || undefined,
         };
         navigation.navigate('EditalReview', { edital });
       }
@@ -107,7 +109,7 @@ export function EditalImportScreen() {
 
   const handleAnalyze = async () => {
     if (!url.trim()) {
-      Alert.alert('URL obrigatoria', 'Cole a URL do edital para continuar.');
+      Alert.alert('URL obrigatória', 'Cole a URL do edital para continuar.');
       return;
     }
 
@@ -125,7 +127,7 @@ export function EditalImportScreen() {
         const warningMsg = warnings.length > 0
           ? warnings[0].replace(/^Gemini.*?:\s*/, '').substring(0, 150)
           : 'Nenhuma disciplina encontrada no edital.';
-        Alert.alert('Analise incompleta', `Nao foi possivel extrair disciplinas do edital.\n\n${warningMsg}`);
+        Alert.alert('Análise incompleta', `Não foi possível extrair disciplinas do edital.\n\n${warningMsg}`);
         return;
       }
 
@@ -142,7 +144,7 @@ export function EditalImportScreen() {
           name: c.name,
           disciplinas: c.disciplinas?.length > 0 ? normalizeDisciplinas(c.disciplinas) : [],
         }));
-        navigation.navigate('CargoSelect', { editalBase, cargos: normalizedCargos, sharedDisciplinas });
+        navigation.navigate('CargoSelect', { editalBase: { ...editalBase, sourceUrl: url.trim() }, cargos: normalizedCargos, sharedDisciplinas });
         return;
       }
 
@@ -159,11 +161,12 @@ export function EditalImportScreen() {
         ...editalBase,
         cargo: cargos.length === 1 ? cargos[0].name : parsed.cargo || '',
         disciplinas: mergedDisciplinas.length > 0 ? mergedDisciplinas : sharedDisciplinas,
+        sourceUrl: url.trim(),
       };
 
       navigation.navigate('EditalReview', { edital });
     } catch (err: any) {
-      Alert.alert('Erro ao analisar', err?.message || 'Nao foi possivel analisar o edital. Tente novamente.');
+      Alert.alert('Erro ao analisar', err?.message || 'Não foi possível analisar o edital. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -195,7 +198,7 @@ export function EditalImportScreen() {
         </View>
 
         {/* Popular Templates */}
-        <Text style={styles.sectionTitle}>Concursos em Andamento</Text>
+        <Text style={styles.sectionTitle}>Concursos em Destaque</Text>
 
         {templatesLoading ? (
           <View style={styles.shimmerContainer}>
@@ -221,7 +224,7 @@ export function EditalImportScreen() {
                         )}
                       </View>
                       <Text style={styles.templateMeta}>
-                        {template.banca} · {formatExamDate(template.examDate) ? `Prova ${formatExamDate(template.examDate)}` : template.orgao}
+                        {template.banca} · {formatExamDate(template.examDate) || template.orgao}{template.vagas ? ` · ${template.vagas} vagas` : ''}
                       </Text>
                     </View>
                     <View style={styles.templateRight}>
@@ -257,7 +260,7 @@ export function EditalImportScreen() {
 
         {/* URL Input */}
         <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>URL do Edital</Text>
+          <Text style={styles.inputLabel}>URL do Edital (PDF ou página web)</Text>
           <View style={styles.inputWrapper}>
             <Ionicons
               name="link-outline"

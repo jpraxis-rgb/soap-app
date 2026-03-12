@@ -148,9 +148,11 @@ const calStyles = StyleSheet.create({
 function StudyBlockCard({
   block,
   onStartSession,
+  onViewMaterial,
 }: {
   block: ScheduleBlockData;
   onStartSession: (block: ScheduleBlockData) => void;
+  onViewMaterial: (block: ScheduleBlockData) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -184,7 +186,7 @@ function StudyBlockCard({
               />
             )}
             {block.has_content && (
-              <Badge text="Material disponivel" color={colors.success + '30'} />
+              <Badge text="Material disponível" color={colors.success + '30'} />
             )}
           </View>
         </View>
@@ -197,7 +199,7 @@ function StudyBlockCard({
         {isCompleted && (
           <View style={blockStyles.completedRow}>
             <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-            <Text style={blockStyles.completedText}>Concluido</Text>
+            <Text style={blockStyles.completedText}>Concluído</Text>
           </View>
         )}
 
@@ -214,10 +216,10 @@ function StudyBlockCard({
                 style={blockStyles.gradientButton}
               >
                 <Ionicons name="play" size={16} color={colors.text} />
-                <Text style={blockStyles.actionText}>Iniciar sessao</Text>
+                <Text style={blockStyles.actionText}>Iniciar sessão</Text>
               </LinearGradient>
             </Pressable>
-            <Pressable style={blockStyles.outlinedButton}>
+            <Pressable style={blockStyles.outlinedButton} onPress={() => onViewMaterial(block)}>
               <Ionicons name="document-text-outline" size={16} color={colors.accent} />
               <Text style={blockStyles.outlinedText}>Ver material</Text>
             </Pressable>
@@ -386,12 +388,12 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     [allWeekBlocks],
   );
 
-  // Exam countdown - mock date 90 days from now
-  const examDate = new Date();
-  examDate.setDate(examDate.getDate() + 90);
-  const daysUntilExam = Math.ceil(
-    (examDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-  );
+  // Exam countdown from active concurso's exam date
+  const examDateStr = activeConcurso?.edital?.exam_date;
+  const examDate = examDateStr ? new Date(examDateStr) : null;
+  const daysUntilExam = examDate && !isNaN(examDate.getTime())
+    ? Math.ceil((examDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
 
   const pendingCount = blocks.filter((b) => b.status === 'pending').length;
   const completedCount = blocks.filter((b) => b.status === 'completed').length;
@@ -401,6 +403,16 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     navigation.navigate('StudySession', { block });
   };
 
+  const handleViewMaterial = (block: ScheduleBlockData) => {
+    navigation.navigate('Estudar', {
+      screen: 'StudyMain',
+      initial: false,
+      params: {
+        focusDiscipline: block.disciplina_name,
+      },
+    });
+  };
+
   // Empty state: no concurso imported yet
   if (!hasAnyConcurso) {
     return (
@@ -408,6 +420,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         <ScrollView contentContainerStyle={styles.emptyContainer}>
           <Ionicons name="school-outline" size={80} color={colors.surface} />
           <Text style={styles.emptyTitle}>Bem-vindo ao SOAP!</Text>
+          <Text style={styles.tagline}>Sistema Operacional do Aprovado</Text>
           <Text style={styles.emptyDescription}>
             Escolha um concurso popular ou importe seu edital para começar a estudar de forma inteligente.
           </Text>
@@ -538,8 +551,15 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             style={styles.countdownCard}
           >
             <View style={styles.countdownLeft}>
-              <Text style={styles.countdownLabel}>Dias ate a prova</Text>
-              <Text style={styles.countdownNumber}>{daysUntilExam}</Text>
+              <Text style={styles.countdownLabel}>
+                {daysUntilExam != null ? 'Dias até a prova' : 'Resumo'}
+              </Text>
+              <Text style={styles.countdownNumber}>
+                {daysUntilExam != null ? daysUntilExam : `${blocks.length}`}
+              </Text>
+              {daysUntilExam == null && (
+                <Text style={styles.countdownLabel}>blocos agendados</Text>
+              )}
             </View>
             <View style={styles.countdownRight}>
               <View style={styles.countdownStat}>
@@ -567,7 +587,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             {selectedDate === formatDateKey(new Date()) ? 'Blocos de hoje' : `Blocos de ${selectedDate.split('-').reverse().join('/')}`}
           </Text>
           <Text style={styles.sectionCount}>
-            {completedCount}/{blocks.length} {completedCount === 1 ? 'concluido' : 'concluidos'}
+            {completedCount}/{blocks.length} {completedCount === 1 ? 'concluído' : 'concluídos'}
           </Text>
         </View>
 
@@ -577,6 +597,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             key={block.id}
             block={block}
             onStartSession={handleStartSession}
+            onViewMaterial={handleViewMaterial}
           />
         ))}
 
@@ -585,7 +606,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             <Ionicons name="moon-outline" size={48} color={colors.textSecondary} />
             <Text style={styles.emptyText}>Nenhum bloco neste dia</Text>
             <Text style={styles.emptySubtext}>
-              {blockDates.size > 0 ? 'Selecione um dia com blocos no calendario acima' : 'Importe um edital e gere seu cronograma'}
+              {blockDates.size > 0 ? 'Selecione um dia com blocos no calendário acima' : 'Importe um edital e gere seu cronograma'}
             </Text>
           </View>
         )}
@@ -727,6 +748,14 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xxl,
     fontWeight: typography.weights.bold,
     textAlign: 'center',
+  },
+  tagline: {
+    color: colors.accent,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+    textAlign: 'center',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   emptyDescription: {
     color: colors.textSecondary,

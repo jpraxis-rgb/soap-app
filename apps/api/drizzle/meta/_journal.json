@@ -22,6 +22,27 @@
       "when": 1773338291740,
       "tag": "0002_omniscient_mariko_yashida",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1773346096341,
+      "tag": "0003_flaky_prodigy",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1773350830703,
+      "tag": "0004_dizzy_silvermane",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1773351555863,
+      "tag": "0005_cuddly_zarda",
+      "breakpoints": true
     }
   ]
 }

@@ -31,35 +31,35 @@ const plans: PlanInfo[] = [
     description: 'Comece a organizar seus estudos',
     features: [
       'Upload de 1 edital',
-      'Cronograma basico',
+      'Cronograma básico',
       'Acompanhamento de progresso',
     ],
     gradientColors: [colors.textSecondary, '#666688'],
   },
   {
     tier: 'registro',
-    name: 'Registro',
-    price: 'R$ 19,90/mes',
-    description: 'Para quem quer mais organizacao',
+    name: 'Básico',
+    price: 'R$ 19,90/mês',
+    description: 'Para quem quer mais organização',
     features: [
       'Upload ilimitado de editais',
       'Cronograma personalizado',
-      'Relatorios detalhados',
-      'Suporte prioritario',
+      'Relatórios detalhados',
+      'Suporte prioritário',
     ],
     gradientColors: [colors.success, '#009977'],
   },
   {
     tier: 'microlearning',
     name: 'Microlearning',
-    price: 'R$ 39,90/mes',
-    description: 'Conteudo inteligente adaptado a voce',
+    price: 'R$ 39,90/mês',
+    description: 'Conteúdo inteligente adaptado a você',
     features: [
-      'Tudo do Registro',
+      'Tudo do Básico',
       'Flashcards com IA',
       'Resumos personalizados',
       'Quizzes adaptativos',
-      'Conteudo offline',
+      'Conteúdo offline',
     ],
     gradientColors: [colors.accent, '#4A3ACD'],
     recommended: true,
@@ -67,12 +67,12 @@ const plans: PlanInfo[] = [
   {
     tier: 'mentor',
     name: 'Mentor',
-    price: 'R$ 79,90/mes',
+    price: 'R$ 79,90/mês',
     description: 'Acompanhamento completo',
     features: [
       'Tudo do Microlearning',
       'Mentoria com IA',
-      'Plano de estudos avancado',
+      'Plano de estudos avançado',
       'Simulados exclusivos',
       'Acesso antecipado a novidades',
     ],
@@ -90,7 +90,7 @@ export function SubscriptionScreen() {
     if (tier === 'free') {
       Alert.alert(
         'Downgrade',
-        'Deseja cancelar sua assinatura? Voce mantera acesso ate o fim do periodo.',
+        'Deseja cancelar sua assinatura? Você manterá acesso até o fim do período.',
         [
           { text: 'Cancelar', style: 'cancel' },
           {
@@ -102,7 +102,7 @@ export function SubscriptionScreen() {
                 Alert.alert('Sucesso', 'Assinatura cancelada.');
                 await refreshUser();
               } catch {
-                Alert.alert('Erro', 'Nao foi possivel cancelar.');
+                Alert.alert('Erro', 'Não foi possível cancelar.');
               } finally {
                 setLoading(null);
               }
@@ -118,11 +118,11 @@ export function SubscriptionScreen() {
       // In a real app, initiate payment flow then call subscriptionsApi.create(tier)
       Alert.alert(
         'Pagamento',
-        'Integracao com pagamento em breve. O plano sera ativado apos confirmacao.',
+        'Integração com pagamento em breve. O plano será ativado após confirmação.',
       );
       await refreshUser();
     } catch {
-      Alert.alert('Erro', 'Nao foi possivel processar.');
+      Alert.alert('Erro', 'Não foi possível processar.');
     } finally {
       setLoading(null);
     }
@@ -132,7 +132,7 @@ export function SubscriptionScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Escolha seu plano</Text>
       <Text style={styles.subtitle}>
-        Encontre o plano ideal para sua preparacao
+        Encontre o plano ideal para sua preparação
       </Text>
 
       {plans.map((plan) => {

@@ -35,6 +35,7 @@ interface CargoSelectParams {
     orgao: string;
     exam_date: string;
     confidence: number;
+    sourceUrl?: string;
   };
   cargos: Cargo[];
   sharedDisciplinas: Disciplina[];
@@ -73,6 +74,7 @@ export function CargoSelectScreen() {
           confidence: 1.0,
           cargo: cargo.name,
           disciplinas: normalized,
+          sourceUrl: editalBase.sourceUrl,
         };
         navigation.navigate('EditalReview', { edital });
       } catch (err: any) {
@@ -86,6 +88,7 @@ export function CargoSelectScreen() {
     const edital = {
       ...editalBase,
       cargo: cargo.name,
+      sourceUrl: editalBase.sourceUrl,
       disciplinas: [
         ...sharedDisciplinas.map(d => ({ ...d, category: 'geral' as const })),
         ...cargo.disciplinas.map(d => ({ ...d, category: 'especifico' as const })),

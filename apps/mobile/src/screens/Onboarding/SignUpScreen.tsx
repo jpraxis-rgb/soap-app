@@ -97,7 +97,7 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
               style={styles.input}
               value={password}
               onChangeText={setPassword}
-              placeholder="Minimo 6 caracteres"
+              placeholder="Mínimo 6 caracteres"
               placeholderTextColor={colors.textSecondary}
               secureTextEntry
               autoComplete="password-new"
@@ -116,7 +116,7 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
             style={styles.link}
           >
             <Text style={styles.linkText}>
-              Ja tem conta?{' '}
+              Já tem conta?{' '}
               <Text style={styles.linkHighlight}>Entrar</Text>
             </Text>
           </Pressable>

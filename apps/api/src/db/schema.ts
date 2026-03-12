@@ -43,6 +43,9 @@ export const editalTemplates = pgTable('edital_templates', {
   examDate: timestamp('exam_date'),
   disciplinas: jsonb('disciplinas').notNull(),
   cargos: jsonb('cargos'),
+  vagas: integer('vagas'),
+  nivel: varchar('nivel', { length: 20 }),
+  sourceUrl: text('source_url'),
   sortOrder: integer('sort_order').default(0),
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -112,6 +115,9 @@ export const contentItems = pgTable('content_items', {
   professorName: varchar('professor_name', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow().$onUpdateFn(() => new Date()),
+  templateId: uuid('template_id').references(() => editalTemplates.id, { onDelete: 'cascade' }),
+  disciplinaName: varchar('disciplina_name', { length: 255 }),
+  source: varchar('source', { length: 20 }).default('ai_curated'),
 });
 
 export const flashcardReviews = pgTable('flashcard_reviews', {

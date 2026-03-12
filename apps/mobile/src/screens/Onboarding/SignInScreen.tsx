@@ -97,7 +97,7 @@ export function SignInScreen({ navigation }: SignInScreenProps) {
             style={styles.link}
           >
             <Text style={styles.linkText}>
-              Nao tem conta?{' '}
+              Não tem conta?{' '}
               <Text style={styles.linkHighlight}>Criar conta</Text>
             </Text>
           </Pressable>

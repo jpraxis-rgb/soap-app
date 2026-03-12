@@ -1,5 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
+import { eq, and } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import * as schema from '../db/schema.js';
 import { validateBody } from '../middleware/validate.js';
 import { requireTier } from '../middleware/auth.js';
 import {
@@ -8,6 +11,8 @@ import {
   getCurationQueue,
   approveContent,
   rejectContent,
+  getContentForEdital,
+  getContentForTopic,
 } from '../modules/content/content.service.js';
 
 const router = Router();
@@ -22,6 +27,96 @@ const generateContentSchema = z.object({
   disciplinaId: data.disciplina_id ?? data.disciplinaId,
   disciplinaName: data.disciplinaName,
 }));
+
+// GET /content/for-edital/:editalId
+router.get('/for-edital/:editalId', async (req: Request, res: Response) => {
+  try {
+    const editalId = String(req.params.editalId);
+    const result = await getContentForEdital(editalId);
+    if (!result) {
+      res.status(404).json({ error: 'Edital not found' });
+      return;
+    }
+    res.json({ data: result });
+  } catch (error) {
+    console.error('Content for-edital error:', error);
+    res.status(500).json({ error: 'Failed to fetch content for edital' });
+  }
+});
+
+// GET /content/for-topic
+router.get('/for-topic', async (req: Request, res: Response) => {
+  try {
+    const { topic, disciplina, format } = req.query;
+    if (!topic || !disciplina) {
+      res.status(400).json({ error: 'topic and disciplina are required' });
+      return;
+    }
+    const items = await getContentForTopic(
+      topic as string,
+      disciplina as string,
+      format as string | undefined
+    );
+    res.json({ data: items });
+  } catch (error) {
+    console.error('Content for-topic error:', error);
+    res.status(500).json({ error: 'Failed to fetch content for topic' });
+  }
+});
+
+// POST /content/seed-for-edital/:editalId — generate content for all topics in a custom edital
+router.post('/seed-for-edital/:editalId', async (req: Request, res: Response) => {
+  try {
+    const editalId = String(req.params.editalId);
+    // Get edital and its disciplinas
+    const [edital] = await db.select().from(schema.editais).where(eq(schema.editais.id, editalId));
+    if (!edital) {
+      res.status(404).json({ error: 'Edital not found' });
+      return;
+    }
+    const editalDisciplinas = await db.select().from(schema.disciplinas)
+      .where(eq(schema.disciplinas.editalId, editalId));
+
+    // Respond immediately, process in background
+    res.json({ data: { message: 'Content generation started', status: 'processing' } });
+
+    // Background generation
+    (async () => {
+      for (const disc of editalDisciplinas) {
+        const rawTopics = disc.topics;
+        const topics: string[] = Array.isArray(rawTopics)
+          ? rawTopics as string[]
+          : (rawTopics && typeof rawTopics === 'object' && 'items' in (rawTopics as Record<string, unknown>))
+            ? ((rawTopics as Record<string, unknown>).items as string[])
+            : [];
+        for (const topicName of topics) {
+          try {
+            // Check if content already exists
+            const existing = await db.select({ id: schema.contentItems.id })
+              .from(schema.contentItems)
+              .where(and(
+                eq(schema.contentItems.topic, topicName as string),
+                eq(schema.contentItems.disciplinaName, disc.name),
+                eq(schema.contentItems.status, 'published'),
+              ));
+            if (existing.length >= 4) continue;
+
+            await generateContentBatch(topicName as string, disc.id, disc.name, {
+              autoPublish: true,
+              source: 'ai_auto',
+            });
+          } catch (err) {
+            console.error(`Failed to generate content for ${disc.name} > ${topicName}:`, err);
+          }
+        }
+      }
+      console.log(`Content generation complete for edital ${editalId}`);
+    })();
+  } catch (error) {
+    console.error('Seed for-edital error:', error);
+    res.status(500).json({ error: 'Failed to start content generation' });
+  }
+});
 
 // GET /content/topic/:topicId — returns published content by format
 router.get('/topic/:topicId', async (req: Request, res: Response) => {
