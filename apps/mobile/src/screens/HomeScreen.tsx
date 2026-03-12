@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '../theme';
 import { Badge, Card } from '../components';
-import { getTodayScheduleBlocks, ScheduleBlockData } from '../services/api';
+import { getTodayScheduleBlocks, ScheduleBlockData, getUpcomingScheduleBlocks } from '../services/api';
 import { SessionLogSheet } from './SessionLogSheet';
 import { useConcurso } from '../contexts/ConcursoContext';
 
@@ -26,9 +26,20 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 // ── Week Calendar ──────────────────────────────────────
 
-function WeekCalendar() {
+function formatDateKey(d: Date): string {
+  return d.toISOString().split('T')[0];
+}
+
+function WeekCalendar({
+  selectedDate,
+  onSelectDate,
+  blockDates,
+}: {
+  selectedDate: string;
+  onSelectDate: (date: string) => void;
+  blockDates: Set<string>;
+}) {
   const today = new Date();
-  const days = [];
   const dayLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
 
   // Start from Monday of this week
@@ -37,6 +48,7 @@ function WeekCalendar() {
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
   startOfWeek.setDate(today.getDate() + mondayOffset);
 
+  const days: Date[] = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(startOfWeek);
     d.setDate(startOfWeek.getDate() + i);
@@ -46,13 +58,17 @@ function WeekCalendar() {
   return (
     <View style={calStyles.container}>
       {days.map((d, i) => {
+        const dateKey = formatDateKey(d);
         const isToday = d.toDateString() === today.toDateString();
+        const isSelected = dateKey === selectedDate;
+        const hasBlocks = blockDates.has(dateKey);
+
         return (
-          <View key={i} style={calStyles.dayColumn}>
-            <Text style={[calStyles.dayLabel, isToday && calStyles.dayLabelActive]}>
-              {dayLabels[(mondayOffset + i + dayOfWeek + 7) % 7 === 0 ? 0 : ((mondayOffset + i + dayOfWeek + 7) % 7)]}
+          <Pressable key={i} onPress={() => onSelectDate(dateKey)} style={calStyles.dayColumn}>
+            <Text style={[calStyles.dayLabel, (isToday || isSelected) && calStyles.dayLabelActive]}>
+              {dayLabels[d.getDay()]}
             </Text>
-            {isToday ? (
+            {isSelected ? (
               <LinearGradient
                 colors={[colors.accent, colors.accentPink]}
                 style={calStyles.todayCircle}
@@ -60,11 +76,14 @@ function WeekCalendar() {
                 <Text style={calStyles.dayNumberActive}>{d.getDate()}</Text>
               </LinearGradient>
             ) : (
-              <View style={calStyles.dayCircle}>
-                <Text style={calStyles.dayNumber}>{d.getDate()}</Text>
+              <View style={[calStyles.dayCircle, isToday && { borderWidth: 1, borderColor: colors.accent }]}>
+                <Text style={[calStyles.dayNumber, isToday && { color: colors.accent }]}>{d.getDate()}</Text>
               </View>
             )}
-          </View>
+            {hasBlocks && !isSelected && (
+              <View style={calStyles.dotIndicator} />
+            )}
+          </Pressable>
         );
       })}
     </View>
@@ -115,6 +134,13 @@ const calStyles = StyleSheet.create({
     color: colors.text,
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.bold,
+  },
+  dotIndicator: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: colors.accent,
+    marginTop: 2,
   },
 });
 
@@ -319,26 +345,47 @@ interface HomeScreenProps {
 
 export function HomeScreen({ navigation }: HomeScreenProps) {
   const { hasAnyConcurso, hasActiveSchedule, activeConcurso, concursos, setActiveConcurso } = useConcurso();
-  const [blocks, setBlocks] = useState<ScheduleBlockData[]>([]);
+  const [allWeekBlocks, setAllWeekBlocks] = useState<ScheduleBlockData[]>([]);
+  const [selectedDate, setSelectedDate] = useState(() => formatDateKey(new Date()));
   const [sessionBlock, setSessionBlock] = useState<ScheduleBlockData | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showConcursoSelector, setShowConcursoSelector] = useState(false);
 
+  // Compute week range (Mon-Sun)
+  const weekRange = React.useMemo(() => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + mondayOffset);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return { from: formatDateKey(monday), to: formatDateKey(sunday) };
+  }, []);
+
   React.useEffect(() => {
-    if (!hasAnyConcurso || !hasActiveSchedule) {
+    if (!hasAnyConcurso) {
       setLoading(false);
-      setBlocks([]);
+      setAllWeekBlocks([]);
       return;
     }
     setLoading(true);
     setError(null);
-    getTodayScheduleBlocks()
-      .then(setBlocks)
-      .catch(() => setError('Não foi possível carregar os blocos de hoje.'))
+    getUpcomingScheduleBlocks(weekRange.from, weekRange.to)
+      .then(setAllWeekBlocks)
+      .catch(() => setError('Não foi possível carregar os blocos.'))
       .finally(() => setLoading(false));
-  }, [hasAnyConcurso, hasActiveSchedule, activeConcurso?.id]);
+  }, [hasAnyConcurso, activeConcurso?.id, weekRange.from, weekRange.to]);
+
+  // Filter blocks for selected date
+  const blocks = allWeekBlocks.filter(b => b.scheduled_date === selectedDate);
+  // Dates that have blocks (for calendar dots)
+  const blockDates = React.useMemo(
+    () => new Set(allWeekBlocks.map(b => b.scheduled_date)),
+    [allWeekBlocks],
+  );
 
   // Exam countdown - mock date 90 days from now
   const examDate = new Date();
@@ -365,7 +412,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     setSheetVisible(false);
     setSessionBlock(null);
     // Refresh blocks
-    getTodayScheduleBlocks().then(setBlocks).catch(() => {});
+    getUpcomingScheduleBlocks(weekRange.from, weekRange.to).then(setAllWeekBlocks).catch(() => {});
   };
 
   // Empty state: no concurso imported yet
@@ -394,35 +441,6 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     );
   }
 
-  // Has concurso but no schedule yet
-  if (!hasActiveSchedule && activeConcurso) {
-    return (
-      <View style={styles.container}>
-        <ScrollView contentContainerStyle={styles.emptyContainer}>
-          <Ionicons name="calendar-outline" size={80} color={colors.surface} />
-          <Text style={styles.emptyTitle}>Edital importado!</Text>
-          <Text style={styles.emptyDescription}>
-            {activeConcurso.edital.orgao} — {activeConcurso.edital.cargo}
-          </Text>
-          <Text style={styles.emptyDescription}>
-            Configure seu cronograma de estudos para começar.
-          </Text>
-          <Pressable onPress={() => navigation.navigate('ScheduleConfig', { edital: activeConcurso.edital, concursoId: activeConcurso.id })}>
-            <LinearGradient
-              colors={[colors.accent, colors.accentPink]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.importButton}
-            >
-              <Ionicons name="calendar" size={20} color={colors.text} />
-              <Text style={styles.importButtonText}>Gerar cronograma</Text>
-            </LinearGradient>
-          </Pressable>
-        </ScrollView>
-      </View>
-    );
-  }
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -441,9 +459,9 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           onPress={() => {
             setLoading(true);
             setError(null);
-            getTodayScheduleBlocks()
-              .then(setBlocks)
-              .catch(() => setError('Não foi possível carregar os blocos de hoje.'))
+            getUpcomingScheduleBlocks(weekRange.from, weekRange.to)
+              .then(setAllWeekBlocks)
+              .catch(() => setError('Não foi possível carregar os blocos.'))
               .finally(() => setLoading(false));
           }}
           style={styles.retryButton}
@@ -551,13 +569,19 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         </View>
 
         {/* Week Calendar */}
-        <WeekCalendar />
+        <WeekCalendar
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+          blockDates={blockDates}
+        />
 
-        {/* Today's Blocks Header */}
+        {/* Blocks Header */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Blocos de hoje</Text>
+          <Text style={styles.sectionTitle}>
+            {selectedDate === formatDateKey(new Date()) ? 'Blocos de hoje' : `Blocos de ${selectedDate.split('-').reverse().join('/')}`}
+          </Text>
           <Text style={styles.sectionCount}>
-            {completedCount}/{blocks.length} concluidos
+            {completedCount}/{blocks.length} {completedCount === 1 ? 'concluido' : 'concluidos'}
           </Text>
         </View>
 
@@ -572,10 +596,10 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
         {blocks.length === 0 && (
           <View style={styles.emptyState}>
-            <Ionicons name="calendar-outline" size={48} color={colors.textSecondary} />
-            <Text style={styles.emptyText}>Nenhum bloco para hoje</Text>
+            <Ionicons name="moon-outline" size={48} color={colors.textSecondary} />
+            <Text style={styles.emptyText}>Nenhum bloco neste dia</Text>
             <Text style={styles.emptySubtext}>
-              Configure seu cronograma para comecar
+              {blockDates.size > 0 ? 'Selecione um dia com blocos no calendario acima' : 'Importe um edital e gere seu cronograma'}
             </Text>
           </View>
         )}

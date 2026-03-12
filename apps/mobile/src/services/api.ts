@@ -15,6 +15,10 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   if (token) {
     return { Authorization: `Bearer ${token}` };
   }
+  // In dev mode, send a dummy bearer token so the API's dev bypass activates
+  if (__DEV__) {
+    return { Authorization: 'Bearer dev-token' };
+  }
   return {};
 }
 
@@ -172,10 +176,10 @@ export const subscriptionsApi = {
 // ── Editais API ──────────────────────────────────────
 
 export function parseEdital(sourceUrl: string) {
-  return request<{ data: unknown }>('/editais/parse', {
+  return request<{ data: { edital: any; disciplinas: any[]; warnings: string[] } }>('/editais/parse', {
     method: 'POST',
     body: JSON.stringify({ source_url: sourceUrl, source_type: 'url' }),
-  });
+  }).then(res => res.data);
 }
 
 export function getEditais() {
@@ -386,6 +390,12 @@ export async function getTodayScheduleBlocks(): Promise<ScheduleBlockData[]> {
   if (USE_MOCK) return MOCK_SCHEDULE_BLOCKS;
   const result = await request<{ data: ScheduleBlockData[] }>('/schedules/today');
   return result.data;
+}
+
+export async function getUpcomingScheduleBlocks(from: string, to: string): Promise<ScheduleBlockData[]> {
+  if (USE_MOCK) return MOCK_SCHEDULE_BLOCKS;
+  const result = await request<ScheduleBlockData[]>(`/schedules?from=${from}&to=${to}`);
+  return Array.isArray(result) ? result : [];
 }
 
 export async function getProgressOverview(): Promise<ProgressOverviewData> {

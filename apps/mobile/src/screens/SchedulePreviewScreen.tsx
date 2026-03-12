@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -132,7 +133,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
     () => computeAllocations(edital.disciplinas, config.hours_per_week),
     [edital.disciplinas, config.hours_per_week],
   );
-  const maxHours = useMemo(() => Math.max(...allocations.map((a) => a.hours), 1), [allocations]);
+  const maxHours = useMemo(() => allocations.length > 0 ? Math.max(...allocations.map((a) => a.hours), 1) : 1, [allocations]);
   const weeklyGrid = useMemo(
     () => generateWeeklyGrid(allocations, config.available_days),
     [allocations, config.available_days],
@@ -301,10 +302,14 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <Button
-            label="Confirmar cronograma"
+            label={saving ? 'Salvando...' : 'Confirmar cronograma'}
             onPress={handleConfirm}
             size="lg"
-            icon={<Ionicons name="checkmark-circle" size={20} color={colors.text} />}
+            disabled={saving}
+            icon={saving
+              ? <ActivityIndicator size={16} color={colors.text} />
+              : <Ionicons name="checkmark-circle" size={20} color={colors.text} />
+            }
           />
           <Button
             label="Ajustar configuração"

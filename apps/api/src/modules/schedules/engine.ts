@@ -14,7 +14,7 @@ export interface GenerateScheduleInput {
   editalId: string;
   hoursPerWeek: number;
   availableDays: number[];
-  examDate: string; // ISO date string
+  examDate?: string; // ISO date string, defaults to 12 weeks from now
 }
 
 export interface GenerateScheduleResult {
@@ -72,14 +72,33 @@ export async function generateSchedule(
     topics: extractTopics(d.topics),
   }));
 
+  // Default exam date to 12 weeks from now if not provided or in the past
+  const fallbackDate = new Date(Date.now() + 12 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  let examDateStr = fallbackDate;
+  if (input.examDate && input.examDate.trim()) {
+    const parsed = new Date(input.examDate);
+    if (!isNaN(parsed.getTime()) && parsed > new Date()) {
+      examDateStr = input.examDate;
+    } else {
+      console.log(`[Schedule] Exam date "${input.examDate}" is in the past or invalid, using fallback: ${fallbackDate}`);
+    }
+  }
+
+  // Convert mobile day indices (0=Mon..6=Sun) to JS day-of-week (0=Sun..6=Sat)
+  const jsDays = input.availableDays.map(d => (d + 1) % 7);
+
   const config: ScheduleConfig = {
     hoursPerWeek: input.hoursPerWeek,
-    availableDays: input.availableDays,
-    examDate: new Date(input.examDate),
+    availableDays: jsDays,
+    examDate: new Date(examDateStr),
   };
+
+  console.log('[Schedule] Generating:', { disciplinas: disciplinaInputs.length, examDate: examDateStr, jsDays, hoursPerWeek: input.hoursPerWeek });
 
   // Generate blocks using the algorithm
   const generatedBlocks = generateScheduleBlocks(disciplinaInputs, config);
+
+  console.log(`[Schedule] Algorithm produced ${generatedBlocks.length} blocks`);
 
   if (generatedBlocks.length === 0) {
     return { error: 'Could not generate schedule. Check your parameters (exam date, available hours).' };
@@ -95,23 +114,29 @@ export async function generateSchedule(
       ),
     );
 
-  // Insert new blocks
+  // Batch insert blocks (chunks of 50 to avoid query size limits)
+  const blockValues = generatedBlocks.map((block) => ({
+    userId: input.userId,
+    editalId: input.editalId,
+    disciplinaId: block.disciplinaId,
+    topic: block.topic.length > 490 ? block.topic.slice(0, 490) + '...' : block.topic,
+    scheduledDate: block.scheduledDate,
+    startTime: block.startTime,
+    durationMinutes: block.durationMinutes,
+  }));
+
   const insertedBlocks = [];
-  for (const block of generatedBlocks) {
-    const [inserted] = await db
+  const BATCH_SIZE = 50;
+  for (let i = 0; i < blockValues.length; i += BATCH_SIZE) {
+    const batch = blockValues.slice(i, i + BATCH_SIZE);
+    const inserted = await db
       .insert(scheduleBlocks)
-      .values({
-        userId: input.userId,
-        editalId: input.editalId,
-        disciplinaId: block.disciplinaId,
-        topic: block.topic,
-        scheduledDate: block.scheduledDate,
-        startTime: block.startTime,
-        durationMinutes: block.durationMinutes,
-      })
+      .values(batch)
       .returning();
-    insertedBlocks.push(inserted);
+    insertedBlocks.push(...inserted);
   }
+
+  console.log(`[Schedule] Inserted ${insertedBlocks.length} blocks to DB`);
 
   // Build summary
   const disciplinaCoverage: Record<string, number> = {};

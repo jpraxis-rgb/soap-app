@@ -141,7 +141,14 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
   const [preferredTime, setPreferredTime] = useState<'morning' | 'afternoon' | 'evening'>('morning');
   const [loading, setLoading] = useState(false);
 
-  const hasExamDate = !!(edital.exam_date && edital.exam_date.trim());
+  const examDateValid = (() => {
+    if (!edital.exam_date || !edital.exam_date.trim()) return false;
+    try {
+      const d = new Date(edital.exam_date);
+      return !isNaN(d.getTime()) && d > new Date();
+    } catch { return false; }
+  })();
+  const hasExamDate = examDateValid;
   const [dateInput, setDateInput] = useState(() => {
     if (hasExamDate) {
       // Convert ISO date (YYYY-MM-DD) to DD/MM/YYYY for display

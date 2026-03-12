@@ -87,15 +87,31 @@ function DisciplinaCard({ disciplina }: { disciplina: Disciplina }) {
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return 'Data não definida';
-  const [year, month, day] = dateStr.split('-');
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const [year, month, day] = parts;
   return `${day}/${month}/${year}`;
 }
 
 export function EditalReviewScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const { edital } = route.params as { edital: ParsedEditalData };
-  const confidencePercent = Math.round(edital.confidence * 100);
+  const params = route.params as { edital?: ParsedEditalData } | undefined;
+  const edital = params?.edital;
+
+  if (!edital) {
+    return (
+      <View style={styles.container}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl }}>
+          <Text style={{ color: colors.text, fontSize: typography.sizes.md }}>
+            Nenhum edital para revisar.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  const confidencePercent = Math.round((edital.confidence ?? 0) * 100);
 
   // Group disciplines by category
   const gerais = edital.disciplinas.filter(d => d.category === 'geral');

@@ -19,7 +19,54 @@ declare global {
   }
 }
 
+// Dev-mode demo user ID (stable UUID so DB relations work across restarts)
+const DEV_USER_ID = '00000000-0000-0000-0000-000000000001';
+const DEV_USER_EMAIL = 'demo@soap-app.dev';
+const IS_DEV = process.env.NODE_ENV !== 'production' && (
+  !process.env.JWT_SECRET || process.env.JWT_SECRET.includes('dev-secret')
+);
+
+/** Ensure a demo user row exists in the DB (idempotent). */
+let devUserEnsured = false;
+async function ensureDevUser() {
+  if (devUserEnsured) return;
+  try {
+    const [existing] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, DEV_USER_ID));
+    if (!existing) {
+      await db.insert(schema.users).values({
+        id: DEV_USER_ID,
+        email: DEV_USER_EMAIL,
+        name: 'Demo User',
+        passwordHash: 'dev-no-password',
+        authProvider: 'dev',
+        subscriptionTier: SubscriptionTier.PRO,
+      });
+      console.log('[AUTH] Created dev demo user');
+    }
+    devUserEnsured = true;
+  } catch (err) {
+    // Table might not exist yet (no migrations); skip silently
+    console.warn('[AUTH] Could not ensure dev user:', err instanceof Error ? err.stack : err);
+  }
+}
+
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
+  // In dev mode without JWT_SECRET, auto-authenticate as demo user
+  if (IS_DEV) {
+    ensureDevUser().then(() => {
+      req.user = { id: DEV_USER_ID, email: DEV_USER_EMAIL };
+      next();
+    }).catch(() => {
+      // Even if DB insert fails, still set user so routes work
+      req.user = { id: DEV_USER_ID, email: DEV_USER_EMAIL };
+      next();
+    });
+    return;
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

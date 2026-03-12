@@ -45,7 +45,10 @@ const updateEditalSchema = z.object({
   parsed_data: data.parsed_data ?? data.parsedData,
   exam_date: data.exam_date ?? data.examDate,
   status: data.status,
-  disciplinas: data.disciplinas,
+  disciplinas: data.disciplinas?.map((d, i) => ({
+    ...d,
+    order_index: d.order_index ?? d.orderIndex ?? i,
+  })),
 }));
 
 /**

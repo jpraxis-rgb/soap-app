@@ -33,7 +33,26 @@ function validateAndNormalize(raw: Partial<GeminiParseResult>): GeminiParseResul
     }
   }
 
-  if (disciplinas.length === 0) {
+  // Normalize cargos array
+  const cargos: Array<{ name: string; disciplinas: ParsedDisciplina[] }> = [];
+  if (Array.isArray(raw.cargos)) {
+    for (const c of raw.cargos) {
+      if (c && typeof c.name === 'string' && c.name.trim()) {
+        cargos.push({
+          name: c.name.trim(),
+          disciplinas: Array.isArray(c.disciplinas)
+            ? c.disciplinas.filter((d: any) => d && typeof d.name === 'string' && d.name.trim()).map((d: any) => ({
+                name: d.name.trim(),
+                weight: typeof d.weight === 'number' ? Math.max(1, Math.min(10, d.weight)) : 1,
+                topics: Array.isArray(d.topics) ? d.topics.filter((t: unknown) => typeof t === 'string' && (t as string).trim()) : [],
+              }))
+            : [],
+        });
+      }
+    }
+  }
+
+  if (disciplinas.length === 0 && cargos.every((c) => c.disciplinas.length === 0)) {
     warnings.push('No disciplinas were extracted from the edital');
   }
 
@@ -43,10 +62,18 @@ function validateAndNormalize(raw: Partial<GeminiParseResult>): GeminiParseResul
     examDate = null;
   }
 
+  // Backward compat: derive cargo from first entry in cargos if not set
+  let cargo = typeof raw.cargo === 'string' ? raw.cargo.trim() || null : null;
+  if (!cargo && cargos.length > 0) {
+    cargo = cargos[0].name;
+  }
+
   return {
     disciplinas,
+    cargos,
     banca: typeof raw.banca === 'string' ? raw.banca.trim() || null : null,
     orgao: typeof raw.orgao === 'string' ? raw.orgao.trim() || null : null,
+    cargo,
     exam_date: examDate,
     confidence: typeof raw.confidence === 'number' ? Math.min(1, Math.max(0, raw.confidence)) : 0.5,
     warnings,

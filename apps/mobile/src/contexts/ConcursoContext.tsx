@@ -125,7 +125,7 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
       edital_id: edital.id,
       hours_per_week: config.hours_per_week,
       available_days: config.available_days,
-      exam_date: edital.exam_date,
+      exam_date: edital.exam_date || new Date(Date.now() + 12 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     });
 
     const newConcurso: Concurso = {
@@ -161,14 +161,12 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Continue with local removal even if API fails
     }
-    setConcursos(prev => prev.filter(c => c.id !== concursoId));
-    setActiveConcursoId(prev => {
-      if (prev !== concursoId) return prev;
-      // Switch to another concurso or null
-      const remaining = concursos.filter(c => c.id !== concursoId);
-      return remaining.length > 0 ? remaining[0].id : null;
+    setConcursos(prev => {
+      const remaining = prev.filter(c => c.id !== concursoId);
+      setActiveConcursoId(p => p === concursoId ? (remaining[0]?.id ?? null) : p);
+      return remaining;
     });
-  }, [concursos]);
+  }, []);
 
   return (
     <ConcursoContext.Provider
