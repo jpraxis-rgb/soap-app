@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -140,9 +141,37 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
   const [preferredTime, setPreferredTime] = useState<'morning' | 'afternoon' | 'evening'>('morning');
   const [loading, setLoading] = useState(false);
 
+  const examDateValid = (() => {
+    if (!edital.exam_date || !edital.exam_date.trim()) return false;
+    try {
+      const d = new Date(edital.exam_date);
+      return !isNaN(d.getTime()) && d > new Date();
+    } catch { return false; }
+  })();
+  const hasExamDate = examDateValid;
+  const [dateInput, setDateInput] = useState(() => {
+    if (hasExamDate) {
+      // Convert ISO date (YYYY-MM-DD) to DD/MM/YYYY for display
+      const [y, m, d] = edital.exam_date.split('-');
+      return d && m && y ? `${d}/${m}/${y}` : '';
+    }
+    return '';
+  });
+
   const concursoName = `${edital.orgao} - ${edital.cargo}`;
 
+  /** Parse DD/MM/YYYY → YYYY-MM-DD or return null */
+  const parseUserDate = (input: string): string | null => {
+    const match = input.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return null;
+    const [, dd, mm, yyyy] = match;
+    const d = new Date(`${yyyy}-${mm}-${dd}`);
+    if (isNaN(d.getTime())) return null;
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   const formattedExamDate = (() => {
+    if (!hasExamDate) return '';
     try {
       const date = new Date(edital.exam_date);
       return date.toLocaleDateString('pt-BR', {
@@ -166,6 +195,18 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
   const handleGenerate = () => {
     if (availableDays.length === 0) return;
 
+    // If no exam date from edital, parse from user input
+    let finalEdital = edital;
+    if (!hasExamDate) {
+      const parsed = parseUserDate(dateInput);
+      if (!parsed) {
+        // No date entered → use 12-week fallback (API handles this)
+        finalEdital = { ...edital, exam_date: '' };
+      } else {
+        finalEdital = { ...edital, exam_date: parsed };
+      }
+    }
+
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
@@ -174,8 +215,8 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
         available_days: availableDays,
         preferred_time: preferredTime,
       };
-      navigation.navigate('SchedulePreview', { edital, config });
-    }, 2000);
+      navigation.navigate('SchedulePreview', { edital: finalEdital, config });
+    }, 1000);
   };
 
   // ── Loading State ──────────────────────────────────
@@ -301,7 +342,38 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
             <Ionicons name="flag-outline" size={20} color={colors.accent} />
             <Text style={styles.fieldLabel}>Data da prova</Text>
           </View>
-          <Text style={styles.examDate}>{formattedExamDate}</Text>
+          {hasExamDate ? (
+            <Text style={styles.examDate}>{formattedExamDate}</Text>
+          ) : (
+            <View>
+              <TextInput
+                style={styles.dateInput}
+                placeholder="DD/MM/AAAA"
+                placeholderTextColor={colors.textSecondary}
+                value={dateInput}
+                onChangeText={(text) => {
+                  // Auto-format: insert slashes after DD and MM
+                  const digits = text.replace(/\D/g, '').slice(0, 8);
+                  let formatted = digits;
+                  if (digits.length > 4) {
+                    formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+                  } else if (digits.length > 2) {
+                    formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+                  }
+                  setDateInput(formatted);
+                }}
+                keyboardType="number-pad"
+                maxLength={10}
+              />
+              <Text style={styles.dateHint}>
+                {dateInput.length === 0
+                  ? 'Opcional — sem data, usaremos 12 semanas a partir de hoje'
+                  : parseUserDate(dateInput)
+                    ? ''
+                    : 'Formato: DD/MM/AAAA'}
+              </Text>
+            </View>
+          )}
         </Card>
 
         {/* Disciplinas summary */}
@@ -477,6 +549,20 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.medium,
+  },
+  dateInput: {
+    color: colors.text,
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.medium,
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+  },
+  dateHint: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.xs,
+    marginTop: spacing.xs,
   },
   disciplinaList: {
     gap: spacing.sm,

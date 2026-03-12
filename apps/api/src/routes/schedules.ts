@@ -25,7 +25,7 @@ const generateScheduleSchema = z.object({
 })).refine(data => data.edital_id, { message: 'edital_id is required' })
   .refine(data => data.hours_per_week, { message: 'hours_per_week is required' })
   .refine(data => data.available_days && data.available_days.length > 0, { message: 'available_days must be a non-empty array' })
-  .refine(data => data.exam_date, { message: 'exam_date is required' });
+;
 
 /**
  * GET /schedules

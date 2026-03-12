@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { parseEdital as apiParseEdital, getEditais, deleteEdital as apiDeleteEdital, generateSchedule } from '../services/api';
+import { parseEdital as apiParseEdital, getEditais, deleteEdital as apiDeleteEdital, generateSchedule, updateEditalDisciplinas } from '../services/api';
 
 const ACTIVE_CONCURSO_KEY = '@soap/active_concurso_id';
 
@@ -9,6 +9,7 @@ export interface ParsedDisciplina {
   name: string;
   weight: number;
   topics: string[];
+  category?: 'geral' | 'especifico';
 }
 
 export interface ParsedEditalData {
@@ -108,11 +109,23 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const confirmEdital = useCallback(async (edital: ParsedEditalData, config: ScheduleConfig) => {
+    // Sync disciplinas to DB before generating schedule
+    await updateEditalDisciplinas(
+      edital.id,
+      edital.cargo,
+      edital.disciplinas.map((d, i) => ({
+        name: d.name,
+        weight: d.weight,
+        topics: d.topics,
+        orderIndex: i,
+      })),
+    );
+
     await generateSchedule({
       edital_id: edital.id,
       hours_per_week: config.hours_per_week,
       available_days: config.available_days,
-      exam_date: edital.exam_date,
+      exam_date: edital.exam_date || new Date(Date.now() + 12 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     });
 
     const newConcurso: Concurso = {
@@ -148,14 +161,12 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Continue with local removal even if API fails
     }
-    setConcursos(prev => prev.filter(c => c.id !== concursoId));
-    setActiveConcursoId(prev => {
-      if (prev !== concursoId) return prev;
-      // Switch to another concurso or null
-      const remaining = concursos.filter(c => c.id !== concursoId);
-      return remaining.length > 0 ? remaining[0].id : null;
+    setConcursos(prev => {
+      const remaining = prev.filter(c => c.id !== concursoId);
+      setActiveConcursoId(p => p === concursoId ? (remaining[0]?.id ?? null) : p);
+      return remaining;
     });
-  }, [concursos]);
+  }, []);
 
   return (
     <ConcursoContext.Provider

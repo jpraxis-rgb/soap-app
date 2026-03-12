@@ -10,9 +10,11 @@ export interface ParsedDisciplina {
 }
 
 export interface GeminiParseResult {
-  disciplinas: ParsedDisciplina[];
+  disciplinas: ParsedDisciplina[]; // shared disciplinas or single-cargo
+  cargos: Array<{ name: string; disciplinas: ParsedDisciplina[] }>; // per-cargo breakdown
   banca: string | null;
   orgao: string | null;
+  cargo: string | null; // keep for backward compat, first cargo name
   exam_date: string | null;
   confidence: number;
   warnings: string[];
@@ -21,49 +23,97 @@ export interface GeminiParseResult {
 const EXTRACTION_PROMPT = `Você é um especialista em concursos públicos brasileiros.
 Analise o conteúdo do edital abaixo e extraia as seguintes informações em formato JSON:
 
-1. "disciplinas": lista de disciplinas/matérias com:
-   - "name": nome da disciplina
-   - "weight": peso relativo (número de 1 a 10). Weight represents the relative importance of each disciplina for the exam, from 1 (least important) to 10 (most important). Base this on the number of questions, point value, or explicit weight stated in the edital.
-   - "topics": lista de tópicos/assuntos da disciplina
-   - "prova_type": tipo de prova para esta disciplina: "objetiva" (múltipla escolha), "discursiva" (redação/dissertação), ou "mista" (ambos). Use null se não for possível determinar.
+1. "cargos": lista de TODOS os cargos/funções encontrados no edital. Para cada cargo, inclua:
+   - "name": nome do cargo (ex: "Analista Judiciário", "Técnico Administrativo")
+   - "disciplinas": lista de disciplinas ESPECÍFICAS daquele cargo, cada uma com:
+     - "name": nome da disciplina
+     - "weight": peso relativo (número de 1 a 10). Baseie no número de questões, valor de pontos ou peso explícito no edital.
+     - "topics": lista de tópicos/assuntos da disciplina
+     - "prova_type": "objetiva", "discursiva", "mista", ou null
 
-2. "banca": nome da banca organizadora (ex: CESPE/CEBRASPE, FCC, FGV, VUNESP, etc.)
+2. "disciplinas": disciplinas COMUNS a todos os cargos (conhecimentos básicos/gerais).
+   Se o edital não separa por cargo, coloque todas as disciplinas aqui e deixe os arrays de disciplinas dos cargos vazios.
+   Cada disciplina com: "name", "weight", "topics", "prova_type" (mesma estrutura acima).
 
-3. "orgao": órgão/instituição do concurso
+3. "banca": nome da banca organizadora (ex: CESPE/CEBRASPE, FCC, FGV, VUNESP, etc.)
 
-4. "exam_date": data da prova no formato YYYY-MM-DD, se mencionada (null se não encontrada)
+4. "orgao": órgão/instituição do concurso
 
-5. "confidence": um número de 0.0 a 1.0 indicando sua confiança na extração
+5. "cargo": nome do primeiro cargo encontrado (para compatibilidade). Se houver múltiplos, use o primeiro.
 
-6. "warnings": lista de avisos sobre dados que podem estar incompletos ou ambíguos
+6. "exam_date": data da prova no formato YYYY-MM-DD, se mencionada (null se não encontrada)
+
+7. "confidence": um número de 0.0 a 1.0 indicando sua confiança na extração
+
+8. "warnings": lista de avisos sobre dados que podem estar incompletos ou ambíguos
 
 Exemplo de estrutura JSON esperada:
 {
   "disciplinas": [
     {
-      "name": "Direito Constitucional",
-      "weight": 8,
-      "topics": ["Princípios Fundamentais", "Direitos e Garantias Fundamentais"],
+      "name": "Língua Portuguesa",
+      "weight": 7,
+      "topics": ["Interpretação de Texto", "Gramática"],
       "prova_type": "objetiva"
+    }
+  ],
+  "cargos": [
+    {
+      "name": "Analista Judiciário",
+      "disciplinas": [
+        {
+          "name": "Direito Constitucional",
+          "weight": 8,
+          "topics": ["Princípios Fundamentais", "Direitos e Garantias Fundamentais"],
+          "prova_type": "objetiva"
+        }
+      ]
+    },
+    {
+      "name": "Técnico Administrativo",
+      "disciplinas": [
+        {
+          "name": "Noções de Administração",
+          "weight": 6,
+          "topics": ["Organização", "Gestão de Pessoas"],
+          "prova_type": "objetiva"
+        }
+      ]
     }
   ],
   "banca": "CESPE/CEBRASPE",
   "orgao": "Tribunal Regional Federal",
+  "cargo": "Analista Judiciário",
   "exam_date": "2026-06-15",
   "confidence": 0.85,
   "warnings": []
 }
 
+IMPORTANTE sobre disciplinas em concursos brasileiros:
+- "Conhecimentos Gerais", "Conhecimentos Básicos" e "Conhecimentos Específicos" são CATEGORIAS, NÃO disciplinas. Nunca os liste como disciplinas.
+- As disciplinas reais estão DENTRO dessas categorias (ex: "Língua Portuguesa", "Direito Constitucional", "Raciocínio Lógico", etc.)
+- Cada disciplina deve ter seus próprios tópicos detalhados conforme listados no edital.
+- Não agrupe múltiplas disciplinas sob um único nome genérico.
+
 Responda APENAS com o JSON válido, sem markdown ou texto adicional.
 Se não conseguir extrair alguma informação, use null para campos string e array vazio para listas.
 Se os pesos não forem claros no edital, distribua proporcionalmente baseado no número de tópicos.
+Se o edital tiver apenas um cargo, coloque-o no array "cargos" com suas disciplinas específicas.
 
 CONTEÚDO DO EDITAL:
 `;
 
+// Models to try in order of preference (free tier availability varies)
+const MODEL_FALLBACKS = [
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+];
+
 export class GeminiService {
   private genAI: GoogleGenerativeAI;
-  private modelName: string;
+  private modelName: string | null;
 
   constructor(apiKey?: string, modelName?: string) {
     const key = apiKey || process.env.GEMINI_API_KEY;
@@ -71,34 +121,58 @@ export class GeminiService {
       throw new Error('GEMINI_API_KEY is required. Set it via environment variable or constructor parameter.');
     }
     this.genAI = new GoogleGenerativeAI(key);
-    this.modelName = modelName || 'gemini-1.5-flash';
+    this.modelName = modelName || null; // null = try fallbacks
   }
 
   async parseEditalContent(content: string): Promise<GeminiParseResult> {
-    try {
-      const model = this.genAI.getGenerativeModel({ model: this.modelName });
-      const prompt = EXTRACTION_PROMPT + content;
-      const result = await model.generateContent(prompt);
-      const response = result.response;
-      const text = response.text();
-      const cleanedText = text
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/i, '')
-        .replace(/\s*```$/i, '')
-        .trim();
-      const parsed = JSON.parse(cleanedText) as GeminiParseResult;
-      return this.validateAndNormalize(parsed);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      return {
-        disciplinas: [],
-        banca: null,
-        orgao: null,
-        exam_date: null,
-        confidence: 0,
-        warnings: [`Gemini parsing failed: ${message}`],
-      };
+    // For very large PDFs (>500k chars), keep first 10k + last 300k where disciplines usually are.
+    const maxChars = 500000;
+    let truncated = content;
+    if (content.length > maxChars) {
+      const head = content.substring(0, 10000);
+      const tail = content.substring(content.length - 300000);
+      truncated = head + '\n\n[...]\n\n' + tail;
     }
+    const prompt = EXTRACTION_PROMPT + truncated;
+
+    const modelsToTry = this.modelName ? [this.modelName] : MODEL_FALLBACKS;
+    const errors: string[] = [];
+
+    for (const modelName of modelsToTry) {
+      try {
+        console.log(`[Gemini] Trying model: ${modelName}`);
+        const model = this.genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const text = response.text();
+        const cleanedText = text
+          .replace(/^```json\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/\s*```$/i, '')
+          .trim();
+        const parsed = JSON.parse(cleanedText) as GeminiParseResult;
+        console.log(`[Gemini] Success with model: ${modelName}`);
+        return this.validateAndNormalize(parsed);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        const isRateLimit = message.includes('429') || message.includes('quota');
+        const isNotFound = message.includes('404');
+        console.log(`[Gemini] ${modelName} failed: ${isRateLimit ? 'rate limited' : isNotFound ? 'not found' : message.substring(0, 100)}`);
+        errors.push(`${modelName}: ${message.substring(0, 150)}`);
+        // Continue to next model
+      }
+    }
+
+    return {
+      disciplinas: [],
+      cargos: [],
+      banca: null,
+      orgao: null,
+      cargo: null,
+      exam_date: null,
+      confidence: 0,
+      warnings: [`All Gemini models failed. Errors: ${errors.join(' | ')}`],
+    };
   }
 
   async parseEditalFromUrl(url: string): Promise<GeminiParseResult> {
@@ -106,18 +180,30 @@ export class GeminiService {
     try {
       const response = await fetch(url);
       if (response.ok) {
-        const textContent = await response.text();
-        if (textContent && textContent.trim().length > 0) {
-          return this.parseEditalContent(textContent);
+        const contentType = response.headers.get('content-type') || '';
+        // If it's a PDF, extract text with pdf-parse
+        if (contentType.includes('application/pdf') || url.toLowerCase().endsWith('.pdf')) {
+          const { extractTextFromPdf } = await import('./pdf-extract.js');
+          const buffer = Buffer.from(await response.arrayBuffer());
+          const textContent = await extractTextFromPdf(buffer);
+          if (textContent && textContent.trim().length > 100) {
+            return this.parseEditalContent(textContent);
+          }
+        } else {
+          const textContent = await response.text();
+          if (textContent && textContent.trim().length > 0) {
+            return this.parseEditalContent(textContent);
+          }
         }
       }
-    } catch {
-      // Fetch failed — fall back to asking Gemini to infer from the URL
+    } catch (fetchError) {
+      console.error('[GEMINI] PDF fetch/extract failed, falling back to URL inference:', fetchError instanceof Error ? fetchError.message : fetchError);
     }
 
     // Fallback: ask Gemini to infer from the URL
     try {
-      const model = this.genAI.getGenerativeModel({ model: this.modelName });
+      const modelsToTry = this.modelName ? [this.modelName] : MODEL_FALLBACKS;
+      const model = this.genAI.getGenerativeModel({ model: modelsToTry[0] });
       const prompt = `A seguinte URL aponta para um edital de concurso público. Não é possível acessar o conteúdo diretamente.
 Analise a URL para identificar o concurso e forneça informações baseadas no seu conhecimento.
 
@@ -141,8 +227,10 @@ ${EXTRACTION_PROMPT}`;
       const message = error instanceof Error ? error.message : 'Unknown error';
       return {
         disciplinas: [],
+        cargos: [],
         banca: null,
         orgao: null,
+        cargo: null,
         exam_date: null,
         confidence: 0,
         warnings: [`Gemini URL parsing failed: ${message}`],
@@ -150,39 +238,73 @@ ${EXTRACTION_PROMPT}`;
     }
   }
 
+  private normalizeDisciplinas(raw: unknown[]): ParsedDisciplina[] {
+    const validProvaTypes = ['objetiva', 'discursiva', 'mista'];
+    const result: ParsedDisciplina[] = [];
+    for (const d of raw) {
+      if (d && typeof (d as Record<string, unknown>).name === 'string' && ((d as Record<string, unknown>).name as string).trim()) {
+        const item = d as Record<string, unknown>;
+        const provaType = typeof item.prova_type === 'string' && validProvaTypes.includes(item.prova_type)
+          ? item.prova_type as 'objetiva' | 'discursiva' | 'mista'
+          : null;
+        result.push({
+          name: (item.name as string).trim(),
+          weight: typeof item.weight === 'number' ? Math.max(1, Math.min(10, item.weight)) : 1,
+          topics: Array.isArray(item.topics)
+            ? (item.topics as unknown[]).filter((t: unknown) => typeof t === 'string' && (t as string).trim()) as string[]
+            : [],
+          prova_type: provaType,
+        });
+      }
+    }
+    return result;
+  }
+
   private validateAndNormalize(raw: Partial<GeminiParseResult>): GeminiParseResult {
     const warnings: string[] = raw.warnings || [];
-    const disciplinas: ParsedDisciplina[] = [];
-    if (Array.isArray(raw.disciplinas)) {
-      const validProvaTypes = ['objetiva', 'discursiva', 'mista'];
-      for (const d of raw.disciplinas) {
-        if (d && typeof d.name === 'string' && d.name.trim()) {
-          const provaType = typeof d.prova_type === 'string' && validProvaTypes.includes(d.prova_type)
-            ? d.prova_type as 'objetiva' | 'discursiva' | 'mista'
-            : null;
-          disciplinas.push({
-            name: d.name.trim(),
-            weight: typeof d.weight === 'number' ? Math.max(1, Math.min(10, d.weight)) : 1,
-            topics: Array.isArray(d.topics)
-              ? d.topics.filter((t: unknown) => typeof t === 'string' && (t as string).trim())
+
+    // Normalize top-level disciplinas
+    const disciplinas = Array.isArray(raw.disciplinas)
+      ? this.normalizeDisciplinas(raw.disciplinas)
+      : [];
+
+    // Normalize cargos array
+    const cargos: Array<{ name: string; disciplinas: ParsedDisciplina[] }> = [];
+    if (Array.isArray(raw.cargos)) {
+      for (const c of raw.cargos) {
+        if (c && typeof c.name === 'string' && c.name.trim()) {
+          cargos.push({
+            name: c.name.trim(),
+            disciplinas: Array.isArray(c.disciplinas)
+              ? this.normalizeDisciplinas(c.disciplinas)
               : [],
-            prova_type: provaType,
           });
         }
       }
     }
-    if (disciplinas.length === 0) {
+
+    if (disciplinas.length === 0 && cargos.every((c) => c.disciplinas.length === 0)) {
       warnings.push('No disciplinas were extracted from the edital');
     }
+
     let examDate = raw.exam_date || null;
     if (examDate && !/^\d{4}-\d{2}-\d{2}$/.test(examDate)) {
       warnings.push(`Invalid exam_date format: ${examDate}`);
       examDate = null;
     }
+
+    // Backward compat: derive cargo from first entry in cargos if not set
+    let cargo = typeof raw.cargo === 'string' ? raw.cargo.trim() || null : null;
+    if (!cargo && cargos.length > 0) {
+      cargo = cargos[0].name;
+    }
+
     return {
       disciplinas,
+      cargos,
       banca: typeof raw.banca === 'string' ? raw.banca.trim() || null : null,
       orgao: typeof raw.orgao === 'string' ? raw.orgao.trim() || null : null,
+      cargo,
       exam_date: examDate,
       confidence: typeof raw.confidence === 'number' ? Math.min(1, Math.max(0, raw.confidence)) : 0.5,
       warnings,
@@ -236,7 +358,8 @@ export function isGeminiAvailable(): boolean {
 
 async function generateWithGemini<T>(prompt: string): Promise<T> {
   const service = getGeminiService();
-  const model = service['genAI'].getGenerativeModel({ model: service['modelName'] });
+  const modelsToTry = service['modelName'] ? [service['modelName']] : MODEL_FALLBACKS;
+  const model = service['genAI'].getGenerativeModel({ model: modelsToTry[0] });
   const result = await model.generateContent(prompt);
   const text = result.response.text();
   const cleanedText = text

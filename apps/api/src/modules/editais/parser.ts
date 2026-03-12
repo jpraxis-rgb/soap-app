@@ -95,6 +95,8 @@ export async function parseEdital(
       parsedData: {
         banca: parseResult.banca,
         orgao: parseResult.orgao,
+        cargo: parseResult.cargo,
+        cargos: parseResult.cargos,
         confidence: parseResult.confidence,
         warnings: parseResult.warnings,
         raw_disciplinas: parseResult.disciplinas,
@@ -225,7 +227,8 @@ export async function updateEdital(
       .where(eq(disciplinas.editalId, editalId));
 
     // Insert new disciplinas
-    for (const d of updates.disciplinas) {
+    for (let i = 0; i < updates.disciplinas.length; i++) {
+      const d = updates.disciplinas[i];
       await db
         .insert(disciplinas)
         .values({
@@ -233,7 +236,7 @@ export async function updateEdital(
           name: d.name,
           weight: Math.max(1, Math.min(10, d.weight)),
           topics: d.topics || null,
-          orderIndex: d.orderIndex,
+          orderIndex: d.orderIndex ?? (d as any).order_index ?? i,
         });
     }
   }
