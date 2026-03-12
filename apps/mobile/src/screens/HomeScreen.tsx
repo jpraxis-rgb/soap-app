@@ -177,7 +177,7 @@ function StudyBlockCard({
             <Text style={blockStyles.duration}>{block.duration_minutes}min</Text>
           </View>
           <View style={blockStyles.badges}>
-            {block.weight != null && (
+            {block.weight != null && block.weight > 0 && (
               <Badge
                 text={`Peso ${block.weight}`}
                 color={colors.accent + '40'}

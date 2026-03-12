@@ -90,10 +90,8 @@ function DisciplinaCard({
             </Text>
           </View>
           <View style={styles.disciplinaRight}>
-            {disciplina.weight != null ? (
+            {disciplina.weight != null && disciplina.weight > 0 && (
               <Badge text={`Peso ${disciplina.weight}`} color={colors.accent + '40'} />
-            ) : (
-              <Badge text="Sem peso" color={colors.surface} />
             )}
             <Ionicons
               name={expanded ? 'chevron-up' : 'chevron-down'}
