@@ -38,7 +38,7 @@ function isNewTemplate(createdAt: string): boolean {
 const normalizeDisciplinas = (discs: any[]) => discs.map((d: any) => ({
   id: d.id || `d-${Math.random().toString(36).slice(2)}`,
   name: d.name || '',
-  weight: d.weight || 1,
+  weight: d.weight ?? null,
   topics: Array.isArray(d.topics) ? d.topics : d.topics?.items || [],
 }));
 
