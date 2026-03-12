@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export interface ParsedDisciplina {
   name: string;
-  weight: number;
+  weight: number | null;
   topics: string[];
   prova_type?: 'objetiva' | 'discursiva' | 'mista' | null;
 }
@@ -27,7 +27,7 @@ Analise o conteúdo do edital abaixo e extraia as seguintes informações em for
    - "name": nome do cargo (ex: "Analista Judiciário", "Técnico Administrativo")
    - "disciplinas": lista de disciplinas ESPECÍFICAS daquele cargo, cada uma com:
      - "name": nome da disciplina
-     - "weight": peso relativo (número de 1 a 10). Baseie no número de questões, valor de pontos ou peso explícito no edital.
+     - "weight": peso relativo (número de 1 a 10) SOMENTE se o edital mencionar explicitamente peso, número de questões, valor de pontos ou pontuação por disciplina. Se o edital NÃO especificar peso/questões/pontos para a disciplina, use null.
      - "topics": lista de tópicos/assuntos da disciplina
      - "prova_type": "objetiva", "discursiva", "mista", ou null
 
@@ -97,7 +97,7 @@ IMPORTANTE sobre disciplinas em concursos brasileiros:
 
 Responda APENAS com o JSON válido, sem markdown ou texto adicional.
 Se não conseguir extrair alguma informação, use null para campos string e array vazio para listas.
-Se os pesos não forem claros no edital, distribua proporcionalmente baseado no número de tópicos.
+IMPORTANTE sobre pesos: Somente atribua peso (weight) quando o edital EXPLICITAMENTE mencionar peso, número de questões ou pontuação por disciplina. Se o edital não mencionar, use null. NÃO invente pesos.
 Se o edital tiver apenas um cargo, coloque-o no array "cargos" com suas disciplinas específicas.
 
 CONTEÚDO DO EDITAL:
@@ -249,7 +249,7 @@ ${EXTRACTION_PROMPT}`;
           : null;
         result.push({
           name: (item.name as string).trim(),
-          weight: typeof item.weight === 'number' ? Math.max(1, Math.min(10, item.weight)) : 1,
+          weight: typeof item.weight === 'number' ? Math.max(1, Math.min(10, item.weight)) : null,
           topics: Array.isArray(item.topics)
             ? (item.topics as unknown[]).filter((t: unknown) => typeof t === 'string' && (t as string).trim()) as string[]
             : [],

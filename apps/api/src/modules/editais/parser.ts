@@ -25,7 +25,7 @@ export interface ParseEditalResult {
   disciplinas: Array<{
     id: string;
     name: string | null;
-    weight: number;
+    weight: number | null;
     topics: unknown;
     orderIndex: number;
   }>;
@@ -115,7 +115,7 @@ export async function parseEdital(
       .values({
         editalId: edital.id,
         name: d.name,
-        weight: Math.max(1, Math.min(10, d.weight)),
+        weight: d.weight != null ? Math.max(1, Math.min(10, d.weight)) : null,
         topics: { items: d.topics },
         orderIndex: i,
       })
@@ -180,7 +180,7 @@ export async function updateEdital(
     disciplinas?: Array<{
       id?: string;
       name: string;
-      weight: number;
+      weight: number | null;
       topics?: { items: string[] };
       orderIndex: number;
     }>;
@@ -234,7 +234,7 @@ export async function updateEdital(
         .values({
           editalId: editalId,
           name: d.name,
-          weight: Math.max(1, Math.min(10, d.weight)),
+          weight: d.weight != null ? Math.max(1, Math.min(10, d.weight)) : null,
           topics: d.topics || null,
           orderIndex: d.orderIndex ?? (d as any).order_index ?? i,
         });

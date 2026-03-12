@@ -1,0 +1,1 @@
+ALTER TABLE "disciplinas" ALTER COLUMN "weight" DROP NOT NULL;

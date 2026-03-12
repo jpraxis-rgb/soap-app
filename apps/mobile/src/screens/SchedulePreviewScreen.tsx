@@ -23,13 +23,16 @@ interface ParsedEditalData {
   cargo: string;
   exam_date: string;
   confidence: number;
-  disciplinas: { id: string; name: string; weight: number; topics: string[] }[];
+  disciplinas: { id: string; name: string; weight: number | null; topics: string[] }[];
 }
 
 interface ScheduleConfig {
   hours_per_week: number;
   available_days: number[]; // 0=Mon..6=Sun
   preferred_time: 'morning' | 'afternoon' | 'evening';
+  day_configs?: Record<number, number>;
+  disciplines_per_day?: number;
+  custom_allocations?: Record<string, number>;
 }
 
 interface SchedulePreviewScreenProps {
@@ -51,17 +54,16 @@ function computeWeeksUntilExam(examDate: string): number {
     if (isNaN(exam.getTime())) return 12;
     const now = new Date();
     const diffMs = exam.getTime() - now.getTime();
-    const weeks = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 7)));
-    return weeks;
+    return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 7)));
   } catch {
-    return 12; // fallback
+    return 12;
   }
 }
 
 interface SubjectAllocation {
   id: string;
   name: string;
-  weight: number;
+  weight: number | null;
   hours: number;
   color: string;
 }
@@ -70,14 +72,29 @@ function computeAllocations(
   disciplinas: ParsedEditalData['disciplinas'],
   hoursPerWeek: number,
 ): SubjectAllocation[] {
-  const totalWeight = disciplinas.reduce((sum, d) => sum + d.weight, 0);
+  const allNullWeights = disciplinas.every(d => d.weight == null);
+
+  if (allNullWeights) {
+    // Equal distribution
+    const hoursEach = Math.round((hoursPerWeek / disciplinas.length) * 10) / 10;
+    return disciplinas.map((d, i) => ({
+      id: d.id,
+      name: d.name,
+      weight: d.weight,
+      hours: hoursEach,
+      color: SUBJECT_COLORS[i % SUBJECT_COLORS.length],
+    }));
+  }
+
+  // Weight-proportional (null weight treated as 1)
+  const totalWeight = disciplinas.reduce((sum, d) => sum + (d.weight ?? 1), 0);
   if (totalWeight === 0) return [];
 
   return disciplinas.map((d, i) => ({
     id: d.id,
     name: d.name,
     weight: d.weight,
-    hours: Math.round((d.weight / totalWeight) * hoursPerWeek * 10) / 10,
+    hours: Math.round(((d.weight ?? 1) / totalWeight) * hoursPerWeek * 10) / 10,
     color: SUBJECT_COLORS[i % SUBJECT_COLORS.length],
   }));
 }
@@ -91,9 +108,10 @@ interface WeeklyBlock {
 function generateWeeklyGrid(
   allocations: SubjectAllocation[],
   availableDays: number[],
+  disciplinesPerDay: number,
 ): WeeklyBlock[][] {
-  // For each day of the week (0-6), generate 2-3 blocks for available days
   const grid: WeeklyBlock[][] = [];
+  let rosterPointer = 0;
 
   for (let day = 0; day < 7; day++) {
     if (!availableDays.includes(day)) {
@@ -101,12 +119,11 @@ function generateWeeklyGrid(
       continue;
     }
 
-    // Distribute subjects across available days
-    const blocksPerDay = allocations.length >= 3 ? 3 : Math.max(2, allocations.length);
     const dayBlocks: WeeklyBlock[] = [];
+    const count = Math.min(disciplinesPerDay, allocations.length);
 
-    for (let b = 0; b < blocksPerDay; b++) {
-      const subjectIndex = (day * blocksPerDay + b) % allocations.length;
+    for (let b = 0; b < count; b++) {
+      const subjectIndex = (rosterPointer + b) % allocations.length;
       const alloc = allocations[subjectIndex];
       dayBlocks.push({
         subjectIndex,
@@ -114,12 +131,75 @@ function generateWeeklyGrid(
         name: alloc.name,
       });
     }
+    rosterPointer = (rosterPointer + count) % allocations.length;
 
     grid.push(dayBlocks);
   }
 
   return grid;
 }
+
+// ── Mini Stepper ────────────────────────────────────────
+
+function HoursStepper({
+  value,
+  onDecrement,
+  onIncrement,
+  min,
+  max,
+}: {
+  value: number;
+  onDecrement: () => void;
+  onIncrement: () => void;
+  min: number;
+  max: number;
+}) {
+  return (
+    <View style={stepperStyles.container}>
+      <Pressable
+        onPress={onDecrement}
+        disabled={value <= min}
+        style={[stepperStyles.btn, value <= min && stepperStyles.btnDisabled]}
+      >
+        <Ionicons name="remove" size={14} color={value <= min ? colors.textSecondary : colors.text} />
+      </Pressable>
+      <Text style={stepperStyles.value}>{value.toFixed(1)}h</Text>
+      <Pressable
+        onPress={onIncrement}
+        disabled={value >= max}
+        style={[stepperStyles.btn, value >= max && stepperStyles.btnDisabled]}
+      >
+        <Ionicons name="add" size={14} color={value >= max ? colors.textSecondary : colors.text} />
+      </Pressable>
+    </View>
+  );
+}
+
+const stepperStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  btn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnDisabled: {
+    opacity: 0.4,
+  },
+  value: {
+    color: colors.text,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
+    minWidth: 36,
+    textAlign: 'center',
+  },
+});
 
 // ── Main Screen ────────────────────────────────────────
 
@@ -129,20 +209,54 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
   const [saving, setSaving] = useState(false);
 
   const weeksUntilExam = useMemo(() => computeWeeksUntilExam(edital.exam_date), [edital.exam_date]);
-  const allocations = useMemo(
+
+  // Editable allocations
+  const initialAllocations = useMemo(
     () => computeAllocations(edital.disciplinas, config.hours_per_week),
     [edital.disciplinas, config.hours_per_week],
   );
-  const maxHours = useMemo(() => allocations.length > 0 ? Math.max(...allocations.map((a) => a.hours), 1) : 1, [allocations]);
-  const weeklyGrid = useMemo(
-    () => generateWeeklyGrid(allocations, config.available_days),
-    [allocations, config.available_days],
+  const [allocations, setAllocations] = useState<SubjectAllocation[]>(initialAllocations);
+
+  const totalAllocated = useMemo(
+    () => Math.round(allocations.reduce((sum, a) => sum + a.hours, 0) * 10) / 10,
+    [allocations],
   );
+
+  const maxHours = useMemo(
+    () => allocations.length > 0 ? Math.max(...allocations.map((a) => a.hours), 1) : 1,
+    [allocations],
+  );
+
+  const disciplinesPerDay = config.disciplines_per_day || 3;
+
+  const weeklyGrid = useMemo(
+    () => generateWeeklyGrid(allocations, config.available_days, disciplinesPerDay),
+    [allocations, config.available_days, disciplinesPerDay],
+  );
+
+  const updateAllocation = (id: string, delta: number) => {
+    setAllocations(prev => prev.map(a =>
+      a.id === id
+        ? { ...a, hours: Math.round(Math.max(0.5, a.hours + delta) * 10) / 10 }
+        : a
+    ));
+  };
 
   const handleConfirm = async () => {
     setSaving(true);
     try {
-      await confirmEdital(edital, config);
+      // Build custom_allocations from edited values
+      const customAllocations: Record<string, number> = {};
+      for (const alloc of allocations) {
+        customAllocations[alloc.id] = alloc.hours;
+      }
+
+      const finalConfig = {
+        ...config,
+        custom_allocations: customAllocations,
+      };
+
+      await confirmEdital(edital, finalConfig);
 
       Alert.alert(
         'Cronograma salvo!',
@@ -165,6 +279,10 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
       setSaving(false);
     }
   };
+
+  const overUnder = totalAllocated - config.hours_per_week;
+  const isOverBudget = overUnder > 0.5;
+  const isUnderBudget = overUnder < -0.5;
 
   return (
     <View style={styles.container}>
@@ -210,7 +328,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
           </LinearGradient>
         </View>
 
-        {/* Per-disciplina allocation */}
+        {/* Per-disciplina allocation — editable */}
         <Card style={styles.card} header="Distribuição por disciplina">
           <View style={styles.allocationList}>
             {allocations.map((alloc) => (
@@ -221,23 +339,50 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
                     {alloc.name}
                   </Text>
                 </View>
-                <View style={styles.allocationBarContainer}>
-                  <View style={styles.allocationBarBackground}>
-                    <View
-                      style={[
-                        styles.allocationBar,
-                        {
-                          backgroundColor: alloc.color,
-                          width: `${(alloc.hours / maxHours) * 100}%`,
-                        },
-                      ]}
-                    />
+                <View style={styles.allocationControls}>
+                  <View style={styles.allocationBarContainer}>
+                    <View style={styles.allocationBarBackground}>
+                      <View
+                        style={[
+                          styles.allocationBar,
+                          {
+                            backgroundColor: alloc.color,
+                            width: `${(alloc.hours / maxHours) * 100}%`,
+                          },
+                        ]}
+                      />
+                    </View>
                   </View>
-                  <Text style={styles.allocationHours}>{alloc.hours}h</Text>
+                  <HoursStepper
+                    value={alloc.hours}
+                    min={0.5}
+                    max={config.hours_per_week}
+                    onDecrement={() => updateAllocation(alloc.id, -0.5)}
+                    onIncrement={() => updateAllocation(alloc.id, 0.5)}
+                  />
                 </View>
               </View>
             ))}
           </View>
+
+          {/* Total budget indicator */}
+          <View style={styles.budgetRow}>
+            <Text style={styles.budgetLabel}>Total alocado</Text>
+            <Text
+              style={[
+                styles.budgetValue,
+                isOverBudget && styles.budgetOver,
+                isUnderBudget && styles.budgetUnder,
+              ]}
+            >
+              {totalAllocated}h / {config.hours_per_week}h
+            </Text>
+          </View>
+          {isOverBudget && (
+            <Text style={styles.budgetWarning}>
+              +{overUnder.toFixed(1)}h acima do disponível
+            </Text>
+          )}
         </Card>
 
         {/* Weekly Grid */}
@@ -401,7 +546,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   allocationList: {
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   allocationRow: {
     gap: spacing.xs,
@@ -421,14 +566,16 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     flex: 1,
   },
-  allocationBarContainer: {
+  allocationControls: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingLeft: spacing.lg - 2, // align with name text
+    paddingLeft: spacing.lg - 2,
+  },
+  allocationBarContainer: {
+    flex: 1,
   },
   allocationBarBackground: {
-    flex: 1,
     height: 8,
     backgroundColor: colors.surface,
     borderRadius: 4,
@@ -438,12 +585,35 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-  allocationHours: {
+  budgetRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.surface,
+  },
+  budgetLabel: {
     color: colors.textSecondary,
+    fontSize: typography.sizes.sm,
+  },
+  budgetValue: {
+    color: colors.text,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
+  },
+  budgetOver: {
+    color: '#FF4757',
+  },
+  budgetUnder: {
+    color: colors.accent,
+  },
+  budgetWarning: {
+    color: '#FF4757',
     fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.medium,
-    minWidth: 30,
     textAlign: 'right',
+    marginTop: spacing.xs,
   },
   weekGrid: {
     flexDirection: 'row',

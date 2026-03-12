@@ -17,14 +17,20 @@ const generateScheduleSchema = z.object({
   availableDays: z.array(z.number().min(0).max(6)).optional(),
   exam_date: z.string().optional(),
   examDate: z.string().optional(),
+  day_configs: z.record(z.string(), z.number().min(0).max(8)).optional(),
+  disciplines_per_day: z.number().min(1).max(10).optional(),
+  custom_allocations: z.record(z.string(), z.number().min(0)).optional(),
 }).transform(data => ({
   edital_id: data.edital_id ?? data.editalId,
   hours_per_week: data.hours_per_week ?? data.hoursPerWeek,
   available_days: data.available_days ?? data.availableDays,
   exam_date: data.exam_date ?? data.examDate,
+  day_configs: data.day_configs,
+  disciplines_per_day: data.disciplines_per_day,
+  custom_allocations: data.custom_allocations,
 })).refine(data => data.edital_id, { message: 'edital_id is required' })
-  .refine(data => data.hours_per_week, { message: 'hours_per_week is required' })
-  .refine(data => data.available_days && data.available_days.length > 0, { message: 'available_days must be a non-empty array' })
+  .refine(data => data.hours_per_week || data.day_configs, { message: 'hours_per_week or day_configs is required' })
+  .refine(data => (data.available_days && data.available_days.length > 0) || data.day_configs, { message: 'available_days or day_configs is required' })
 ;
 
 /**
@@ -87,14 +93,26 @@ router.post('/generate', validateBody(generateScheduleSchema), async (req: Reque
       return;
     }
 
-    const { edital_id, hours_per_week, available_days, exam_date } = req.body;
+    const { edital_id, hours_per_week, available_days, exam_date, day_configs, disciplines_per_day, custom_allocations } = req.body;
+
+    // Derive hours_per_week and available_days from day_configs if provided
+    let finalHoursPerWeek = hours_per_week;
+    let finalAvailableDays = available_days;
+    if (day_configs) {
+      const entries = Object.entries(day_configs).map(([k, v]) => [Number(k), v as number] as const);
+      finalHoursPerWeek = entries.reduce((sum, [, h]) => sum + h, 0);
+      finalAvailableDays = entries.filter(([, h]) => h > 0).map(([d]) => d);
+    }
 
     const result = await generateSchedule({
       userId,
       editalId: edital_id,
-      hoursPerWeek: hours_per_week,
-      availableDays: available_days,
+      hoursPerWeek: finalHoursPerWeek || 10,
+      availableDays: finalAvailableDays || [1, 2, 3, 4, 5],
       examDate: exam_date,
+      dayConfigs: day_configs,
+      disciplinesPerDay: disciplines_per_day,
+      customAllocations: custom_allocations,
     });
 
     if ('error' in result) {

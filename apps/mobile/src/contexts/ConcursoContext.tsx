@@ -7,7 +7,7 @@ const ACTIVE_CONCURSO_KEY = '@soap/active_concurso_id';
 export interface ParsedDisciplina {
   id: string;
   name: string;
-  weight: number;
+  weight: number | null;
   topics: string[];
   category?: 'geral' | 'especifico';
 }
@@ -26,6 +26,9 @@ export interface ScheduleConfig {
   hours_per_week: number;
   available_days: number[]; // 0=Mon..6=Sun
   preferred_time: 'morning' | 'afternoon' | 'evening';
+  day_configs?: Record<number, number>; // 0=Mon..6=Sun → hours
+  disciplines_per_day?: number;
+  custom_allocations?: Record<string, number>; // disciplinaId → hours
 }
 
 export interface Concurso {
@@ -126,6 +129,9 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
       hours_per_week: config.hours_per_week,
       available_days: config.available_days,
       exam_date: edital.exam_date || new Date(Date.now() + 12 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      day_configs: config.day_configs,
+      disciplines_per_day: config.disciplines_per_day,
+      custom_allocations: config.custom_allocations,
     });
 
     const newConcurso: Concurso = {

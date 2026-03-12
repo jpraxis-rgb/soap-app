@@ -25,6 +25,7 @@ import { EditalReviewScreen } from '../screens/EditalReviewScreen';
 import { ScheduleConfigScreen } from '../screens/ScheduleConfigScreen';
 import { SchedulePreviewScreen } from '../screens/SchedulePreviewScreen';
 import { CargoSelectScreen } from '../screens/CargoSelectScreen';
+import { StudySessionScreen } from '../screens/StudySessionScreen';
 
 const AuthStackNav = createNativeStackNavigator();
 const HomeStackNav = createNativeStackNavigator();
@@ -103,6 +104,11 @@ function HomeStack() {
         name="SchedulePreview"
         component={SchedulePreviewScreen as any}
         options={{ title: 'Pré-visualizar' }}
+      />
+      <HomeStackNav.Screen
+        name="StudySession"
+        component={StudySessionScreen as any}
+        options={{ headerShown: false, gestureEnabled: false }}
       />
     </HomeStackNav.Navigator>
   );

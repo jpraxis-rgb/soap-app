@@ -197,7 +197,7 @@ export function deleteEdital(id: string) {
 export function updateEditalDisciplinas(
   editalId: string,
   cargo: string,
-  disciplinas: Array<{ name: string; weight: number; topics: string[]; orderIndex: number }>,
+  disciplinas: Array<{ name: string; weight: number | null; topics: string[]; orderIndex: number }>,
 ) {
   return request<{ data: unknown }>(`/editais/${editalId}`, {
     method: 'PUT',
@@ -220,6 +220,9 @@ export function generateSchedule(params: {
   hours_per_week: number;
   available_days: number[];
   exam_date: string;
+  day_configs?: Record<number, number>;
+  disciplines_per_day?: number;
+  custom_allocations?: Record<string, number>;
 }) {
   return request<{ data: unknown }>('/schedules/generate', {
     method: 'POST',
@@ -424,6 +427,7 @@ export async function logStudySession(session: {
   self_rating: number;
   notes?: string;
   started_at: string;
+  completed_at?: string;
 }): Promise<StudySessionData> {
   if (USE_MOCK) {
     return {
