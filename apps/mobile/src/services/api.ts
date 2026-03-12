@@ -222,6 +222,8 @@ export interface EditalTemplate {
   orgao: string;
   hasCargos: boolean;
   disciplinaCount: number;
+  examDate: string | null;
+  createdAt: string;
   sortOrder: number;
 }
 

@@ -85,6 +85,8 @@ router.get('/templates', async (_req: Request, res: Response) => {
         orgao: t.orgao,
         hasCargos: cargos != null && cargos.length > 0,
         disciplinaCount: discs.length,
+        examDate: t.examDate,
+        createdAt: t.createdAt,
         sortOrder: t.sortOrder,
       };
     });
