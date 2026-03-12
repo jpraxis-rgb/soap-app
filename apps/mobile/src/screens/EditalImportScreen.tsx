@@ -18,7 +18,22 @@ import { colors, spacing, typography } from '../theme';
 import { parseEdital, getEditalTemplates, getEditalTemplateDetail, createEditalFromTemplate } from '../services/api';
 import type { EditalTemplate } from '../services/api';
 import type { ParsedEditalData } from '../contexts/ConcursoContext';
-import { Card } from '../components';
+import { Card, Badge } from '../components';
+
+function formatExamDate(dateStr: string | null): string | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
+  const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  return `${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function isNewTemplate(createdAt: string): boolean {
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diffDays = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
+  return diffDays <= 30;
+}
 
 const normalizeDisciplinas = (discs: any[]) => discs.map((d: any) => ({
   id: d.id || `d-${Math.random().toString(36).slice(2)}`,
@@ -199,21 +214,21 @@ export function EditalImportScreen() {
                 <Card style={styles.templateCard}>
                   <View style={styles.templateRow}>
                     <View style={styles.templateInfo}>
-                      <Text style={styles.templateName}>{template.name}</Text>
+                      <View style={styles.templateNameRow}>
+                        <Text style={styles.templateName} numberOfLines={1}>{template.name}</Text>
+                        {isNewTemplate(template.createdAt) && (
+                          <Badge text="Novo" color={colors.success + '30'} />
+                        )}
+                      </View>
                       <Text style={styles.templateMeta}>
-                        {template.banca} · {template.orgao}
+                        {template.banca} · {formatExamDate(template.examDate) ? `Prova ${formatExamDate(template.examDate)}` : template.orgao}
                       </Text>
                     </View>
                     <View style={styles.templateRight}>
                       {tappedTemplateId === template.id ? (
                         <ActivityIndicator size="small" color={colors.accent} />
                       ) : (
-                        <>
-                          <Text style={styles.templateCount}>
-                            {template.disciplinaCount} discipl.
-                          </Text>
-                          <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                        </>
+                        <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
                       )}
                     </View>
                   </View>
@@ -350,10 +365,16 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
+  templateNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   templateName: {
     color: colors.text,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
+    flexShrink: 1,
   },
   templateMeta: {
     color: colors.textSecondary,
@@ -363,10 +384,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-  },
-  templateCount: {
-    color: colors.textSecondary,
-    fontSize: typography.sizes.xs,
   },
   verTodosButton: {
     flexDirection: 'row',

@@ -18,6 +18,7 @@ interface SeedTemplate {
   name: string;
   banca: string;
   orgao: string;
+  examDate: string | null;
   disciplinas: TemplateDisciplina[];
   cargos: TemplateCargo[] | null;
   sortOrder: number;
@@ -28,6 +29,7 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     name: 'Auditor Fiscal da Receita Federal',
     banca: 'FGV',
     orgao: 'Receita Federal do Brasil',
+    examDate: '2026-08-16',
     sortOrder: 1,
     cargos: null,
     disciplinas: [
@@ -46,6 +48,7 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     name: 'Agente de Polícia Federal',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Polícia Federal',
+    examDate: '2026-05-10',
     sortOrder: 2,
     cargos: null,
     disciplinas: [
@@ -64,6 +67,7 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     name: 'Técnico do INSS',
     banca: 'CESPE/CEBRASPE',
     orgao: 'INSS',
+    examDate: '2026-06-21',
     sortOrder: 3,
     cargos: null,
     disciplinas: [
@@ -81,6 +85,7 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     name: 'Analista Judiciário - TRF',
     banca: 'FCC',
     orgao: 'Tribunal Regional Federal',
+    examDate: '2026-09-13',
     sortOrder: 4,
     cargos: [
       {
@@ -111,6 +116,7 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     name: 'Auditor Federal de Controle Externo - TCU',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Tribunal de Contas da União',
+    examDate: '2026-10-04',
     sortOrder: 5,
     cargos: null,
     disciplinas: [
@@ -128,6 +134,7 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     name: 'Analista do BACEN',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Banco Central do Brasil',
+    examDate: '2026-07-19',
     sortOrder: 6,
     cargos: null,
     disciplinas: [
@@ -144,6 +151,7 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     name: 'Técnico Judiciário - TRT',
     banca: 'FCC',
     orgao: 'Tribunal Regional do Trabalho',
+    examDate: '2026-11-08',
     sortOrder: 7,
     cargos: null,
     disciplinas: [
@@ -159,6 +167,7 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     name: 'Procurador da Fazenda Nacional',
     banca: 'ESAF',
     orgao: 'Procuradoria-Geral da Fazenda Nacional',
+    examDate: null,
     sortOrder: 8,
     cargos: null,
     disciplinas: [
@@ -175,6 +184,7 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     name: 'Escrivão da Polícia Federal',
     banca: 'CESPE/CEBRASPE',
     orgao: 'Polícia Federal',
+    examDate: '2026-05-10',
     sortOrder: 9,
     cargos: null,
     disciplinas: [
@@ -191,6 +201,7 @@ const SEED_TEMPLATES: SeedTemplate[] = [
     name: 'Analista Tributário da Receita Federal',
     banca: 'FGV',
     orgao: 'Receita Federal do Brasil',
+    examDate: '2026-08-16',
     sortOrder: 10,
     cargos: null,
     disciplinas: [
@@ -215,6 +226,7 @@ export async function seedEditalTemplates(): Promise<{ inserted: number; skipped
         name: template.name,
         banca: template.banca,
         orgao: template.orgao,
+        examDate: template.examDate ? new Date(template.examDate) : null,
         disciplinas: template.disciplinas,
         cargos: template.cargos,
         sortOrder: template.sortOrder,
