@@ -80,7 +80,7 @@ export interface Disciplina {
   id: string;
   edital_id: string;
   name: string;
-  weight: number;
+  weight: number | null;
   topics: Record<string, unknown> | null;
   prova_type?: 'objetiva' | 'discursiva' | 'mista' | null;
   order_index: number;
@@ -89,7 +89,7 @@ export interface Disciplina {
 export interface InsertDisciplina {
   edital_id: string;
   name: string;
-  weight: number;
+  weight: number | null;
   topics?: Record<string, unknown> | null;
   prova_type?: 'objetiva' | 'discursiva' | 'mista' | null;
   order_index: number;

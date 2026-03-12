@@ -17,7 +17,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '../theme';
 import { Badge, Card } from '../components';
 import { getTodayScheduleBlocks, ScheduleBlockData, getUpcomingScheduleBlocks } from '../services/api';
-import { SessionLogSheet } from './SessionLogSheet';
 import { useConcurso } from '../contexts/ConcursoContext';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -178,10 +177,12 @@ function StudyBlockCard({
             <Text style={blockStyles.duration}>{block.duration_minutes}min</Text>
           </View>
           <View style={blockStyles.badges}>
-            <Badge
-              text={`Peso ${block.weight}`}
-              color={colors.accent + '40'}
-            />
+            {block.weight != null && (
+              <Badge
+                text={`Peso ${block.weight}`}
+                color={colors.accent + '40'}
+              />
+            )}
             {block.has_content && (
               <Badge text="Material disponivel" color={colors.success + '30'} />
             )}
@@ -347,8 +348,6 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const { hasAnyConcurso, hasActiveSchedule, activeConcurso, concursos, setActiveConcurso } = useConcurso();
   const [allWeekBlocks, setAllWeekBlocks] = useState<ScheduleBlockData[]>([]);
   const [selectedDate, setSelectedDate] = useState(() => formatDateKey(new Date()));
-  const [sessionBlock, setSessionBlock] = useState<ScheduleBlockData | null>(null);
-  const [sheetVisible, setSheetVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showConcursoSelector, setShowConcursoSelector] = useState(false);
@@ -399,20 +398,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const totalMinutes = blocks.reduce((s, b) => s + b.duration_minutes, 0);
 
   const handleStartSession = (block: ScheduleBlockData) => {
-    setSessionBlock(block);
-    setSheetVisible(true);
-  };
-
-  const handleCloseSheet = () => {
-    setSheetVisible(false);
-    setSessionBlock(null);
-  };
-
-  const handleSessionLogged = () => {
-    setSheetVisible(false);
-    setSessionBlock(null);
-    // Refresh blocks
-    getUpcomingScheduleBlocks(weekRange.from, weekRange.to).then(setAllWeekBlocks).catch(() => {});
+    navigation.navigate('StudySession', { block });
   };
 
   // Empty state: no concurso imported yet
@@ -606,16 +592,6 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
-
-      {/* Session Log Bottom Sheet */}
-      {sessionBlock && (
-        <SessionLogSheet
-          isVisible={sheetVisible}
-          onClose={handleCloseSheet}
-          onSessionLogged={handleSessionLogged}
-          block={sessionBlock}
-        />
-      )}
     </View>
   );
 }

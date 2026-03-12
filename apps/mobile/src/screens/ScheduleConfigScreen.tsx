@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Pressable,
   ActivityIndicator,
   TextInput,
+  Switch,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,13 +23,15 @@ interface ParsedEditalData {
   cargo: string;
   exam_date: string;
   confidence: number;
-  disciplinas: { id: string; name: string; weight: number; topics: string[] }[];
+  disciplinas: { id: string; name: string; weight: number | null; topics: string[] }[];
 }
 
 export interface ScheduleConfig {
   hours_per_week: number;
   available_days: number[]; // 0=Mon..6=Sun
   preferred_time: 'morning' | 'afternoon' | 'evening';
+  day_configs: Record<number, number>; // 0=Mon..6=Sun → hours
+  disciplines_per_day: number;
 }
 
 interface ScheduleConfigScreenProps {
@@ -36,10 +39,14 @@ interface ScheduleConfigScreenProps {
   route: { params: { edital: ParsedEditalData } };
 }
 
-// ── Day Pills ──────────────────────────────────────────
+// ── Day Config ──────────────────────────────────────────
 
 const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-const DEFAULT_DAYS = [0, 1, 2, 3, 4]; // Mon-Fri
+
+// Default: Mon-Fri 2h each, Sat-Sun 0h
+const DEFAULT_DAY_CONFIGS: Record<number, number> = {
+  0: 2, 1: 2, 2: 2, 3: 2, 4: 2, 5: 0, 6: 0,
+};
 
 // ── Time Segment Options ───────────────────────────────
 
@@ -49,46 +56,49 @@ const TIME_OPTIONS: { key: 'morning' | 'afternoon' | 'evening'; label: string }[
   { key: 'evening', label: 'Noite' },
 ];
 
-// ── Stepper Component ──────────────────────────────────
+// ── Mini Stepper Component ──────────────────────────────
 
-function Stepper({
+function MiniStepper({
   value,
   min,
   max,
+  step,
+  suffix,
   onDecrement,
   onIncrement,
 }: {
   value: number;
   min: number;
   max: number;
+  step: number;
+  suffix?: string;
   onDecrement: () => void;
   onIncrement: () => void;
 }) {
   return (
-    <View style={stepperStyles.container}>
+    <View style={miniStepperStyles.container}>
       <Pressable
         onPress={onDecrement}
-        style={[stepperStyles.button, value <= min && stepperStyles.buttonDisabled]}
+        style={[miniStepperStyles.button, value <= min && miniStepperStyles.buttonDisabled]}
         disabled={value <= min}
       >
         <Ionicons
           name="remove"
-          size={20}
+          size={16}
           color={value <= min ? colors.textSecondary : colors.text}
         />
       </Pressable>
-      <View style={stepperStyles.valueContainer}>
-        <Text style={stepperStyles.value}>{value}</Text>
-        <Text style={stepperStyles.unit}>h/semana</Text>
-      </View>
+      <Text style={miniStepperStyles.value}>
+        {value % 1 === 0 ? value : value.toFixed(1)}{suffix || ''}
+      </Text>
       <Pressable
         onPress={onIncrement}
-        style={[stepperStyles.button, value >= max && stepperStyles.buttonDisabled]}
+        style={[miniStepperStyles.button, value >= max && miniStepperStyles.buttonDisabled]}
         disabled={value >= max}
       >
         <Ionicons
           name="add"
-          size={20}
+          size={16}
           color={value >= max ? colors.textSecondary : colors.text}
         />
       </Pressable>
@@ -96,17 +106,16 @@ function Stepper({
   );
 }
 
-const stepperStyles = StyleSheet.create({
+const miniStepperStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
+    gap: spacing.xs,
   },
   button: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -114,20 +123,12 @@ const stepperStyles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.4,
   },
-  valueContainer: {
-    alignItems: 'center',
-    minWidth: 80,
-  },
   value: {
     color: colors.text,
-    fontSize: typography.sizes.xxxl,
+    fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
-    lineHeight: typography.sizes.xxxl + 6,
-  },
-  unit: {
-    color: colors.textSecondary,
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.medium,
+    minWidth: 40,
+    textAlign: 'center',
   },
 });
 
@@ -136,8 +137,8 @@ const stepperStyles = StyleSheet.create({
 export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreenProps) {
   const { edital } = route.params;
 
-  const [hoursPerWeek, setHoursPerWeek] = useState(15);
-  const [availableDays, setAvailableDays] = useState<number[]>(DEFAULT_DAYS);
+  const [dayConfigs, setDayConfigs] = useState<Record<number, number>>(DEFAULT_DAY_CONFIGS);
+  const [disciplinesPerDay, setDisciplinesPerDay] = useState(3);
   const [preferredTime, setPreferredTime] = useState<'morning' | 'afternoon' | 'evening'>('morning');
   const [loading, setLoading] = useState(false);
 
@@ -151,7 +152,6 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
   const hasExamDate = examDateValid;
   const [dateInput, setDateInput] = useState(() => {
     if (hasExamDate) {
-      // Convert ISO date (YYYY-MM-DD) to DD/MM/YYYY for display
       const [y, m, d] = edital.exam_date.split('-');
       return d && m && y ? `${d}/${m}/${y}` : '';
     }
@@ -159,6 +159,32 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
   });
 
   const concursoName = `${edital.orgao} - ${edital.cargo}`;
+
+  const totalHoursPerWeek = useMemo(() =>
+    Object.values(dayConfigs).reduce((sum, h) => sum + h, 0),
+    [dayConfigs],
+  );
+
+  const availableDays = useMemo(() =>
+    Object.entries(dayConfigs)
+      .filter(([, hours]) => hours > 0)
+      .map(([day]) => Number(day)),
+    [dayConfigs],
+  );
+
+  const toggleDay = (dayIndex: number) => {
+    setDayConfigs((prev) => ({
+      ...prev,
+      [dayIndex]: prev[dayIndex] > 0 ? 0 : 2, // Toggle between 0 and 2h default
+    }));
+  };
+
+  const updateDayHours = (dayIndex: number, delta: number) => {
+    setDayConfigs((prev) => ({
+      ...prev,
+      [dayIndex]: Math.max(0.5, Math.min(8, (prev[dayIndex] || 0) + delta)),
+    }));
+  };
 
   /** Parse DD/MM/YYYY → YYYY-MM-DD or return null */
   const parseUserDate = (input: string): string | null => {
@@ -184,23 +210,13 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
     }
   })();
 
-  const toggleDay = (dayIndex: number) => {
-    setAvailableDays((prev) =>
-      prev.includes(dayIndex)
-        ? prev.filter((d) => d !== dayIndex)
-        : [...prev, dayIndex].sort(),
-    );
-  };
-
   const handleGenerate = () => {
     if (availableDays.length === 0) return;
 
-    // If no exam date from edital, parse from user input
     let finalEdital = edital;
     if (!hasExamDate) {
       const parsed = parseUserDate(dateInput);
       if (!parsed) {
-        // No date entered → use 12-week fallback (API handles this)
         finalEdital = { ...edital, exam_date: '' };
       } else {
         finalEdital = { ...edital, exam_date: parsed };
@@ -211,9 +227,11 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
     setTimeout(() => {
       setLoading(false);
       const config: ScheduleConfig = {
-        hours_per_week: hoursPerWeek,
+        hours_per_week: totalHoursPerWeek,
         available_days: availableDays,
         preferred_time: preferredTime,
+        day_configs: dayConfigs,
+        disciplines_per_day: disciplinesPerDay,
       };
       navigation.navigate('SchedulePreview', { edital: finalEdital, config });
     }, 1000);
@@ -227,7 +245,7 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
         <ActivityIndicator size="large" color={colors.accent} />
         <Text style={styles.loadingTitle}>Calculando seu plano de estudos...</Text>
         <Text style={styles.loadingSubtitle}>
-          Analisando {edital.disciplinas.length} disciplinas e seus pesos
+          Analisando {edital.disciplinas.length} disciplinas
         </Text>
       </View>
     );
@@ -254,53 +272,69 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
           </View>
         </View>
 
-        {/* Hours per week */}
-        <Card style={styles.card}>
-          <View style={styles.fieldHeader}>
-            <Ionicons name="time-outline" size={20} color={colors.accent} />
-            <Text style={styles.fieldLabel}>Horas por semana</Text>
-          </View>
-          <Stepper
-            value={hoursPerWeek}
-            min={5}
-            max={40}
-            onDecrement={() => setHoursPerWeek((v) => Math.max(5, v - 1))}
-            onIncrement={() => setHoursPerWeek((v) => Math.min(40, v + 1))}
-          />
-        </Card>
-
-        {/* Available days */}
+        {/* Per-day hours config */}
         <Card style={styles.card}>
           <View style={styles.fieldHeader}>
             <Ionicons name="calendar-outline" size={20} color={colors.accent} />
-            <Text style={styles.fieldLabel}>Dias disponíveis</Text>
+            <Text style={styles.fieldLabel}>Horas por dia</Text>
           </View>
-          <View style={styles.dayPillsContainer}>
+          <View style={styles.dayConfigList}>
             {DAY_LABELS.map((label, index) => {
-              const isSelected = availableDays.includes(index);
+              const hours = dayConfigs[index] || 0;
+              const enabled = hours > 0;
+
               return (
-                <Pressable
-                  key={label}
-                  onPress={() => toggleDay(index)}
-                  style={styles.dayPillWrapper}
-                >
-                  {isSelected ? (
-                    <LinearGradient
-                      colors={[colors.accent, colors.accentPink]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.dayPill}
-                    >
-                      <Text style={styles.dayPillTextSelected}>{label}</Text>
-                    </LinearGradient>
-                  ) : (
-                    <View style={styles.dayPillInactive}>
-                      <Text style={styles.dayPillText}>{label}</Text>
-                    </View>
+                <View key={label} style={styles.dayConfigRow}>
+                  <View style={styles.dayConfigLeft}>
+                    <Switch
+                      value={enabled}
+                      onValueChange={() => toggleDay(index)}
+                      trackColor={{ false: colors.surface, true: colors.accent + '60' }}
+                      thumbColor={enabled ? colors.accent : colors.textSecondary}
+                    />
+                    <Text style={[styles.dayConfigLabel, !enabled && styles.dayConfigLabelDisabled]}>
+                      {label}
+                    </Text>
+                  </View>
+                  {enabled && (
+                    <MiniStepper
+                      value={hours}
+                      min={0.5}
+                      max={8}
+                      step={0.5}
+                      suffix="h"
+                      onDecrement={() => updateDayHours(index, -0.5)}
+                      onIncrement={() => updateDayHours(index, 0.5)}
+                    />
                   )}
-                </Pressable>
+                </View>
               );
             })}
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalValue}>{totalHoursPerWeek}h/semana</Text>
+          </View>
+        </Card>
+
+        {/* Disciplines per day */}
+        <Card style={styles.card}>
+          <View style={styles.fieldHeader}>
+            <Ionicons name="layers-outline" size={20} color={colors.accent} />
+            <Text style={styles.fieldLabel}>Disciplinas por dia</Text>
+          </View>
+          <View style={styles.disciplinesPerDayRow}>
+            <Text style={styles.disciplinesPerDayHint}>
+              Quantas disciplinas diferentes estudar por dia?
+            </Text>
+            <MiniStepper
+              value={disciplinesPerDay}
+              min={1}
+              max={5}
+              step={1}
+              onDecrement={() => setDisciplinesPerDay((v) => Math.max(1, v - 1))}
+              onIncrement={() => setDisciplinesPerDay((v) => Math.min(5, v + 1))}
+            />
           </View>
         </Card>
 
@@ -352,7 +386,6 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
                 placeholderTextColor={colors.textSecondary}
                 value={dateInput}
                 onChangeText={(text) => {
-                  // Auto-format: insert slashes after DD and MM
                   const digits = text.replace(/\D/g, '').slice(0, 8);
                   let formatted = digits;
                   if (digits.length > 4) {
@@ -390,7 +423,9 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
                 <Text style={styles.disciplinaName} numberOfLines={1}>
                   {d.name}
                 </Text>
-                <Text style={styles.disciplinaWeight}>Peso {d.weight}</Text>
+                <Text style={styles.disciplinaWeight}>
+                  {d.weight != null ? `Peso ${d.weight}` : 'Sem peso'}
+                </Text>
               </View>
             ))}
             {edital.disciplinas.length > 5 && (
@@ -407,6 +442,7 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
             label="Gerar cronograma"
             onPress={handleGenerate}
             size="lg"
+            disabled={availableDays.length === 0}
             icon={<Ionicons name="sparkles" size={20} color={colors.text} />}
           />
         </View>
@@ -489,36 +525,57 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
   },
-  dayPillsContainer: {
+  dayConfigList: {
+    gap: spacing.sm,
+  },
+  dayConfigRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: spacing.xs,
-  },
-  dayPillWrapper: {
-    flex: 1,
-  },
-  dayPill: {
-    paddingVertical: spacing.sm + 2,
-    borderRadius: borderRadius.sm,
     alignItems: 'center',
-    justifyContent: 'center',
+    minHeight: 40,
   },
-  dayPillInactive: {
-    paddingVertical: spacing.sm + 2,
-    borderRadius: borderRadius.sm,
+  dayConfigLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
+    gap: spacing.sm,
   },
-  dayPillText: {
-    color: colors.textSecondary,
-    fontSize: typography.sizes.xs,
+  dayConfigLabel: {
+    color: colors.text,
+    fontSize: typography.sizes.md,
     fontWeight: typography.weights.medium,
   },
-  dayPillTextSelected: {
-    color: colors.text,
-    fontSize: typography.sizes.xs,
+  dayConfigLabelDisabled: {
+    color: colors.textSecondary,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.surface,
+  },
+  totalLabel: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+  },
+  totalValue: {
+    color: colors.accent,
+    fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
+  },
+  disciplinesPerDayRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  disciplinesPerDayHint: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.sm,
+    flex: 1,
+    marginRight: spacing.sm,
   },
   segmentedControl: {
     flexDirection: 'row',

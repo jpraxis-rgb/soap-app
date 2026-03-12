@@ -51,7 +51,7 @@ export const disciplinas = pgTable('disciplinas', {
   id: uuid('id').primaryKey().defaultRandom(),
   editalId: uuid('edital_id').references(() => editais.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
-  weight: real('weight').notNull(),
+  weight: real('weight'),
   topics: jsonb('topics'),
   provaType: varchar('prova_type', { length: 20 }),  // 'objetiva' | 'discursiva' | 'mista'
   orderIndex: integer('order_index').notNull(),

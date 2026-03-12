@@ -1,20 +1,21 @@
 /**
- * Schedule generation algorithm for SOAP.
+ * Schedule generation algorithm for SOAP — Cyclic Distribution.
  *
  * Core logic:
- * 1. Allocate total hours proportional to each disciplina's weight
- * 2. Within each disciplina, distribute hours evenly across topics
- * 3. Spread study blocks across available days, respecting exam_date deadline
- * 4. Each block is a manageable study session (30-90 minutes)
+ * 1. ALLOCATE hours per discipline (custom, equal, or weight-proportional)
+ * 2. BUILD topic queues for each discipline
+ * 3. CYCLIC ROSTER rotates disciplines across study days
+ * 4. SCHEDULE DAYS respects per-day hours from config
+ * 5. Each day has exactly `disciplinesPerDay` different subjects
  *
- * For recalculation, completed sessions are subtracted from the remaining
- * allocation, and the remaining time is redistributed.
+ * For recalculation, completed sessions are subtracted and remaining
+ * time is redistributed using the same cyclic approach.
  */
 
 export interface DisciplinaInput {
   id: string;
   name: string;
-  weight: number;
+  weight: number | null;
   topics: string[];
 }
 
@@ -22,7 +23,10 @@ export interface ScheduleConfig {
   hoursPerWeek: number;
   availableDays: number[]; // 0=Sunday, 1=Monday, ..., 6=Saturday
   examDate: Date;
-  startDate?: Date; // Defaults to today
+  startDate?: Date;
+  dayHours?: Record<number, number>; // JS day → hours (per-day config)
+  disciplinesPerDay?: number; // default 3
+  customAllocations?: Record<string, number>; // disciplinaId → hours
 }
 
 export interface GeneratedBlock {
@@ -39,172 +43,139 @@ export interface CompletedSession {
   durationMinutes: number;
 }
 
-/**
- * Minimum block duration in minutes.
- */
 const MIN_BLOCK_MINUTES = 30;
-
-/**
- * Maximum block duration in minutes.
- */
 const MAX_BLOCK_MINUTES = 90;
 
 /**
- * Default block duration in minutes.
- */
-const DEFAULT_BLOCK_MINUTES = 45;
-
-/**
- * Generate schedule blocks for a set of disciplinas.
- *
- * @param disciplinas - List of disciplinas with weights and topics
- * @param config - Schedule configuration (hours per week, available days, exam date)
- * @returns Array of generated schedule blocks
+ * Generate schedule blocks using cyclic distribution.
  */
 export function generateScheduleBlocks(
   disciplinas: DisciplinaInput[],
   config: ScheduleConfig,
 ): GeneratedBlock[] {
-  // Validate inputs
-  if (disciplinas.length === 0) {
-    return [];
-  }
-
-  if (config.hoursPerWeek <= 0) {
-    return [];
-  }
-
-  if (config.availableDays.length === 0) {
-    return [];
-  }
+  if (disciplinas.length === 0) return [];
 
   const startDate = config.startDate || new Date();
   const start = normalizeDate(startDate);
   const examDate = normalizeDate(config.examDate);
 
-  // If exam date is in the past, return empty
-  if (examDate <= start) {
-    return [];
-  }
+  if (examDate <= start) return [];
 
-  // Calculate total available days
   const availableDates = getAvailableDates(start, examDate, config.availableDays);
-  if (availableDates.length === 0) {
-    return [];
-  }
+  if (availableDates.length === 0) return [];
 
-  // Calculate total available hours until exam
+  const disciplinesPerDay = Math.min(
+    config.disciplinesPerDay || 3,
+    disciplinas.length,
+  );
+
+  // Calculate total available minutes
   const totalWeeks = Math.max(1, Math.ceil(
     (examDate.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000),
   ));
   const totalAvailableMinutes = totalWeeks * config.hoursPerWeek * 60;
 
-  // Calculate weight-proportional allocation for each disciplina
-  const totalWeight = disciplinas.reduce((sum, d) => sum + d.weight, 0);
-  if (totalWeight === 0) {
-    return [];
-  }
+  // 1. ALLOCATE — compute minutes per discipline
+  const allocations = computeAllocations(disciplinas, totalAvailableMinutes, config.customAllocations);
 
-  // Build the list of topic blocks to schedule
-  const topicBlocks: Array<{ disciplinaId: string; topic: string; minutes: number }> = [];
+  // 2. BUILD TOPIC QUEUES
+  const topicQueues = buildTopicQueues(disciplinas, allocations);
 
-  for (const disciplina of disciplinas) {
-    if (disciplina.weight <= 0) {
-      continue;
-    }
+  // 3. Determine start time base from preferred_time
+  const baseHour = getBaseHour(config);
 
-    const proportion = disciplina.weight / totalWeight;
-    const disciplinaMinutes = Math.round(totalAvailableMinutes * proportion);
+  // 4. CYCLIC ROSTER — sort disciplines by allocation desc
+  const sortedDisciplinas = [...disciplinas].sort((a, b) => {
+    const allocA = allocations.get(a.id) || 0;
+    const allocB = allocations.get(b.id) || 0;
+    return allocB - allocA;
+  });
 
-    // Get topics (use disciplina name as fallback if no topics)
-    const topics = disciplina.topics.length > 0
-      ? disciplina.topics
-      : [disciplina.name];
-
-    // Distribute minutes evenly across topics
-    const minutesPerTopic = Math.max(MIN_BLOCK_MINUTES, Math.round(disciplinaMinutes / topics.length));
-
-    for (const topic of topics) {
-      // Split large allocations into manageable blocks
-      let remaining = minutesPerTopic;
-      while (remaining >= MIN_BLOCK_MINUTES) {
-        const blockDuration = Math.min(remaining, MAX_BLOCK_MINUTES);
-        topicBlocks.push({
-          disciplinaId: disciplina.id,
-          topic,
-          minutes: blockDuration,
-        });
-        remaining -= blockDuration;
-      }
-      // If there's a remainder smaller than MIN_BLOCK, add it to the last block if possible
-      if (remaining > 0 && topicBlocks.length > 0) {
-        const lastBlock = topicBlocks[topicBlocks.length - 1];
-        if (lastBlock.disciplinaId === disciplina.id && lastBlock.topic === topic) {
-          lastBlock.minutes = Math.min(lastBlock.minutes + remaining, MAX_BLOCK_MINUTES);
-        }
-      }
-    }
-  }
-
-  if (topicBlocks.length === 0) {
-    return [];
-  }
-
-  // Distribute blocks across available dates
-  // Use round-robin across dates to ensure even spread
+  let rosterPointer = 0;
   const blocks: GeneratedBlock[] = [];
-  const blocksPerDay = Math.max(1, Math.ceil(topicBlocks.length / availableDates.length));
-  // Max blocks per day: don't exceed hours_per_week / available_days_per_week
-  const maxDailyMinutes = Math.round((config.hoursPerWeek * 60) / config.availableDays.length);
 
-  let dateIndex = 0;
-  let dailyMinutes = 0;
-  let startHour = 8; // Start at 8:00 AM
-  let startMinute = 0;
+  // 5. SCHEDULE DAYS
+  for (const date of availableDates) {
+    const dayOfWeek = date.getDay();
+    const dailyMinutes = getDailyMinutes(dayOfWeek, config);
+    if (dailyMinutes <= 0) continue;
 
-  for (const block of topicBlocks) {
-    if (dateIndex >= availableDates.length) {
-      // Wrap around if we have more blocks than dates
-      dateIndex = 0;
+    // Pick next N disciplines from the rotating roster
+    const pickedDisciplinas: DisciplinaInput[] = [];
+    for (let i = 0; i < disciplinesPerDay; i++) {
+      const idx = (rosterPointer + i) % sortedDisciplinas.length;
+      pickedDisciplinas.push(sortedDisciplinas[idx]);
     }
+    rosterPointer = (rosterPointer + disciplinesPerDay) % sortedDisciplinas.length;
 
-    // Check if adding this block exceeds daily limit
-    if (dailyMinutes + block.minutes > maxDailyMinutes && dailyMinutes > 0) {
-      // Move to next date
-      dateIndex++;
-      if (dateIndex >= availableDates.length) {
-        dateIndex = 0;
+    // Split daily minutes proportionally among picked disciplines
+    const pickedTotalAlloc = pickedDisciplinas.reduce(
+      (sum, d) => sum + (allocations.get(d.id) || 1),
+      0,
+    );
+
+    let currentHour = baseHour;
+    let currentMinute = 0;
+
+    for (const disciplina of pickedDisciplinas) {
+      const queue = topicQueues.get(disciplina.id);
+      if (!queue || queue.length === 0) continue;
+
+      const share = pickedTotalAlloc > 0
+        ? Math.round((dailyMinutes * (allocations.get(disciplina.id) || 1)) / pickedTotalAlloc)
+        : Math.round(dailyMinutes / disciplinesPerDay);
+
+      if (share < MIN_BLOCK_MINUTES) continue;
+
+      // Create blocks from the topic queue
+      let remaining = share;
+      while (remaining >= MIN_BLOCK_MINUTES && queue.length > 0) {
+        const topicEntry = queue[0];
+        const blockDuration = Math.min(remaining, MAX_BLOCK_MINUTES, topicEntry.remainingMinutes);
+
+        if (blockDuration < MIN_BLOCK_MINUTES) {
+          // If remaining in this topic is too small, merge with next or skip
+          if (remaining >= MIN_BLOCK_MINUTES) {
+            // Use minimum block with this topic
+            const finalDuration = Math.min(remaining, MAX_BLOCK_MINUTES);
+            blocks.push({
+              disciplinaId: disciplina.id,
+              topic: topicEntry.topic,
+              scheduledDate: formatDate(date),
+              startTime: formatTime(currentHour, currentMinute),
+              durationMinutes: finalDuration,
+            });
+            const adv = finalDuration + 10;
+            currentMinute += adv;
+            currentHour += Math.floor(currentMinute / 60);
+            currentMinute = currentMinute % 60;
+            remaining -= finalDuration;
+          }
+          queue.shift();
+          continue;
+        }
+
+        blocks.push({
+          disciplinaId: disciplina.id,
+          topic: topicEntry.topic,
+          scheduledDate: formatDate(date),
+          startTime: formatTime(currentHour, currentMinute),
+          durationMinutes: blockDuration,
+        });
+
+        topicEntry.remainingMinutes -= blockDuration;
+        if (topicEntry.remainingMinutes < MIN_BLOCK_MINUTES) {
+          queue.shift();
+        }
+
+        const advance = blockDuration + 10;
+        currentMinute += advance;
+        currentHour += Math.floor(currentMinute / 60);
+        currentMinute = currentMinute % 60;
+        remaining -= blockDuration;
+
+        if (currentHour >= 22) break;
       }
-      dailyMinutes = 0;
-      startHour = 8;
-      startMinute = 0;
-    }
-
-    const date = availableDates[dateIndex];
-    const startTimeStr = `${String(startHour).padStart(2, '0')}:${String(startMinute).padStart(2, '0')}`;
-
-    blocks.push({
-      disciplinaId: block.disciplinaId,
-      topic: block.topic,
-      scheduledDate: formatDate(date),
-      startTime: startTimeStr,
-      durationMinutes: block.minutes,
-    });
-
-    // Advance time for next block on same day
-    const totalMinutesAdvance = block.minutes + 15; // 15 min break between blocks
-    startMinute += totalMinutesAdvance;
-    startHour += Math.floor(startMinute / 60);
-    startMinute = startMinute % 60;
-
-    dailyMinutes += block.minutes;
-
-    // If we've exceeded daily time or it's past 22:00, move to next date
-    if (dailyMinutes >= maxDailyMinutes || startHour >= 22) {
-      dateIndex++;
-      dailyMinutes = 0;
-      startHour = 8;
-      startMinute = 0;
     }
   }
 
@@ -212,9 +183,107 @@ export function generateScheduleBlocks(
 }
 
 /**
+ * Compute allocation (total minutes) per discipline.
+ */
+function computeAllocations(
+  disciplinas: DisciplinaInput[],
+  totalMinutes: number,
+  customAllocations?: Record<string, number>,
+): Map<string, number> {
+  const allocations = new Map<string, number>();
+
+  // If custom allocations provided, use them first
+  if (customAllocations) {
+    let remainingMinutes = totalMinutes;
+    const unallocated: DisciplinaInput[] = [];
+
+    for (const d of disciplinas) {
+      if (customAllocations[d.id] != null) {
+        const minutes = customAllocations[d.id] * 60;
+        allocations.set(d.id, minutes);
+        remainingMinutes -= minutes;
+      } else {
+        unallocated.push(d);
+      }
+    }
+
+    // Distribute remaining among unallocated
+    if (unallocated.length > 0 && remainingMinutes > 0) {
+      const perDisc = remainingMinutes / unallocated.length;
+      for (const d of unallocated) {
+        allocations.set(d.id, perDisc);
+      }
+    }
+    return allocations;
+  }
+
+  // Check if all weights are null
+  const allNullWeights = disciplinas.every(d => d.weight == null);
+
+  if (allNullWeights) {
+    // Equal distribution
+    const perDisc = totalMinutes / disciplinas.length;
+    for (const d of disciplinas) {
+      allocations.set(d.id, perDisc);
+    }
+  } else {
+    // Weight-proportional (null weight treated as 1)
+    const totalWeight = disciplinas.reduce((sum, d) => sum + (d.weight ?? 1), 0);
+    for (const d of disciplinas) {
+      const w = d.weight ?? 1;
+      allocations.set(d.id, Math.round((w / totalWeight) * totalMinutes));
+    }
+  }
+
+  return allocations;
+}
+
+/**
+ * Build ordered topic queues for each discipline.
+ */
+function buildTopicQueues(
+  disciplinas: DisciplinaInput[],
+  allocations: Map<string, number>,
+): Map<string, Array<{ topic: string; remainingMinutes: number }>> {
+  const queues = new Map<string, Array<{ topic: string; remainingMinutes: number }>>();
+
+  for (const d of disciplinas) {
+    const totalMinutes = allocations.get(d.id) || 0;
+    const topics = d.topics.length > 0 ? d.topics : [d.name];
+    const minutesPerTopic = Math.max(MIN_BLOCK_MINUTES, Math.round(totalMinutes / topics.length));
+
+    queues.set(
+      d.id,
+      topics.map(topic => ({ topic, remainingMinutes: minutesPerTopic })),
+    );
+  }
+
+  return queues;
+}
+
+/**
+ * Get daily minutes for a given day of week from config.
+ */
+function getDailyMinutes(dayOfWeek: number, config: ScheduleConfig): number {
+  if (config.dayHours && config.dayHours[dayOfWeek] != null) {
+    return config.dayHours[dayOfWeek] * 60;
+  }
+  // Fallback: distribute hours_per_week evenly across available days
+  if (config.availableDays.length === 0) return 0;
+  return Math.round((config.hoursPerWeek * 60) / config.availableDays.length);
+}
+
+/**
+ * Get base start hour from config (preferred time).
+ */
+function getBaseHour(config: ScheduleConfig): number {
+  // Infer from dayHours or use default
+  // We don't have preferred_time in ScheduleConfig here, so use 8 AM default
+  return 8;
+}
+
+/**
  * Performance multiplier based on average self-rating.
- * Lower ratings get more study time, higher ratings less.
- * Rating scale is 1-3 (poor, ok, good).
  */
 export function performanceMultiplier(avgRating: number): number {
   if (avgRating <= 1) return 1.5;
@@ -225,31 +294,27 @@ export function performanceMultiplier(avgRating: number): number {
 }
 
 /**
- * Recalculate schedule taking completed sessions into account.
- * Subtracts completed time from each disciplina/topic allocation and
- * redistributes remaining blocks.
- *
- * When performanceData is provided, disciplinas with low self-ratings
- * get more study time and those with high ratings get less.
+ * Recalculate schedule using the same cyclic approach, subtracting completed sessions.
  */
 export function recalculateSchedule(
   disciplinas: DisciplinaInput[],
   config: ScheduleConfig,
   completedSessions: CompletedSession[],
-  performanceData?: Map<string, number>, // disciplinaId → avg self_rating (1-3)
+  performanceData?: Map<string, number>,
 ): GeneratedBlock[] {
-  if (disciplinas.length === 0 || config.hoursPerWeek <= 0) {
-    return [];
-  }
+  if (disciplinas.length === 0 || config.hoursPerWeek <= 0) return [];
 
-  // Calculate completed minutes per disciplina/topic
-  const completedMap = new Map<string, number>();
-  for (const session of completedSessions) {
-    const key = `${session.disciplinaId}::${session.topic}`;
-    completedMap.set(key, (completedMap.get(key) || 0) + session.durationMinutes);
-  }
+  const startDate = config.startDate || new Date();
+  const start = normalizeDate(startDate);
+  const examDate = normalizeDate(config.examDate);
+  if (examDate <= start) return [];
 
-  // Also track completed minutes per disciplina (total)
+  const totalWeeks = Math.max(1, Math.ceil(
+    (examDate.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000),
+  ));
+  const totalAvailableMinutes = totalWeeks * config.hoursPerWeek * 60;
+
+  // Calculate completed minutes per disciplina
   const disciplinaCompletedMap = new Map<string, number>();
   for (const session of completedSessions) {
     disciplinaCompletedMap.set(
@@ -258,60 +323,53 @@ export function recalculateSchedule(
     );
   }
 
-  // Adjust weights based on completion: reduce weight for disciplinas that have more done
-  const totalWeight = disciplinas.reduce((sum, d) => sum + d.weight, 0);
-  const startDate = config.startDate || new Date();
-  const start = normalizeDate(startDate);
-  const examDate = normalizeDate(config.examDate);
-
-  if (examDate <= start) {
-    return [];
+  // Track completed per topic
+  const completedPerTopic = new Map<string, number>();
+  for (const session of completedSessions) {
+    const key = `${session.disciplinaId}::${session.topic}`;
+    completedPerTopic.set(key, (completedPerTopic.get(key) || 0) + session.durationMinutes);
   }
 
-  const totalWeeks = Math.max(1, Math.ceil(
-    (examDate.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000),
-  ));
-  const totalAvailableMinutes = totalWeeks * config.hoursPerWeek * 60;
+  // Compute original allocations
+  const allNullWeights = disciplinas.every(d => d.weight == null);
+  const totalWeight = allNullWeights
+    ? disciplinas.length
+    : disciplinas.reduce((sum, d) => sum + (d.weight ?? 1), 0);
 
-  // Calculate what each disciplina "should" have and subtract completed
   const adjustedDisciplinas: DisciplinaInput[] = [];
 
   for (const disciplina of disciplinas) {
-    const proportion = disciplina.weight / totalWeight;
-    const targetMinutes = Math.round(totalAvailableMinutes * proportion);
+    const w = allNullWeights ? 1 : (disciplina.weight ?? 1);
+    const targetMinutes = Math.round((w / totalWeight) * totalAvailableMinutes);
     const completedMinutes = disciplinaCompletedMap.get(disciplina.id) || 0;
     const remainingMinutes = Math.max(0, targetMinutes - completedMinutes);
 
     if (remainingMinutes >= MIN_BLOCK_MINUTES) {
-      // Recalculate effective weight based on remaining work
-      let effectiveWeight = (remainingMinutes / totalAvailableMinutes) * totalWeight;
+      let effectiveWeight = w * (remainingMinutes / targetMinutes);
 
-      // Apply performance multiplier if available
       const rating = performanceData?.get(disciplina.id);
-      const perfMultiplier = rating !== undefined ? performanceMultiplier(rating) : 1.0;
-      effectiveWeight = effectiveWeight * perfMultiplier;
+      if (rating !== undefined) {
+        effectiveWeight *= performanceMultiplier(rating);
+      }
 
       // Filter out fully-covered topics
       const remainingTopics = disciplina.topics.filter((topic) => {
         const key = `${disciplina.id}::${topic}`;
-        const topicCompleted = completedMap.get(key) || 0;
+        const topicCompleted = completedPerTopic.get(key) || 0;
         const topicTarget = targetMinutes / Math.max(1, disciplina.topics.length);
         return topicCompleted < topicTarget;
       });
 
       adjustedDisciplinas.push({
         ...disciplina,
-        weight: effectiveWeight > 0 ? effectiveWeight : disciplina.weight * 0.1,
+        weight: effectiveWeight > 0 ? effectiveWeight : 0.1,
         topics: remainingTopics.length > 0 ? remainingTopics : disciplina.topics,
       });
     }
   }
 
-  if (adjustedDisciplinas.length === 0) {
-    return [];
-  }
+  if (adjustedDisciplinas.length === 0) return [];
 
-  // Use today as the new start date for recalculation
   const newConfig: ScheduleConfig = {
     ...config,
     startDate: new Date(),
@@ -322,22 +380,15 @@ export function recalculateSchedule(
 
 // ── Helper functions ──────────────────────────────────
 
-/**
- * Normalize a date to midnight UTC.
- */
 function normalizeDate(date: Date): Date {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
   return d;
 }
 
-/**
- * Get all available dates between start and exam date.
- */
 function getAvailableDates(start: Date, examDate: Date, availableDays: number[]): Date[] {
   const dates: Date[] = [];
   const current = new Date(start);
-  // Start from the day after today
   current.setDate(current.getDate() + 1);
 
   while (current < examDate) {
@@ -350,12 +401,13 @@ function getAvailableDates(start: Date, examDate: Date, availableDays: number[])
   return dates;
 }
 
-/**
- * Format a date as YYYY-MM-DD.
- */
 function formatDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function formatTime(hour: number, minute: number): string {
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }

@@ -15,6 +15,9 @@ export interface GenerateScheduleInput {
   hoursPerWeek: number;
   availableDays: number[];
   examDate?: string; // ISO date string, defaults to 12 weeks from now
+  dayConfigs?: Record<string, number>; // day index → hours
+  disciplinesPerDay?: number;
+  customAllocations?: Record<string, number>; // disciplinaId → hours
 }
 
 export interface GenerateScheduleResult {
@@ -68,7 +71,7 @@ export async function generateSchedule(
   const disciplinaInputs: DisciplinaInput[] = editalDisciplinas.map((d) => ({
     id: d.id,
     name: d.name || 'Unknown',
-    weight: d.weight,
+    weight: d.weight ?? null,
     topics: extractTopics(d.topics),
   }));
 
@@ -87,10 +90,23 @@ export async function generateSchedule(
   // Convert mobile day indices (0=Mon..6=Sun) to JS day-of-week (0=Sun..6=Sat)
   const jsDays = input.availableDays.map(d => (d + 1) % 7);
 
+  // Convert dayConfigs keys from mobile indices to JS day-of-week
+  let dayHours: Record<number, number> | undefined;
+  if (input.dayConfigs) {
+    dayHours = {};
+    for (const [mobileDay, hours] of Object.entries(input.dayConfigs)) {
+      const jsDay = (Number(mobileDay) + 1) % 7;
+      dayHours[jsDay] = hours;
+    }
+  }
+
   const config: ScheduleConfig = {
     hoursPerWeek: input.hoursPerWeek,
     availableDays: jsDays,
     examDate: new Date(examDateStr),
+    dayHours,
+    disciplinesPerDay: input.disciplinesPerDay,
+    customAllocations: input.customAllocations,
   };
 
   console.log('[Schedule] Generating:', { disciplinas: disciplinaInputs.length, examDate: examDateStr, jsDays, hoursPerWeek: input.hoursPerWeek });
@@ -241,7 +257,7 @@ export async function recalculateExistingSchedule(
   const disciplinaInputs: DisciplinaInput[] = editalDisciplinas.map((d) => ({
     id: d.id,
     name: d.name || 'Unknown',
-    weight: d.weight,
+    weight: d.weight ?? null,
     topics: extractTopics(d.topics),
   }));
 

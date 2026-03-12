@@ -22,7 +22,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 interface Disciplina {
   id: string;
   name: string;
-  weight: number;
+  weight: number | null;
   topics: string[];
   category?: 'geral' | 'especifico';
 }
@@ -42,7 +42,15 @@ interface EditalReviewScreenProps {
   route: { params: { edital: ParsedEditalData } };
 }
 
-function DisciplinaCard({ disciplina }: { disciplina: Disciplina }) {
+function DisciplinaCard({
+  disciplina,
+  excluded,
+  onToggleExclude,
+}: {
+  disciplina: Disciplina;
+  excluded: boolean;
+  onToggleExclude: () => void;
+}) {
   const [expanded, setExpanded] = useState(false);
 
   const toggleExpand = () => {
@@ -52,16 +60,41 @@ function DisciplinaCard({ disciplina }: { disciplina: Disciplina }) {
 
   return (
     <Pressable onPress={toggleExpand}>
-      <Card style={styles.disciplinaCard}>
+      <Card style={excluded ? [styles.disciplinaCard, styles.disciplinaCardExcluded] as any : styles.disciplinaCard}>
         <View style={styles.disciplinaHeader}>
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation?.();
+              onToggleExclude();
+            }}
+            hitSlop={8}
+            style={styles.checkboxContainer}
+          >
+            <View style={[styles.checkbox, !excluded && styles.checkboxChecked]}>
+              {!excluded && (
+                <Ionicons name="checkmark" size={14} color={colors.text} />
+              )}
+            </View>
+          </Pressable>
           <View style={styles.disciplinaInfo}>
-            <Text style={styles.disciplinaName}>{disciplina.name}</Text>
+            <Text
+              style={[
+                styles.disciplinaName,
+                excluded && styles.disciplinaNameExcluded,
+              ]}
+            >
+              {disciplina.name}
+            </Text>
             <Text style={styles.topicCount}>
               {disciplina.topics.length} {disciplina.topics.length === 1 ? 'topico' : 'topicos'}
             </Text>
           </View>
           <View style={styles.disciplinaRight}>
-            <Badge text={`Peso ${disciplina.weight}`} color={colors.accent + '40'} />
+            {disciplina.weight != null ? (
+              <Badge text={`Peso ${disciplina.weight}`} color={colors.accent + '40'} />
+            ) : (
+              <Badge text="Sem peso" color={colors.surface} />
+            )}
             <Ionicons
               name={expanded ? 'chevron-up' : 'chevron-down'}
               size={18}
@@ -99,6 +132,8 @@ export function EditalReviewScreen() {
   const params = route.params as { edital?: ParsedEditalData } | undefined;
   const edital = params?.edital;
 
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
+
   if (!edital) {
     return (
       <View style={styles.container}>
@@ -111,6 +146,19 @@ export function EditalReviewScreen() {
     );
   }
 
+  const toggleExclude = (id: string) => {
+    setExcludedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const activeCount = edital.disciplinas.length - excludedIds.size;
   const confidencePercent = Math.round((edital.confidence ?? 0) * 100);
 
   // Group disciplines by category
@@ -120,8 +168,20 @@ export function EditalReviewScreen() {
   const hasCategories = gerais.length > 0 || especificos.length > 0;
 
   const handleConfirm = () => {
-    navigation.navigate('ScheduleConfig', { edital });
+    const activeDisciplinas = edital.disciplinas.filter(d => !excludedIds.has(d.id));
+    navigation.navigate('ScheduleConfig', {
+      edital: { ...edital, disciplinas: activeDisciplinas },
+    });
   };
+
+  const renderDisciplina = (disciplina: Disciplina) => (
+    <DisciplinaCard
+      key={disciplina.id}
+      disciplina={disciplina}
+      excluded={excludedIds.has(disciplina.id)}
+      onToggleExclude={() => toggleExclude(disciplina.id)}
+    />
+  );
 
   return (
     <View style={styles.container}>
@@ -172,59 +232,59 @@ export function EditalReviewScreen() {
         {/* Disciplinas */}
         {hasCategories ? (
           <>
-            {/* Conhecimentos Gerais */}
             {gerais.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Conhecimentos Gerais</Text>
                   <Text style={styles.sectionCount}>{gerais.length}</Text>
                 </View>
-                {gerais.map((disciplina) => (
-                  <DisciplinaCard key={disciplina.id} disciplina={disciplina} />
-                ))}
+                {gerais.map(renderDisciplina)}
               </>
             )}
 
-            {/* Conhecimentos Específicos */}
             {especificos.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Conhecimentos Espec\u00edficos</Text>
                   <Text style={styles.sectionCount}>{especificos.length}</Text>
                 </View>
-                {especificos.map((disciplina) => (
-                  <DisciplinaCard key={disciplina.id} disciplina={disciplina} />
-                ))}
+                {especificos.map(renderDisciplina)}
               </>
             )}
           </>
         ) : (
           <>
-            {/* Uncategorized — backwards compatible */}
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Disciplinas</Text>
               <Text style={styles.sectionCount}>{uncategorized.length} encontradas</Text>
             </View>
-            {uncategorized.map((disciplina) => (
-              <DisciplinaCard key={disciplina.id} disciplina={disciplina} />
-            ))}
+            {uncategorized.map(renderDisciplina)}
           </>
         )}
 
         <View style={{ height: spacing.xxl + spacing.xxl }} />
       </ScrollView>
 
-      {/* Fixed Bottom Button */}
+      {/* Fixed Bottom Bar */}
       <View style={styles.bottomBar}>
-        <Pressable onPress={handleConfirm} style={styles.confirmButtonWrapper}>
+        <Text style={styles.selectionCounter}>
+          {activeCount} de {edital.disciplinas.length} disciplinas selecionadas
+        </Text>
+        <Pressable
+          onPress={handleConfirm}
+          style={styles.confirmButtonWrapper}
+          disabled={activeCount === 0}
+        >
           <LinearGradient
-            colors={[colors.accent, colors.accentPink]}
+            colors={activeCount > 0 ? [colors.accent, colors.accentPink] : [colors.surface, colors.surface]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.confirmButton}
           >
-            <Ionicons name="checkmark-circle-outline" size={20} color={colors.text} />
-            <Text style={styles.confirmButtonText}>Confirmar e gerar cronograma</Text>
+            <Ionicons name="checkmark-circle-outline" size={20} color={activeCount > 0 ? colors.text : colors.textSecondary} />
+            <Text style={[styles.confirmButtonText, activeCount === 0 && { color: colors.textSecondary }]}>
+              Confirmar e gerar cronograma
+            </Text>
           </LinearGradient>
         </Pressable>
       </View>
@@ -311,10 +371,28 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.md,
     marginBottom: spacing.sm,
   },
+  disciplinaCardExcluded: {
+    opacity: 0.4,
+  },
   disciplinaHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  checkboxContainer: {
+    marginRight: spacing.sm,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.textSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   disciplinaInfo: {
     flex: 1,
@@ -324,6 +402,10 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
+  },
+  disciplinaNameExcluded: {
+    textDecorationLine: 'line-through',
+    color: colors.textSecondary,
   },
   topicCount: {
     color: colors.textSecondary,
@@ -362,11 +444,17 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.xl,
     backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: colors.surface,
+  },
+  selectionCounter: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.sm,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
   },
   confirmButtonWrapper: {
     borderRadius: 12,
