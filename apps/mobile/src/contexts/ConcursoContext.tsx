@@ -66,14 +66,38 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
   const loadConcursos = useCallback(async () => {
     try {
       setIsLoading(true);
-      const editais = await getEditais() as Concurso[];
-      setConcursos(editais);
+      const rawEditais = await getEditais() as any[];
+      const mapped: Concurso[] = rawEditais.map(e => {
+        const parsed = e.parsedData || {};
+        const discs = (e.disciplinas || []).map((d: any) => ({
+          id: d.id || `d-${Math.random().toString(36).slice(2)}`,
+          name: d.name || '',
+          weight: d.weight,
+          topics: Array.isArray(d.topics) ? d.topics : d.topics?.items || [],
+          category: d.category,
+        }));
+        return {
+          id: e.id,
+          edital: {
+            id: e.id,
+            banca: parsed.banca || '',
+            orgao: parsed.orgao || '',
+            cargo: parsed.cargo || '',
+            exam_date: e.examDate || parsed.exam_date || '',
+            confidence: parsed.confidence || 0,
+            disciplinas: discs,
+          },
+          schedule_config: null,
+          created_at: e.updatedAt || new Date().toISOString(),
+        };
+      });
+      setConcursos(mapped);
 
       const savedId = await AsyncStorage.getItem(ACTIVE_CONCURSO_KEY);
-      if (savedId && editais.some(c => c.id === savedId)) {
+      if (savedId && mapped.some(c => c.id === savedId)) {
         setActiveConcursoId(savedId);
-      } else if (editais.length > 0) {
-        setActiveConcursoId(editais[0].id);
+      } else if (mapped.length > 0) {
+        setActiveConcursoId(mapped[0].id);
       }
     } catch {
       // API unreachable, keep current state
