@@ -195,7 +195,7 @@ export function EditalImportScreen() {
         </View>
 
         {/* Popular Templates */}
-        <Text style={styles.sectionTitle}>Concursos Populares</Text>
+        <Text style={styles.sectionTitle}>Concursos em Andamento</Text>
 
         {templatesLoading ? (
           <View style={styles.shimmerContainer}>
