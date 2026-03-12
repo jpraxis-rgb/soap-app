@@ -39,11 +39,39 @@ const normalizeDisciplinas = (discs: any[]) => discs.map((d: any) => ({
   topics: Array.isArray(d.topics) ? d.topics : d.topics?.items || [],
 }));
 
+type SortMode = 'newest' | 'examDate' | 'alpha';
+
+const SORT_OPTIONS: { key: SortMode; label: string }[] = [
+  { key: 'newest', label: 'Recentes' },
+  { key: 'examDate', label: 'Data da prova' },
+  { key: 'alpha', label: 'A-Z' },
+];
+
+function sortTemplates(list: EditalTemplate[], mode: SortMode): EditalTemplate[] {
+  return [...list].sort((a, b) => {
+    switch (mode) {
+      case 'newest':
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      case 'examDate': {
+        if (!a.examDate && !b.examDate) return 0;
+        if (!a.examDate) return 1;
+        if (!b.examDate) return -1;
+        return new Date(a.examDate).getTime() - new Date(b.examDate).getTime();
+      }
+      case 'alpha':
+        return a.name.localeCompare(b.name, 'pt-BR');
+      default:
+        return 0;
+    }
+  });
+}
+
 export function EditalPickerScreen() {
   const navigation = useNavigation<any>();
   const [templates, setTemplates] = useState<EditalTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [sortMode, setSortMode] = useState<SortMode>('newest');
   const [tappedTemplateId, setTappedTemplateId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,15 +82,18 @@ export function EditalPickerScreen() {
   }, []);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return templates;
-    const q = search.toLowerCase();
-    return templates.filter(
-      t =>
-        t.name.toLowerCase().includes(q) ||
-        t.banca.toLowerCase().includes(q) ||
-        t.orgao.toLowerCase().includes(q),
-    );
-  }, [templates, search]);
+    let list = templates;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        t =>
+          t.name.toLowerCase().includes(q) ||
+          t.banca.toLowerCase().includes(q) ||
+          t.orgao.toLowerCase().includes(q),
+      );
+    }
+    return sortTemplates(list, sortMode);
+  }, [templates, search, sortMode]);
 
   const handleTemplatePress = async (template: EditalTemplate) => {
     if (tappedTemplateId) return;
@@ -137,6 +168,34 @@ export function EditalPickerScreen() {
             </Pressable>
           )}
         </View>
+
+        {/* Sort Pills */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.sortRow}
+          contentContainerStyle={styles.sortRowContent}
+        >
+          {SORT_OPTIONS.map(opt => (
+            <Pressable
+              key={opt.key}
+              onPress={() => setSortMode(opt.key)}
+              style={[
+                styles.sortPill,
+                sortMode === opt.key && styles.sortPillActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.sortPillText,
+                  sortMode === opt.key && styles.sortPillTextActive,
+                ]}
+              >
+                {opt.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
 
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -222,6 +281,33 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: typography.sizes.md,
     paddingVertical: 12,
+  },
+  sortRow: {
+    marginBottom: spacing.md,
+  },
+  sortRowContent: {
+    gap: spacing.sm,
+  },
+  sortPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: 20,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.surface,
+  },
+  sortPillActive: {
+    backgroundColor: colors.accent + '20',
+    borderColor: colors.accent,
+  },
+  sortPillText: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+  },
+  sortPillTextActive: {
+    color: colors.accent,
+    fontWeight: typography.weights.semibold,
   },
   loadingContainer: {
     alignItems: 'center',
