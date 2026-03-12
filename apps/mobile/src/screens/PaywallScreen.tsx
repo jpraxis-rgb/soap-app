@@ -26,7 +26,7 @@ interface Plan {
 
 const PLANS: Plan[] = [
   {
-    name: 'Registro',
+    name: 'Básico',
     price: 'R$ 19,90',
     period: '/mês',
     features: [
@@ -127,7 +127,7 @@ export function PaywallScreen() {
 
             <View style={styles.planAction}>
               <Button
-                label={plan.recommended ? 'Assinar Microlearning' : 'Assinar Registro'}
+                label={plan.recommended ? 'Assinar Microlearning' : 'Assinar Básico'}
                 onPress={() => handleSubscribe(plan)}
                 variant={plan.recommended ? 'gradient' : 'outlined'}
               />

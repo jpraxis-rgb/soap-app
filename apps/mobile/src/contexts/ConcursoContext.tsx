@@ -20,6 +20,7 @@ export interface ParsedEditalData {
   exam_date: string;
   confidence: number;
   disciplinas: ParsedDisciplina[];
+  sourceUrl?: string;
 }
 
 export interface ScheduleConfig {

@@ -65,9 +65,13 @@ router.get('/', async (req: Request, res: Response) => {
         status: scheduleBlocks.status,
         weight: disciplinas.weight,
         has_content: sql<boolean>`EXISTS (
-          SELECT 1 FROM content_items
-          WHERE content_items.disciplina_id = ${scheduleBlocks.disciplinaId}
-            AND content_items.topic = ${scheduleBlocks.topic}
+          SELECT 1 FROM content_items ci
+          WHERE ci.status = 'published'
+            AND ci.topic = ${scheduleBlocks.topic}
+            AND (
+              ci.disciplina_id = ${scheduleBlocks.disciplinaId}
+              OR ci.disciplina_name = ${disciplinas.name}
+            )
         )`.as('has_content'),
       })
       .from(scheduleBlocks)
@@ -156,9 +160,13 @@ router.get('/today', async (req: Request, res: Response) => {
         status: scheduleBlocks.status,
         weight: disciplinas.weight,
         has_content: sql<boolean>`EXISTS (
-          SELECT 1 FROM content_items
-          WHERE content_items.disciplina_id = ${scheduleBlocks.disciplinaId}
-            AND content_items.topic = ${scheduleBlocks.topic}
+          SELECT 1 FROM content_items ci
+          WHERE ci.status = 'published'
+            AND ci.topic = ${scheduleBlocks.topic}
+            AND (
+              ci.disciplina_id = ${scheduleBlocks.disciplinaId}
+              OR ci.disciplina_name = ${disciplinas.name}
+            )
         )`.as('has_content'),
       })
       .from(scheduleBlocks)

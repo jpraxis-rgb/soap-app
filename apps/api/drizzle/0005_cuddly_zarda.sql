@@ -1,0 +1,1 @@
+ALTER TABLE "edital_templates" ADD COLUMN "source_url" text;

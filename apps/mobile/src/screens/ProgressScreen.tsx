@@ -383,7 +383,7 @@ export function ProgressScreen() {
         />
         <StatCard
           icon="flame-outline"
-          label="Sequencia"
+          label="Sequência"
           value={`${overview.streak_days}d`}
           color={colors.warning}
         />

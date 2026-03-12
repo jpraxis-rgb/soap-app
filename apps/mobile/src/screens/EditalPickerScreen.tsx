@@ -40,11 +40,18 @@ const normalizeDisciplinas = (discs: any[]) => discs.map((d: any) => ({
 }));
 
 type SortMode = 'newest' | 'examDate' | 'alpha';
+type NivelFilter = 'todos' | 'superior' | 'medio';
 
 const SORT_OPTIONS: { key: SortMode; label: string }[] = [
   { key: 'newest', label: 'Recentes' },
   { key: 'examDate', label: 'Data da prova' },
   { key: 'alpha', label: 'A-Z' },
+];
+
+const NIVEL_OPTIONS: { key: NivelFilter; label: string }[] = [
+  { key: 'todos', label: 'Todos' },
+  { key: 'superior', label: 'Nível Superior' },
+  { key: 'medio', label: 'Nível Médio' },
 ];
 
 function sortTemplates(list: EditalTemplate[], mode: SortMode): EditalTemplate[] {
@@ -72,6 +79,7 @@ export function EditalPickerScreen() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('newest');
+  const [nivelFilter, setNivelFilter] = useState<NivelFilter>('todos');
   const [tappedTemplateId, setTappedTemplateId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -83,6 +91,9 @@ export function EditalPickerScreen() {
 
   const filtered = useMemo(() => {
     let list = templates;
+    if (nivelFilter !== 'todos') {
+      list = list.filter(t => t.nivel === nivelFilter);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -93,7 +104,7 @@ export function EditalPickerScreen() {
       );
     }
     return sortTemplates(list, sortMode);
-  }, [templates, search, sortMode]);
+  }, [templates, search, sortMode, nivelFilter]);
 
   const handleTemplatePress = async (template: EditalTemplate) => {
     if (tappedTemplateId) return;
@@ -114,6 +125,7 @@ export function EditalPickerScreen() {
             orgao: detail.orgao,
             exam_date: detail.examDate || '',
             confidence: 1.0,
+            sourceUrl: template.sourceUrl,
           },
           cargos: normalizedCargos,
           sharedDisciplinas,
@@ -133,6 +145,7 @@ export function EditalPickerScreen() {
           confidence: 1.0,
           cargo: parsed.cargo || '',
           disciplinas: sharedDisciplinas,
+          sourceUrl: template.sourceUrl || undefined,
         };
         navigation.navigate('EditalReview', { edital });
       }
@@ -197,6 +210,34 @@ export function EditalPickerScreen() {
           ))}
         </ScrollView>
 
+        {/* Nivel Filter Pills */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.sortRow}
+          contentContainerStyle={styles.sortRowContent}
+        >
+          {NIVEL_OPTIONS.map(opt => (
+            <Pressable
+              key={opt.key}
+              onPress={() => setNivelFilter(opt.key)}
+              style={[
+                styles.sortPill,
+                nivelFilter === opt.key && styles.sortPillActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.sortPillText,
+                  nivelFilter === opt.key && styles.sortPillTextActive,
+                ]}
+              >
+                {opt.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.accent} />
@@ -223,7 +264,7 @@ export function EditalPickerScreen() {
                       )}
                     </View>
                     <Text style={styles.templateMeta}>
-                      {template.banca} · {formatExamDate(template.examDate) ? `Prova ${formatExamDate(template.examDate)}` : template.orgao}
+                      {template.banca} · {formatExamDate(template.examDate) || template.orgao}{template.vagas ? ` · ${template.vagas} vagas` : ''}
                     </Text>
                   </View>
                   <View style={styles.templateRight}>
@@ -241,7 +282,7 @@ export function EditalPickerScreen() {
 
         {/* Footer CTA */}
         <View style={styles.footer}>
-          <Text style={styles.footerLabel}>Nao encontrou?</Text>
+          <Text style={styles.footerLabel}>Não encontrou?</Text>
           <Pressable
             style={styles.footerLink}
             onPress={() => navigation.goBack()}

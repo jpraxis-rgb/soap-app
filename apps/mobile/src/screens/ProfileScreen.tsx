@@ -16,7 +16,7 @@ import { useConcurso } from '../contexts/ConcursoContext';
 
 const TIER_LABELS: Record<string, string> = {
   free: 'Gratuito',
-  registro: 'Registro',
+  registro: 'Básico',
   microlearning: 'Microlearning',
   mentor: 'Mentor',
 };
@@ -72,7 +72,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>{user?.name || 'Usuario'}</Text>
+            <Text style={styles.userName}>{user?.name || 'Usuário'}</Text>
             <Text style={styles.userEmail}>{user?.email || ''}</Text>
             <Badge text={tierLabel} color={tierColor} />
           </View>
@@ -134,7 +134,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
       </Card>
 
       {/* Notification Toggles */}
-      <Card header="Notificacoes" style={styles.section}>
+      <Card header="Notificações" style={styles.section}>
         <ToggleRow
           label="Lembrete de estudo"
           value={notifications.studyReminder}
@@ -146,12 +146,12 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
           onToggle={(v) => setNotifications(prev => ({ ...prev, weeklySummary: v }))}
         />
         <ToggleRow
-          label="Novo conteudo"
+          label="Novo conteúdo"
           value={notifications.newContent}
           onToggle={(v) => setNotifications(prev => ({ ...prev, newContent: v }))}
         />
         <ToggleRow
-          label="Horario silencioso"
+          label="Horário silencioso"
           value={notifications.quietHours}
           onToggle={(v) => setNotifications(prev => ({ ...prev, quietHours: v }))}
         />
@@ -162,7 +162,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
         <View style={styles.subscriptionInfo}>
           <Text style={styles.planText}>Plano atual: {tierLabel}</Text>
           {subscriptionTier !== 'free' && (
-            <Text style={styles.billingText}>Renovacao: em breve</Text>
+            <Text style={styles.billingText}>Renovação: em breve</Text>
           )}
         </View>
         <Pressable
@@ -181,7 +181,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
           onPress={() => Alert.alert('Termos', 'Em breve')}
         />
         <MenuRow
-          label="Politica de privacidade"
+          label="Política de privacidade"
           onPress={() => Alert.alert('Privacidade', 'Em breve')}
         />
         <MenuRow
@@ -189,7 +189,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
           onPress={() => Alert.alert('Ajuda', 'Em breve')}
         />
         <View style={styles.versionRow}>
-          <Text style={styles.versionText}>Versao 1.0.0</Text>
+          <Text style={styles.versionText}>Versão 1.0.0</Text>
         </View>
       </Card>
 
@@ -200,7 +200,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
           onPress={() => navigation.navigate('Settings')}
         >
           <Ionicons name="settings-outline" size={20} color={colors.text} />
-          <Text style={styles.settingsText}>Configuracoes</Text>
+          <Text style={styles.settingsText}>Configurações</Text>
           <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
         </Pressable>
 

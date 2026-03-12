@@ -20,9 +20,9 @@ interface SessionLogSheetProps {
 }
 
 const RATINGS = [
-  { value: 1, emoji: '\u{1F629}', label: 'Dificil' },
+  { value: 1, emoji: '\u{1F629}', label: 'Difícil' },
   { value: 2, emoji: '\u{1F610}', label: 'Ok' },
-  { value: 3, emoji: '\u{1F60A}', label: 'Facil' },
+  { value: 3, emoji: '\u{1F60A}', label: 'Fácil' },
 ];
 
 const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120];
@@ -70,13 +70,13 @@ export function SessionLogSheet({
     >
       <View style={styles.content}>
         {/* Header */}
-        <Text style={styles.title}>Registrar sessao</Text>
+        <Text style={styles.title}>Registrar sessão</Text>
         <Text style={styles.subtitle}>
           {block.disciplina_name} - {block.topic}
         </Text>
 
         {/* Duration Picker */}
-        <Text style={styles.sectionLabel}>Duracao (minutos)</Text>
+        <Text style={styles.sectionLabel}>Duração (minutos)</Text>
         <View style={styles.durationRow}>
           {DURATION_OPTIONS.map((d) => (
             <Pressable
@@ -125,7 +125,7 @@ export function SessionLogSheet({
         </View>
 
         {/* Notes */}
-        <Text style={styles.sectionLabel}>Anotacoes (opcional)</Text>
+        <Text style={styles.sectionLabel}>Anotações (opcional)</Text>
         <TextInput
           style={styles.notesInput}
           value={notes}
@@ -149,7 +149,7 @@ export function SessionLogSheet({
             style={styles.submitButton}
           >
             <Text style={styles.submitText}>
-              {loading ? 'Registrando...' : 'Registrar sessao'}
+              {loading ? 'Registrando...' : 'Registrar sessão'}
             </Text>
           </LinearGradient>
         </Pressable>

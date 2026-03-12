@@ -256,7 +256,7 @@ export function StudySessionScreen({ navigation, route }: StudySessionScreenProp
           <View style={styles.timerCircle}>
             <Text style={styles.timerText}>{formatTimer(elapsed)}</Text>
             <Text style={styles.timerTarget}>
-              meta: {block.duration_minutes}min
+              Meta de Estudo: {block.duration_minutes}min
             </Text>
           </View>
 

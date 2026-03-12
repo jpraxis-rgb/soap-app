@@ -199,7 +199,7 @@ export function DisciplinaDetailScreen() {
             <View style={styles.headerDivider} />
             <View style={styles.headerStat}>
               <Text style={styles.headerStatValue}>{disciplina.session_count}</Text>
-              <Text style={styles.headerStatLabel}>sessoes</Text>
+              <Text style={styles.headerStatLabel}>sessões</Text>
             </View>
           </View>
         </LinearGradient>
@@ -222,7 +222,7 @@ export function DisciplinaDetailScreen() {
         <View style={styles.infoItem}>
           <Ionicons name="star-outline" size={16} color={colors.warning} />
           <Text style={styles.infoText}>
-            Avaliacao: {disciplina.avg_rating.toFixed(1)}/3
+            Avaliação: {disciplina.avg_rating.toFixed(1)}/3
           </Text>
         </View>
       </View>
@@ -239,27 +239,27 @@ export function DisciplinaDetailScreen() {
         </View>
         <View style={styles.progressLabels}>
           <Text style={styles.progressLabel}>
-            {disciplina.completed_blocks} de {disciplina.total_blocks} blocos concluidos
+            {disciplina.completed_blocks} de {disciplina.total_blocks} blocos concluídos
           </Text>
           <Text style={styles.progressPercent}>{disciplina.progress_percent}%</Text>
         </View>
       </Card>
 
       {/* Topics Checklist */}
-      <Card style={styles.section} header={`Topicos (${completedTopics}/${topics.length})`}>
+      <Card style={styles.section} header={`Tópicos (${completedTopics}/${topics.length})`}>
         {topics.map((topic, i) => (
           <TopicItem key={i} name={topic.name} completed={topic.completed} />
         ))}
       </Card>
 
       {/* Session History */}
-      <Card style={styles.section} header="Historico de sessoes">
+      <Card style={styles.section} header="Histórico de sessões">
         {sessions.length > 0 ? (
           sessions.map((session) => (
             <SessionItem key={session.id} session={session} />
           ))
         ) : (
-          <Text style={styles.emptyText}>Nenhuma sessao registrada</Text>
+          <Text style={styles.emptyText}>Nenhuma sessão registrada</Text>
         )}
       </Card>
 
