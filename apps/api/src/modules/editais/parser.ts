@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { editais, disciplinas, concursos } from '../../db/schema.js';
+import { editais, disciplinas, concursos, editalTemplates } from '../../db/schema.js';
 import { GeminiService, getGeminiService, isGeminiAvailable } from '../../services/gemini.js';
 import type { GeminiParseResult } from '../../services/gemini.js';
 import { EditalStatus } from '@soap/shared';
@@ -164,6 +164,120 @@ export async function getEditalWithDisciplinas(editalId: string) {
   return {
     edital,
     disciplinas: editalDisciplinas,
+  };
+}
+
+/**
+ * Create an edital from a pre-parsed template.
+ */
+export async function createEditalFromTemplate(
+  userId: string,
+  templateId: string,
+  cargoName?: string,
+): Promise<ParseEditalResult> {
+  const [template] = await db
+    .select()
+    .from(editalTemplates)
+    .where(eq(editalTemplates.id, templateId));
+
+  if (!template) {
+    throw new Error('Template not found');
+  }
+
+  const templateDisciplinas = template.disciplinas as Array<{
+    name: string;
+    weight: number | null;
+    topics: string[];
+    category: 'geral' | 'especifico';
+    orderIndex: number;
+  }>;
+
+  const templateCargos = template.cargos as Array<{
+    name: string;
+    disciplinas: Array<{
+      name: string;
+      weight: number | null;
+      topics: string[];
+      category: 'geral' | 'especifico';
+      orderIndex: number;
+    }>;
+  }> | null;
+
+  // Determine which disciplinas to use
+  let finalDisciplinas = templateDisciplinas;
+  let selectedCargo = cargoName || '';
+
+  if (cargoName && templateCargos) {
+    const cargo = templateCargos.find(c => c.name === cargoName);
+    if (!cargo) {
+      throw new Error(`Cargo "${cargoName}" not found in template`);
+    }
+    selectedCargo = cargo.name;
+    // Merge shared (geral) disciplinas + cargo-specific disciplinas
+    const cargoDiscs = cargo.disciplinas.map((d, i) => ({
+      ...d,
+      orderIndex: templateDisciplinas.length + i,
+    }));
+    finalDisciplinas = [...templateDisciplinas, ...cargoDiscs];
+  }
+
+  // Insert edital
+  const [edital] = await db
+    .insert(editais)
+    .values({
+      userId,
+      concursoId: template.concursoId,
+      sourceUrl: `template://${templateId}`,
+      sourceType: 'template',
+      rawContent: null,
+      parsedData: {
+        banca: template.banca,
+        orgao: template.orgao,
+        cargo: selectedCargo,
+        cargos: templateCargos,
+        confidence: 1.0,
+        warnings: [],
+        raw_disciplinas: finalDisciplinas,
+      },
+      status: EditalStatus.PARSED,
+      examDate: template.examDate,
+    })
+    .returning();
+
+  // Insert disciplinas
+  const insertedDisciplinas = [];
+  for (let i = 0; i < finalDisciplinas.length; i++) {
+    const d = finalDisciplinas[i];
+    const [inserted] = await db
+      .insert(disciplinas)
+      .values({
+        editalId: edital.id,
+        name: d.name,
+        weight: d.weight != null ? Math.max(1, Math.min(10, d.weight)) : null,
+        topics: { items: d.topics },
+        orderIndex: i,
+      })
+      .returning();
+    insertedDisciplinas.push(inserted);
+  }
+
+  return {
+    edital: {
+      id: edital.id,
+      status: edital.status,
+      sourceUrl: edital.sourceUrl,
+      sourceType: edital.sourceType,
+      parsedData: edital.parsedData as Record<string, unknown> | null,
+      examDate: edital.examDate,
+    },
+    disciplinas: insertedDisciplinas.map((d) => ({
+      id: d.id,
+      name: d.name,
+      weight: d.weight,
+      topics: d.topics,
+      orderIndex: d.orderIndex,
+    })),
+    warnings: [],
   };
 }
 

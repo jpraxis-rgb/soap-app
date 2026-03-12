@@ -213,6 +213,58 @@ export function updateEditalDisciplinas(
   });
 }
 
+// ── Edital Templates API ────────────────────────────
+
+export interface EditalTemplate {
+  id: string;
+  name: string;
+  banca: string;
+  orgao: string;
+  hasCargos: boolean;
+  disciplinaCount: number;
+  sortOrder: number;
+}
+
+export interface EditalTemplateDetail {
+  id: string;
+  name: string;
+  banca: string;
+  orgao: string;
+  examDate: string | null;
+  disciplinas: Array<{
+    name: string;
+    weight: number | null;
+    topics: string[];
+    category: 'geral' | 'especifico';
+    orderIndex: number;
+  }>;
+  cargos: Array<{
+    name: string;
+    disciplinas: Array<{
+      name: string;
+      weight: number | null;
+      topics: string[];
+      category: 'geral' | 'especifico';
+      orderIndex: number;
+    }>;
+  }> | null;
+}
+
+export function getEditalTemplates() {
+  return request<EditalTemplate[]>('/editais/templates');
+}
+
+export function getEditalTemplateDetail(id: string) {
+  return request<{ data: EditalTemplateDetail }>(`/editais/templates/${id}`).then(res => res.data);
+}
+
+export function createEditalFromTemplate(templateId: string, cargoName?: string) {
+  return request<{ data: { edital: any; disciplinas: any[]; warnings: string[] } }>('/editais/from-template', {
+    method: 'POST',
+    body: JSON.stringify({ template_id: templateId, cargo_name: cargoName }),
+  }).then(res => res.data);
+}
+
 // ── Schedules API ────────────────────────────────────
 
 export function generateSchedule(params: {

@@ -2,9 +2,9 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { eq, and, desc, inArray, asc } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { editais, disciplinas } from '../db/schema.js';
+import { editais, disciplinas, editalTemplates } from '../db/schema.js';
 import { validateBody } from '../middleware/validate.js';
-import { parseEdital, getEditalWithDisciplinas, updateEdital } from '../modules/editais/parser.js';
+import { parseEdital, getEditalWithDisciplinas, updateEdital, createEditalFromTemplate } from '../modules/editais/parser.js';
 import { uploadPdf } from '../middleware/upload.js';
 import { extractTextFromPdf } from '../services/pdf-extract.js';
 
@@ -50,6 +50,96 @@ const updateEditalSchema = z.object({
     order_index: d.order_index ?? d.orderIndex ?? i,
   })),
 }));
+
+const fromTemplateSchema = z.object({
+  template_id: z.string().uuid().optional(),
+  templateId: z.string().uuid().optional(),
+  cargo_name: z.string().optional(),
+  cargoName: z.string().optional(),
+}).transform(data => ({
+  template_id: data.template_id ?? data.templateId,
+  cargo_name: data.cargo_name ?? data.cargoName,
+})).refine(data => data.template_id, {
+  message: 'template_id is required',
+});
+
+/**
+ * GET /editais/templates
+ * List all active edital templates (lightweight).
+ */
+router.get('/templates', async (_req: Request, res: Response) => {
+  try {
+    const templates = await db
+      .select()
+      .from(editalTemplates)
+      .where(eq(editalTemplates.isActive, true))
+      .orderBy(asc(editalTemplates.sortOrder));
+
+    const lightweight = templates.map(t => {
+      const discs = t.disciplinas as Array<{ name: string }>;
+      const cargos = t.cargos as Array<{ name: string }> | null;
+      return {
+        id: t.id,
+        name: t.name,
+        banca: t.banca,
+        orgao: t.orgao,
+        hasCargos: cargos != null && cargos.length > 0,
+        disciplinaCount: discs.length,
+        sortOrder: t.sortOrder,
+      };
+    });
+
+    res.json(lightweight);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch templates' });
+  }
+});
+
+/**
+ * GET /editais/templates/:id
+ * Get full template detail with disciplinas and cargos.
+ */
+router.get('/templates/:id', async (req: Request, res: Response) => {
+  try {
+    const templateId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const [template] = await db
+      .select()
+      .from(editalTemplates)
+      .where(eq(editalTemplates.id, templateId));
+
+    if (!template) {
+      res.status(404).json({ error: 'Template not found' });
+      return;
+    }
+
+    res.json({ data: template });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch template' });
+  }
+});
+
+/**
+ * POST /editais/from-template
+ * Create an edital from a pre-parsed template.
+ */
+router.post('/from-template', validateBody(fromTemplateSchema), async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const { template_id, cargo_name } = req.body;
+
+    const result = await createEditalFromTemplate(userId, template_id!, cargo_name);
+
+    res.status(201).json({ data: result });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    res.status(500).json({ error: message });
+  }
+});
 
 /**
  * GET /editais
