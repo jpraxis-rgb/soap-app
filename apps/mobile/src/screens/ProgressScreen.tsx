@@ -129,7 +129,9 @@ function DisciplinaBar({
       </View>
       <View style={barStyles.footer}>
         <Text style={barStyles.progress}>{data.progress_percent}%</Text>
-        <Text style={barStyles.weight}>Peso {data.weight}</Text>
+        {data.weight != null && data.weight > 0 && (
+          <Text style={barStyles.weight}>Peso {data.weight}</Text>
+        )}
       </View>
     </Pressable>
   );

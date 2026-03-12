@@ -207,10 +207,12 @@ export function DisciplinaDetailScreen() {
 
       {/* Info Row */}
       <View style={styles.infoRow}>
-        <View style={styles.infoItem}>
-          <Ionicons name="scale-outline" size={16} color={colors.accent} />
-          <Text style={styles.infoText}>Peso {disciplina.weight}</Text>
-        </View>
+        {disciplina.weight != null && disciplina.weight > 0 && (
+          <View style={styles.infoItem}>
+            <Ionicons name="scale-outline" size={16} color={colors.accent} />
+            <Text style={styles.infoText}>Peso {disciplina.weight}</Text>
+          </View>
+        )}
         <View style={styles.infoItem}>
           <Ionicons name="time-outline" size={16} color={colors.accent} />
           <Text style={styles.infoText}>

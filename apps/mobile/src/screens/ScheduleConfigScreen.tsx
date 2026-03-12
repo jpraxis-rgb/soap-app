@@ -423,9 +423,11 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
                 <Text style={styles.disciplinaName} numberOfLines={1}>
                   {d.name}
                 </Text>
-                <Text style={styles.disciplinaWeight}>
-                  {d.weight != null ? `Peso ${d.weight}` : 'Sem peso'}
-                </Text>
+                {d.weight != null && d.weight > 0 && (
+                  <Text style={styles.disciplinaWeight}>
+                    Peso {d.weight}
+                  </Text>
+                )}
               </View>
             ))}
             {edital.disciplinas.length > 5 && (
