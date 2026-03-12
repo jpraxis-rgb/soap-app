@@ -34,6 +34,21 @@ export const concursos = pgTable('concursos', {
   updatedAt: timestamp('updated_at').defaultNow().$onUpdateFn(() => new Date()),
 });
 
+export const editalTemplates = pgTable('edital_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  concursoId: uuid('concurso_id').references(() => concursos.id, { onDelete: 'set null' }),
+  name: varchar('name', { length: 255 }).notNull(),
+  banca: varchar('banca', { length: 100 }).notNull(),
+  orgao: varchar('orgao', { length: 255 }).notNull(),
+  examDate: timestamp('exam_date'),
+  disciplinas: jsonb('disciplinas').notNull(),
+  cargos: jsonb('cargos'),
+  sortOrder: integer('sort_order').default(0),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().$onUpdateFn(() => new Date()),
+});
+
 export const editais = pgTable('editais', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),

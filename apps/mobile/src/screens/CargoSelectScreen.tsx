@@ -1,15 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   Pressable,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { colors, spacing, typography } from '../theme';
 import { Card, Badge } from '../components';
+import { createEditalFromTemplate } from '../services/api';
+import type { ParsedEditalData } from '../contexts/ConcursoContext';
 
 interface Disciplina {
   id: string;
@@ -34,14 +38,51 @@ interface CargoSelectParams {
   };
   cargos: Cargo[];
   sharedDisciplinas: Disciplina[];
+  templateId?: string;
 }
+
+const normalizeDisciplinas = (discs: any[]) => discs.map((d: any) => ({
+  id: d.id || `d-${Math.random().toString(36).slice(2)}`,
+  name: d.name || '',
+  weight: d.weight || 1,
+  topics: Array.isArray(d.topics) ? d.topics : d.topics?.items || [],
+}));
 
 export function CargoSelectScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const { editalBase, cargos, sharedDisciplinas } = route.params as CargoSelectParams;
+  const { editalBase, cargos, sharedDisciplinas, templateId } = route.params as CargoSelectParams;
+  const [loadingCargo, setLoadingCargo] = useState<string | null>(null);
 
-  const handleSelectCargo = (cargo: Cargo) => {
+  const handleSelectCargo = async (cargo: Cargo) => {
+    if (loadingCargo) return;
+
+    if (templateId) {
+      setLoadingCargo(cargo.name);
+      try {
+        const result = await createEditalFromTemplate(templateId, cargo.name);
+        const parsed = result.edital?.parsedData || {};
+        const apiDisciplinas = result.disciplinas || [];
+        const normalized = normalizeDisciplinas(apiDisciplinas);
+
+        const edital: ParsedEditalData = {
+          id: result.edital?.id || `edital-${Date.now()}`,
+          banca: parsed.banca || editalBase.banca,
+          orgao: parsed.orgao || editalBase.orgao,
+          exam_date: parsed.exam_date || result.edital?.examDate || editalBase.exam_date,
+          confidence: 1.0,
+          cargo: cargo.name,
+          disciplinas: normalized,
+        };
+        navigation.navigate('EditalReview', { edital });
+      } catch (err: any) {
+        Alert.alert('Erro', err?.message || 'Falha ao criar edital.');
+      } finally {
+        setLoadingCargo(null);
+      }
+      return;
+    }
+
     const edital = {
       ...editalBase,
       cargo: cargo.name,
@@ -82,18 +123,22 @@ export function CargoSelectScreen() {
               : `${especificasCount} ${especificasCount === 1 ? 'disciplina' : 'disciplinas'}`;
 
           return (
-            <Pressable key={index} onPress={() => handleSelectCargo(cargo)}>
+            <Pressable key={index} onPress={() => handleSelectCargo(cargo)} disabled={loadingCargo !== null}>
               <Card style={styles.cargoCard}>
                 <View style={styles.cargoRow}>
                   <View style={styles.cargoInfo}>
                     <Text style={styles.cargoName}>{cargo.name}</Text>
                     <Text style={styles.cargoMeta}>{disciplinaLabel}</Text>
                   </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
+                  {loadingCargo === cargo.name ? (
+                    <ActivityIndicator size="small" color={colors.accent} />
+                  ) : (
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                  )}
                 </View>
               </Card>
             </Pressable>
