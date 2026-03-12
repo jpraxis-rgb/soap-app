@@ -205,7 +205,7 @@ export async function createEditalFromTemplate(
 
   // Determine which disciplinas to use
   let finalDisciplinas = templateDisciplinas;
-  let selectedCargo = cargoName || '';
+  let selectedCargo = cargoName || template.name;
 
   if (cargoName && templateCargos) {
     const cargo = templateCargos.find(c => c.name === cargoName);
