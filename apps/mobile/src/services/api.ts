@@ -15,11 +15,8 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   if (token) {
     return { Authorization: `Bearer ${token}` };
   }
-  // In dev mode, send a dummy bearer token so the API's dev bypass activates
-  if (__DEV__) {
-    return { Authorization: 'Bearer dev-token' };
-  }
-  return {};
+  // Beta: always send dev token (API runs in dev mode)
+  return { Authorization: 'Bearer dev-token' };
 }
 
 async function request<T>(
