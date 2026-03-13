@@ -5,12 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '../theme';
+import { showAlert, showConfirm } from '../utils/alert';
 import { Card, Button } from '../components';
 import { useConcurso } from '../contexts/ConcursoContext';
 
@@ -258,23 +258,19 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
 
       await confirmEdital(edital, finalConfig);
 
-      Alert.alert(
+      showConfirm(
         'Cronograma salvo!',
         `Seu plano de estudos para ${edital.orgao} - ${edital.cargo} foi criado com sucesso.`,
-        [
-          {
-            text: 'Ir para início',
-            onPress: () => {
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Main' }],
-              });
-            },
-          },
-        ],
+        () => {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Main' }],
+          });
+        },
+        'Ir para início',
       );
     } catch (err: any) {
-      Alert.alert('Erro', err?.message || 'Não foi possível salvar o cronograma.');
+      showAlert('Erro', err?.message || 'Não foi possível salvar o cronograma.');
     } finally {
       setSaving(false);
     }

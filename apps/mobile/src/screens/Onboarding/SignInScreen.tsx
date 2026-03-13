@@ -7,10 +7,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   Pressable,
 } from 'react-native';
 import { colors, spacing, typography } from '../../theme';
+import { showAlert } from '../../utils/alert';
 import { Button } from '../../components';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -26,7 +26,7 @@ export function SignInScreen({ navigation }: SignInScreenProps) {
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Erro', 'Preencha todos os campos.');
+      showAlert('Erro', 'Preencha todos os campos.');
       return;
     }
 
@@ -35,7 +35,7 @@ export function SignInScreen({ navigation }: SignInScreenProps) {
       await login(email.trim(), password);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Email ou senha incorretos.';
-      Alert.alert('Erro', message);
+      showAlert('Erro', message);
     } finally {
       setLoading(false);
     }

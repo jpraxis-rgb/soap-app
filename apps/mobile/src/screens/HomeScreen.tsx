@@ -22,6 +22,7 @@ import { useConcurso } from '../contexts/ConcursoContext';
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+// Note: UIManager.setLayoutAnimationEnabledExperimental is not available on web
 
 // ── Week Calendar ──────────────────────────────────────
 

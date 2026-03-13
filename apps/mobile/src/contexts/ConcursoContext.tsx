@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { parseEdital as apiParseEdital, getEditais, deleteEdital as apiDeleteEdital, generateSchedule, updateEditalDisciplinas } from '../services/api';
+import { showAlert } from '../utils/alert';
+import { useAuth } from './AuthContext';
 
 const ACTIVE_CONCURSO_KEY = '@soap/active_concurso_id';
 
@@ -60,14 +62,20 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
   const [concursos, setConcursos] = useState<Concurso[]>([]);
   const [activeConcursoId, setActiveConcursoId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated } = useAuth();
 
   const activeConcurso = concursos.find(c => c.id === activeConcursoId) || null;
 
-  // Load concursos from API and restore active ID on mount
+  // Load concursos from API and restore active ID
   const loadConcursos = useCallback(async () => {
     try {
       setIsLoading(true);
       const rawEditais = await getEditais() as any[];
+      if (!Array.isArray(rawEditais)) {
+        console.warn('[ConcursoContext] getEditais returned non-array:', typeof rawEditais);
+        setIsLoading(false);
+        return;
+      }
       const mapped: Concurso[] = rawEditais.map(e => {
         const parsed = e.parsedData || {};
         const discs = (e.disciplinas || []).map((d: any) => ({
@@ -100,16 +108,23 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
       } else if (mapped.length > 0) {
         setActiveConcursoId(mapped[0].id);
       }
-    } catch {
-      // API unreachable, keep current state
+    } catch (error) {
+      console.warn('[ConcursoContext] loadConcursos failed:', error instanceof Error ? error.message : error);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
+  // Reload concursos when auth state changes (user logs in/out)
   useEffect(() => {
-    loadConcursos();
-  }, [loadConcursos]);
+    if (isAuthenticated) {
+      loadConcursos();
+    } else {
+      setConcursos([]);
+      setActiveConcursoId(null);
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, loadConcursos]);
 
   // Persist activeConcursoId to AsyncStorage when it changes
   useEffect(() => {
@@ -189,14 +204,16 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
   const removeConcurso = useCallback(async (concursoId: string) => {
     try {
       await apiDeleteEdital(concursoId);
-    } catch {
-      // Continue with local removal even if API fails
+      setConcursos(prev => {
+        const remaining = prev.filter(c => c.id !== concursoId);
+        setActiveConcursoId(p => p === concursoId ? (remaining[0]?.id ?? null) : p);
+        return remaining;
+      });
+    } catch (error) {
+      console.error('[ConcursoContext] removeConcurso failed:', error);
+      const message = error instanceof Error ? error.message : 'Não foi possível remover o concurso.';
+      showAlert('Erro', message);
     }
-    setConcursos(prev => {
-      const remaining = prev.filter(c => c.id !== concursoId);
-      setActiveConcursoId(p => p === concursoId ? (remaining[0]?.id ?? null) : p);
-      return remaining;
-    });
   }, []);
 
   return (

@@ -5,10 +5,10 @@ import {
   TextInput,
   StyleSheet,
   Pressable,
-  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography } from '../theme';
+import { showAlert } from '../utils/alert';
 import { BottomSheet } from '../components';
 import { logStudySession, ScheduleBlockData } from '../services/api';
 
@@ -56,7 +56,7 @@ export function SessionLogSheet({
       });
       onSessionLogged();
     } catch (err) {
-      Alert.alert('Erro', 'Não foi possível registrar a sessão. Tente novamente.');
+      showAlert('Erro', 'Não foi possível registrar a sessão. Tente novamente.');
     } finally {
       setLoading(false);
     }

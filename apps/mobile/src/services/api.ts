@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = __DEV__
   ? 'http://localhost:3000/api/v1'
-  : (process.env.EXPO_PUBLIC_API_URL || 'https://soap-api-production.up.railway.app/api/v1');
+  : (process.env.EXPO_PUBLIC_API_URL || 'https://soap-api-production-3290.up.railway.app/api/v1');
 
 const TOKEN_KEY = '@soap/auth_token';
 const REFRESH_TOKEN_KEY = '@soap/refresh_token';
@@ -183,7 +183,12 @@ export function parseEdital(sourceUrl: string) {
 }
 
 export function getEditais() {
-  return request<unknown[]>('/editais');
+  return request<any>('/editais').then(res => {
+    // Handle both wrapped { data: [...] } and legacy bare array responses
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.data)) return res.data;
+    return [];
+  });
 }
 
 export function getEdital(id: string) {
@@ -454,8 +459,11 @@ export async function getTodayScheduleBlocks(): Promise<ScheduleBlockData[]> {
 
 export async function getUpcomingScheduleBlocks(from: string, to: string): Promise<ScheduleBlockData[]> {
   if (USE_MOCK) return MOCK_SCHEDULE_BLOCKS;
-  const result = await request<ScheduleBlockData[]>(`/schedules?from=${from}&to=${to}`);
-  return Array.isArray(result) ? result : [];
+  const result = await request<any>(`/schedules?from=${from}&to=${to}`);
+  // Handle both wrapped { data: [...] } and legacy bare array responses
+  if (Array.isArray(result)) return result;
+  if (result && Array.isArray(result.data)) return result.data;
+  return [];
 }
 
 export async function getProgressOverview(): Promise<ProgressOverviewData> {

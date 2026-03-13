@@ -8,13 +8,14 @@ import {
   ScrollView,
   AppState,
   AppStateStatus,
-  Alert,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '../theme';
 import { Card } from '../components';
 import { logStudySession, type ScheduleBlockData } from '../services/api';
+import { showAlert } from '../utils/alert';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -68,8 +69,9 @@ export function StudySessionScreen({ navigation, route }: StudySessionScreenProp
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Handle app state changes (backgrounding)
+  // Handle app state changes (backgrounding) — not available on web
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       if (step !== 'timer') return;
 
@@ -144,7 +146,7 @@ export function StudySessionScreen({ navigation, route }: StudySessionScreenProp
 
   const handleSaveSession = async () => {
     if (rating === null) {
-      Alert.alert('Avaliação', 'Selecione como foi a sessão.');
+      showAlert('Avaliação', 'Selecione como foi a sessão.');
       return;
     }
 
@@ -162,18 +164,13 @@ export function StudySessionScreen({ navigation, route }: StudySessionScreenProp
         completed_at: new Date().toISOString(),
       });
 
-      Alert.alert(
+      showAlert(
         'Sessão salva!',
         `${durationMinutes} minutos de ${block.disciplina_name} registrados.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ],
       );
+      navigation.goBack();
     } catch (err: any) {
-      Alert.alert('Erro', err?.message || 'Não foi possível salvar a sessão.');
+      showAlert('Erro', err?.message || 'Não foi possível salvar a sessão.');
     } finally {
       setSaving(false);
     }

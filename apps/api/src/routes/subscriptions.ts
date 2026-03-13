@@ -20,6 +20,7 @@ router.post('/create', validateBody(createSubscriptionSchema), async (req: Reque
     const subscription = await createSubscription(req.user!.id, tier as SubscriptionTier);
     res.status(201).json({ data: subscription });
   } catch (error) {
+    console.error('Error creating subscription:', error);
     const message = error instanceof Error ? error.message : 'Failed to create subscription';
     res.status(500).json({ error: message });
   }
@@ -30,6 +31,7 @@ router.post('/cancel', async (req: Request, res: Response) => {
     const subscription = await cancelSubscription(req.user!.id);
     res.json({ data: subscription });
   } catch (error) {
+    console.error('Error cancelling subscription:', error);
     const message = error instanceof Error ? error.message : 'Failed to cancel subscription';
     const status = message === 'No active subscription found' ? 404 : 500;
     res.status(status).json({ error: message });
@@ -41,6 +43,7 @@ router.get('/current', async (req: Request, res: Response) => {
     const result = await getCurrentSubscription(req.user!.id);
     res.json({ data: result });
   } catch (error) {
+    console.error('Error getting subscription:', error);
     const message = error instanceof Error ? error.message : 'Failed to get subscription';
     res.status(500).json({ error: message });
   }

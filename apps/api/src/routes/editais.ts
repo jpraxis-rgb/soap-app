@@ -96,6 +96,7 @@ router.get('/templates', async (_req: Request, res: Response) => {
 
     res.json(lightweight);
   } catch (error) {
+    console.error('Error fetching templates:', error);
     res.status(500).json({ error: 'Failed to fetch templates' });
   }
 });
@@ -119,6 +120,7 @@ router.get('/templates/:id', async (req: Request, res: Response) => {
 
     res.json({ data: template });
   } catch (error) {
+    console.error('Error fetching template:', error);
     res.status(500).json({ error: 'Failed to fetch template' });
   }
 });
@@ -141,6 +143,7 @@ router.post('/from-template', validateBody(fromTemplateSchema), async (req: Requ
 
     res.status(201).json({ data: result });
   } catch (error) {
+    console.error('Error creating edital from template:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });
   }
@@ -165,7 +168,7 @@ router.get('/', async (req: Request, res: Response) => {
       .orderBy(desc(editais.updatedAt));
 
     if (userEditais.length === 0) {
-      res.json([]);
+      res.json({ data: [] });
       return;
     }
 
@@ -188,8 +191,9 @@ router.get('/', async (req: Request, res: Response) => {
       disciplinas: disciplinasByEdital.get(e.id) ?? [],
     }));
 
-    res.json(enriched);
+    res.json({ data: enriched });
   } catch (error) {
+    console.error('Error fetching editais:', error);
     res.status(500).json({ error: 'Failed to fetch editais' });
   }
 });
@@ -218,6 +222,7 @@ router.post('/parse', validateBody(parseEditalSchema), async (req: Request, res:
 
     res.status(201).json({ data: result });
   } catch (error) {
+    console.error('Error parsing edital:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });
   }
@@ -253,8 +258,9 @@ router.post('/parse-pdf', uploadPdf, async (req: Request, res: Response) => {
       rawContent: text,
     });
 
-    res.status(201).json(result);
+    res.status(201).json({ data: result });
   } catch (error) {
+    console.error('Error parsing PDF edital:', error);
     const message = error instanceof Error ? error.message : 'Failed to parse PDF edital';
     res.status(500).json({ error: message });
   }
@@ -287,6 +293,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
     res.json({ data: result });
   } catch (error) {
+    console.error('Error fetching edital:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });
   }
@@ -322,6 +329,7 @@ router.put('/:id', validateBody(updateEditalSchema), async (req: Request, res: R
 
     res.json({ data: result });
   } catch (error) {
+    console.error('Error updating edital:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });
   }
@@ -350,8 +358,9 @@ router.delete('/:id', async (req: Request, res: Response) => {
       return;
     }
 
-    res.json({ message: 'Edital deleted successfully' });
+    res.json({ data: { id: editalId } });
   } catch (error) {
+    console.error('Error deleting edital:', error);
     res.status(500).json({ error: 'Failed to delete edital' });
   }
 });

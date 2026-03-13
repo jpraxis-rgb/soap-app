@@ -7,10 +7,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   Pressable,
 } from 'react-native';
 import { colors, spacing, typography } from '../../theme';
+import { showAlert } from '../../utils/alert';
 import { Button } from '../../components';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -27,12 +27,12 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
 
   const handleSignUp = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
-      Alert.alert('Erro', 'Preencha todos os campos.');
+      showAlert('Erro', 'Preencha todos os campos.');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres.');
+      showAlert('Erro', 'A senha deve ter pelo menos 6 caracteres.');
       return;
     }
 
@@ -41,7 +41,7 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
       await register(email.trim(), password, name.trim());
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao criar conta.';
-      Alert.alert('Erro', message);
+      showAlert('Erro', message);
     } finally {
       setLoading(false);
     }

@@ -18,6 +18,7 @@ router.put('/me', async (req: Request, res: Response) => {
     const user = await updateProfile(req.user!.id, { name, avatar_url });
     res.json({ data: user });
   } catch (error) {
+    console.error('Error updating profile:', error);
     const message = error instanceof Error ? error.message : 'Failed to update profile';
     res.status(500).json({ error: message });
   }
@@ -75,8 +76,9 @@ router.delete('/me', async (req: Request, res: Response) => {
       return;
     }
 
-    res.json({ message: 'Account deleted successfully' });
+    res.json({ data: { id: userId } });
   } catch (error) {
+    console.error('Error deleting account:', error);
     res.status(500).json({ error: 'Failed to delete account' });
   }
 });
