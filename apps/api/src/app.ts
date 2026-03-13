@@ -17,6 +17,9 @@ import { generalLimiter, authLimiter } from './middleware/rate-limit';
 
 export const app = express();
 
+// Trust proxy (Railway, Render, etc. use reverse proxies)
+app.set('trust proxy', 1);
+
 // Security
 app.use(helmet());
 
