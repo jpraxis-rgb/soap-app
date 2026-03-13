@@ -6,11 +6,11 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { colors, spacing, typography } from '../theme';
+import { showAlert } from '../utils/alert';
 import { Card, Badge } from '../components';
 import { createEditalFromTemplate } from '../services/api';
 import type { ParsedEditalData } from '../contexts/ConcursoContext';
@@ -78,7 +78,7 @@ export function CargoSelectScreen() {
         };
         navigation.navigate('EditalReview', { edital });
       } catch (err: any) {
-        Alert.alert('Erro', err?.message || 'Falha ao criar edital.');
+        showAlert('Erro', err?.message || 'Falha ao criar edital.');
       } finally {
         setLoadingCargo(null);
       }

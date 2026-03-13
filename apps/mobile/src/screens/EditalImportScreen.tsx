@@ -6,7 +6,6 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -15,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, typography } from '../theme';
+import { showAlert } from '../utils/alert';
 import { parseEdital, getEditalTemplates, getEditalTemplateDetail, createEditalFromTemplate } from '../services/api';
 import type { EditalTemplate } from '../services/api';
 import type { ParsedEditalData } from '../contexts/ConcursoContext';
@@ -101,7 +101,7 @@ export function EditalImportScreen() {
         navigation.navigate('EditalReview', { edital });
       }
     } catch (err: any) {
-      Alert.alert('Erro', err?.message || 'Falha ao carregar template.');
+      showAlert('Erro', err?.message || 'Falha ao carregar template.');
     } finally {
       setTappedTemplateId(null);
     }
@@ -109,7 +109,7 @@ export function EditalImportScreen() {
 
   const handleAnalyze = async () => {
     if (!url.trim()) {
-      Alert.alert('URL obrigatória', 'Cole a URL do edital para continuar.');
+      showAlert('URL obrigatória', 'Cole a URL do edital para continuar.');
       return;
     }
 
@@ -127,7 +127,7 @@ export function EditalImportScreen() {
         const warningMsg = warnings.length > 0
           ? warnings[0].replace(/^Gemini.*?:\s*/, '').substring(0, 150)
           : 'Nenhuma disciplina encontrada no edital.';
-        Alert.alert('Análise incompleta', `Não foi possível extrair disciplinas do edital.\n\n${warningMsg}`);
+        showAlert('Análise incompleta', `Não foi possível extrair disciplinas do edital.\n\n${warningMsg}`);
         return;
       }
 
@@ -166,14 +166,14 @@ export function EditalImportScreen() {
 
       navigation.navigate('EditalReview', { edital });
     } catch (err: any) {
-      Alert.alert('Erro ao analisar', err?.message || 'Não foi possível analisar o edital. Tente novamente.');
+      showAlert('Erro ao analisar', err?.message || 'Não foi possível analisar o edital. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleUploadPDF = () => {
-    Alert.alert('Em breve', 'O upload de PDF estar\u00e1 dispon\u00edvel em uma pr\u00f3xima atualiza\u00e7\u00e3o.');
+    showAlert('Em breve', 'O upload de PDF estar\u00e1 dispon\u00edvel em uma pr\u00f3xima atualiza\u00e7\u00e3o.');
   };
 
   const top3 = templates.slice(0, 3);

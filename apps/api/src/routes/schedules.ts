@@ -79,8 +79,9 @@ router.get('/', async (req: Request, res: Response) => {
       .where(and(...conditions))
       .orderBy(asc(scheduleBlocks.scheduledDate), asc(scheduleBlocks.startTime));
 
-    res.json(rows);
+    res.json({ data: rows });
   } catch (error) {
+    console.error('Error fetching schedule blocks:', error);
     res.status(500).json({ error: 'Failed to fetch schedule blocks' });
   }
 });
@@ -129,6 +130,7 @@ router.post('/generate', validateBody(generateScheduleSchema), async (req: Reque
 
     res.status(201).json({ data: result });
   } catch (error) {
+    console.error('Error generating schedule:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });
   }
@@ -216,6 +218,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
     res.json({ data: block });
   } catch (error) {
+    console.error('Error fetching schedule block:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });
   }
@@ -247,6 +250,7 @@ router.put('/:id/recalculate', async (req: Request, res: Response) => {
 
     res.json({ data: result });
   } catch (error) {
+    console.error('Error recalculating schedule:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(500).json({ error: message });
   }
@@ -275,8 +279,9 @@ router.delete('/:id', async (req: Request, res: Response) => {
       return;
     }
 
-    res.json({ message: 'Schedule block deleted successfully' });
+    res.json({ data: { id: blockId } });
   } catch (error) {
+    console.error('Error deleting schedule block:', error);
     res.status(500).json({ error: 'Failed to delete schedule block' });
   }
 });

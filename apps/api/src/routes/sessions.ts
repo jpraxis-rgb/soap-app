@@ -218,8 +218,9 @@ router.delete('/:id', async (req: Request, res: Response) => {
       return;
     }
 
-    res.json({ message: 'Session deleted successfully' });
+    res.json({ data: { id: sessionId } });
   } catch (error) {
+    console.error('Error deleting session:', error);
     res.status(500).json({ error: 'Failed to delete session' });
   }
 });

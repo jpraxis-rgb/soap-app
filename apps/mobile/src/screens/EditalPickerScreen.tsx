@@ -6,12 +6,12 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
-  Alert,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, typography } from '../theme';
+import { showAlert } from '../utils/alert';
 import { getEditalTemplates, getEditalTemplateDetail, createEditalFromTemplate } from '../services/api';
 import type { EditalTemplate } from '../services/api';
 import type { ParsedEditalData } from '../contexts/ConcursoContext';
@@ -150,7 +150,7 @@ export function EditalPickerScreen() {
         navigation.navigate('EditalReview', { edital });
       }
     } catch (err: any) {
-      Alert.alert('Erro', err?.message || 'Falha ao carregar template.');
+      showAlert('Erro', err?.message || 'Falha ao carregar template.');
     } finally {
       setTappedTemplateId(null);
     }

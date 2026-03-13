@@ -59,9 +59,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // }
 
     try {
-      // DEMO: clear tokens to force onboarding — remove after recording
-      await tokenStorage.clearTokens();
-
       const token = await tokenStorage.getToken();
       if (!token) {
         setIsLoading(false);

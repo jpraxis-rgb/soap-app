@@ -19,6 +19,7 @@ import { Card, Badge } from '../components';
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+// Note: UIManager.setLayoutAnimationEnabledExperimental is not available on web
 
 interface Disciplina {
   id: string;

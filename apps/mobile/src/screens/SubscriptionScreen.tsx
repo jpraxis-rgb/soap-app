@@ -5,11 +5,11 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '../theme';
+import { showAlert, showConfirm } from '../utils/alert';
 import { Card, Button } from '../components';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -88,27 +88,21 @@ export function SubscriptionScreen() {
     if (tier === subscriptionTier) return;
 
     if (tier === 'free') {
-      Alert.alert(
+      showConfirm(
         'Downgrade',
         'Deseja cancelar sua assinatura? Você manterá acesso até o fim do período.',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Confirmar',
-            onPress: async () => {
-              setLoading(tier);
-              try {
-                // In a real app, call subscriptionsApi.cancel()
-                Alert.alert('Sucesso', 'Assinatura cancelada.');
-                await refreshUser();
-              } catch {
-                Alert.alert('Erro', 'Não foi possível cancelar.');
-              } finally {
-                setLoading(null);
-              }
-            },
-          },
-        ],
+        async () => {
+          setLoading(tier);
+          try {
+            // In a real app, call subscriptionsApi.cancel()
+            showAlert('Sucesso', 'Assinatura cancelada.');
+            await refreshUser();
+          } catch {
+            showAlert('Erro', 'Não foi possível cancelar.');
+          } finally {
+            setLoading(null);
+          }
+        },
       );
       return;
     }
@@ -116,13 +110,13 @@ export function SubscriptionScreen() {
     setLoading(tier);
     try {
       // In a real app, initiate payment flow then call subscriptionsApi.create(tier)
-      Alert.alert(
+      showAlert(
         'Pagamento',
         'Integração com pagamento em breve. O plano será ativado após confirmação.',
       );
       await refreshUser();
     } catch {
-      Alert.alert('Erro', 'Não foi possível processar.');
+      showAlert('Erro', 'Não foi possível processar.');
     } finally {
       setLoading(null);
     }

@@ -6,13 +6,14 @@ import {
   ScrollView,
   Switch,
   Pressable,
-  Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '../theme';
 import { Card, Badge } from '../components';
 import { useAuth } from '../contexts/AuthContext';
 import { useConcurso } from '../contexts/ConcursoContext';
+import { showAlert, showConfirm } from '../utils/alert';
 
 const TIER_LABELS: Record<string, string> = {
   free: 'Gratuito',
@@ -43,18 +44,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
   });
 
   const handleLogout = () => {
-    Alert.alert(
-      'Sair',
-      'Tem certeza que deseja sair?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Sair',
-          style: 'destructive',
-          onPress: () => logout(),
-        },
-      ],
-    );
+    showConfirm('Sair', 'Tem certeza que deseja sair?', () => logout(), 'Sair');
   };
 
   const tierLabel = TIER_LABELS[subscriptionTier] || 'Gratuito';
@@ -111,16 +101,20 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
                     </View>
                   </View>
                 </Pressable>
-                <Pressable
+                <TouchableOpacity
+                  activeOpacity={0.6}
                   onPress={() => {
-                    Alert.alert('Remover concurso', `Remover ${c.edital?.orgao || (c as any).parsedData?.orgao || 'este concurso'}?`, [
-                      { text: 'Cancelar', style: 'cancel' },
-                      { text: 'Remover', style: 'destructive', onPress: () => removeConcurso(c.id) },
-                    ]);
+                    showConfirm(
+                      'Remover concurso',
+                      `Remover ${c.edital?.orgao || (c as any).parsedData?.orgao || 'este concurso'}?`,
+                      () => removeConcurso(c.id),
+                      'Remover',
+                    );
                   }}
+                  style={styles.trashButton}
                 >
-                  <Ionicons name="trash-outline" size={18} color={colors.error} />
-                </Pressable>
+                  <Ionicons name="trash-outline" size={20} color={colors.error} />
+                </TouchableOpacity>
               </View>
             ))}
             <Pressable
@@ -178,15 +172,15 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
       <Card header="Sobre" style={styles.section}>
         <MenuRow
           label="Termos de uso"
-          onPress={() => Alert.alert('Termos', 'Em breve')}
+          onPress={() => showAlert('Termos', 'Em breve')}
         />
         <MenuRow
           label="Política de privacidade"
-          onPress={() => Alert.alert('Privacidade', 'Em breve')}
+          onPress={() => showAlert('Privacidade', 'Em breve')}
         />
         <MenuRow
           label="Ajuda e suporte"
-          onPress={() => Alert.alert('Ajuda', 'Em breve')}
+          onPress={() => showAlert('Ajuda', 'Em breve')}
         />
         <View style={styles.versionRow}>
           <Text style={styles.versionText}>Versão 1.0.0</Text>
@@ -292,6 +286,14 @@ const styles = StyleSheet.create({
   concursoRow: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  trashButton: {
+    padding: spacing.sm,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
   concursoName: {
     fontSize: typography.sizes.md,

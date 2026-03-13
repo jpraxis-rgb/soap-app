@@ -5,11 +5,11 @@ import {
   StyleSheet,
   ScrollView,
   Switch,
-  Alert,
   Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '../theme';
+import { showAlert, showConfirm } from '../utils/alert';
 import { Card } from '../components';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -30,19 +30,13 @@ export function SettingsScreen() {
   });
 
   const handleDeleteAccount = () => {
-    Alert.alert(
+    showConfirm(
       'Excluir conta',
       'Tem certeza? Esta ação não pode ser desfeita.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Info', 'Funcionalidade em breve');
-          },
-        },
-      ],
+      () => {
+        showAlert('Info', 'Funcionalidade em breve');
+      },
+      'Excluir',
     );
   };
 
@@ -109,7 +103,7 @@ export function SettingsScreen() {
       <Card header="Conta" style={styles.section}>
         <Pressable
           style={styles.menuRow}
-          onPress={() => Alert.alert('Info', 'Funcionalidade em breve')}
+          onPress={() => showAlert('Info', 'Funcionalidade em breve')}
         >
           <Ionicons name="key-outline" size={20} color={colors.text} />
           <View style={styles.menuContent}>
@@ -120,7 +114,7 @@ export function SettingsScreen() {
 
         <Pressable
           style={styles.menuRow}
-          onPress={() => Alert.alert('Info', 'Funcionalidade em breve')}
+          onPress={() => showAlert('Info', 'Funcionalidade em breve')}
         >
           <Ionicons name="download-outline" size={20} color={colors.text} />
           <View style={styles.menuContent}>
@@ -145,10 +139,7 @@ export function SettingsScreen() {
       <Pressable
         style={styles.logoutButton}
         onPress={() => {
-          Alert.alert('Sair', 'Tem certeza?', [
-            { text: 'Cancelar', style: 'cancel' },
-            { text: 'Sair', style: 'destructive', onPress: () => logout() },
-          ]);
+          showConfirm('Sair', 'Tem certeza?', () => logout(), 'Sair');
         }}
       >
         <Ionicons name="log-out-outline" size={20} color={colors.error} />

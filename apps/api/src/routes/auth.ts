@@ -30,6 +30,7 @@ router.post('/register', validateBody(registerSchema), async (req: Request, res:
     const result = await registerUser(email, password, name);
     res.status(201).json({ data: result });
   } catch (error) {
+    console.error('Error registering user:', error);
     const message = error instanceof Error ? error.message : 'Registration failed';
     const status = message === 'Email already registered' ? 409 : 500;
     res.status(status).json({ error: message });
@@ -42,6 +43,7 @@ router.post('/login', validateBody(loginSchema), async (req: Request, res: Respo
     const result = await loginUser(email, password);
     res.json({ data: result });
   } catch (error) {
+    console.error('Error logging in:', error);
     const message = error instanceof Error ? error.message : 'Login failed';
     res.status(401).json({ error: message });
   }
@@ -59,6 +61,7 @@ router.post('/google', async (req: Request, res: Response) => {
     const result = await googleAuth(token);
     res.json({ data: result });
   } catch (error) {
+    console.error('Error with Google auth:', error);
     const message = error instanceof Error ? error.message : 'Google auth failed';
     res.status(500).json({ error: message });
   }
@@ -76,6 +79,7 @@ router.post('/apple', async (req: Request, res: Response) => {
     const result = await appleAuth(token);
     res.json({ data: result });
   } catch (error) {
+    console.error('Error with Apple auth:', error);
     const message = error instanceof Error ? error.message : 'Apple auth failed';
     res.status(500).json({ error: message });
   }
@@ -93,6 +97,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
     const result = await refreshTokenService(refreshToken);
     res.json({ data: result });
   } catch (error) {
+    console.error('Error refreshing token:', error);
     const message = error instanceof Error ? error.message : 'Token refresh failed';
     res.status(401).json({ error: message });
   }
@@ -103,6 +108,7 @@ router.get('/me', authMiddleware, async (req: Request, res: Response) => {
     const user = await getMe(req.user!.id);
     res.json({ data: user });
   } catch (error) {
+    console.error('Error getting user:', error);
     const message = error instanceof Error ? error.message : 'Failed to get user';
     res.status(500).json({ error: message });
   }
