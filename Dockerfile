@@ -15,11 +15,8 @@ COPY packages/shared packages/shared
 COPY apps/api apps/api
 COPY tsconfig.base.json ./
 
-# Build shared + api
-RUN npm run build -w packages/shared && npm run build -w apps/api
-
 WORKDIR /app/apps/api
 
 EXPOSE ${PORT:-3000}
 
-CMD ["node", "dist/index.js"]
+CMD ["npx", "tsx", "src/index.ts"]
