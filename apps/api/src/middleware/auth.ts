@@ -42,7 +42,7 @@ async function ensureDevUser() {
         name: 'Demo User',
         passwordHash: 'dev-no-password',
         authProvider: 'dev',
-        subscriptionTier: SubscriptionTier.PRO,
+        subscriptionTier: SubscriptionTier.MENTOR,
       });
       console.log('[AUTH] Created dev demo user');
     }
