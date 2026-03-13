@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = __DEV__
   ? 'http://localhost:3000/api/v1'
-  : (process.env.EXPO_PUBLIC_API_URL || 'https://soap-api-production.up.railway.app/api/v1');
+  : (process.env.EXPO_PUBLIC_API_URL || 'https://soap-api-production-3290.up.railway.app/api/v1');
 
 const TOKEN_KEY = '@soap/auth_token';
 const REFRESH_TOKEN_KEY = '@soap/refresh_token';
