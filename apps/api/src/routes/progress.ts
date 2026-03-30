@@ -8,7 +8,11 @@ const router = Router();
 // GET /progress/overview — total coverage %, hours studied vs planned
 router.get('/overview', async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
 
     // Total hours studied
     const studiedResult = await db
@@ -95,7 +99,11 @@ router.get('/overview', async (req: Request, res: Response) => {
 // GET /progress/by-disciplina — per-disciplina breakdown
 router.get('/by-disciplina', async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
 
     // Get all disciplinas the user has scheduled
     const disciplinaStats = await db
@@ -157,7 +165,11 @@ router.get('/by-disciplina', async (req: Request, res: Response) => {
 // GET /progress/by-disciplina/:id — detail for a single disciplina
 router.get('/by-disciplina/:id', async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
     const disciplinaId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
     // Get disciplina stats (same pattern as the list, filtered to one)
@@ -276,7 +288,11 @@ router.get('/by-disciplina/:id', async (req: Request, res: Response) => {
 // GET /progress/weekly — last 7 days histogram data
 router.get('/weekly', async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);

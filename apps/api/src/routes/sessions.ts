@@ -37,7 +37,11 @@ const createSessionSchema = z.object({
 // POST /sessions — log a study session
 router.post('/', validateBody(createSessionSchema), async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
     const {
       schedule_block_id,
       disciplina_id,
@@ -98,8 +102,14 @@ router.post('/', validateBody(createSessionSchema), async (req: Request, res: Re
 // GET /sessions — list sessions with optional filters
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
     const { from, to, disciplina_id } = req.query;
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+    const offset = Math.max(Number(req.query.offset) || 0, 0);
 
     const conditions = [eq(schema.studySessions.userId, userId)];
 
@@ -117,7 +127,9 @@ router.get('/', async (req: Request, res: Response) => {
       .select()
       .from(schema.studySessions)
       .where(and(...conditions))
-      .orderBy(schema.studySessions.startedAt);
+      .orderBy(schema.studySessions.startedAt)
+      .limit(limit)
+      .offset(offset);
 
     res.json({ data: sessions });
   } catch (error) {
@@ -129,7 +141,11 @@ router.get('/', async (req: Request, res: Response) => {
 // GET /sessions/stats — aggregated stats
 router.get('/stats', async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
 
     // Total hours per disciplina
     const hoursPerDisciplina = await db
@@ -192,6 +208,72 @@ router.get('/stats', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching stats:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * PATCH /sessions/:id
+ * Partially update a study session owned by the authenticated user.
+ */
+const updateSessionSchema = z.object({
+  topic: z.string().min(1).optional(),
+  duration_minutes: z.number().min(1).optional(),
+  durationMinutes: z.number().min(1).optional(),
+  self_rating: z.number().min(1).max(3).optional(),
+  selfRating: z.number().min(1).max(3).optional(),
+  notes: z.string().optional(),
+  started_at: z.string().optional(),
+  startedAt: z.string().optional(),
+  completed_at: z.string().optional(),
+  completedAt: z.string().optional(),
+}).transform(data => ({
+  topic: data.topic,
+  duration_minutes: data.duration_minutes ?? data.durationMinutes,
+  self_rating: data.self_rating ?? data.selfRating,
+  notes: data.notes,
+  started_at: data.started_at ?? data.startedAt,
+  completed_at: data.completed_at ?? data.completedAt,
+}));
+
+router.patch('/:id', validateBody(updateSessionSchema), async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const sessionId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const { topic, duration_minutes, self_rating, notes, started_at, completed_at } = req.body;
+
+    const updateFields: Record<string, unknown> = {};
+    if (topic !== undefined) updateFields.topic = topic;
+    if (duration_minutes !== undefined) updateFields.durationMinutes = duration_minutes;
+    if (self_rating !== undefined) updateFields.selfRating = self_rating;
+    if (notes !== undefined) updateFields.notes = notes;
+    if (started_at !== undefined) updateFields.startedAt = new Date(started_at);
+    if (completed_at !== undefined) updateFields.completedAt = new Date(completed_at);
+
+    if (Object.keys(updateFields).length === 0) {
+      res.status(400).json({ error: 'No fields to update' });
+      return;
+    }
+
+    const [session] = await db
+      .update(studySessions)
+      .set(updateFields)
+      .where(and(eq(studySessions.id, sessionId), eq(studySessions.userId, userId)))
+      .returning();
+
+    if (!session) {
+      res.status(404).json({ error: 'Session not found' });
+      return;
+    }
+
+    res.json({ data: session });
+  } catch (error) {
+    console.error('Error updating session:', error);
+    res.status(500).json({ error: 'Failed to update session' });
   }
 });
 

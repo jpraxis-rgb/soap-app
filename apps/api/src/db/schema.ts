@@ -9,6 +9,7 @@ import {
   timestamp,
   date,
   jsonb,
+  index,
 } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
@@ -87,7 +88,9 @@ export const scheduleBlocks = pgTable('schedule_blocks', {
   durationMinutes: integer('duration_minutes').notNull(),
   status: varchar('status', { length: 20 }).notNull().default('pending'),
   updatedAt: timestamp('updated_at').defaultNow().$onUpdateFn(() => new Date()),
-});
+}, (table) => ({
+  userScheduledDateIdx: index('schedule_blocks_user_date_idx').on(table.userId, table.scheduledDate),
+}));
 
 export const studySessions = pgTable('study_sessions', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -101,7 +104,9 @@ export const studySessions = pgTable('study_sessions', {
   startedAt: timestamp('started_at').notNull(),
   completedAt: timestamp('completed_at'),
   updatedAt: timestamp('updated_at').defaultNow().$onUpdateFn(() => new Date()),
-});
+}, (table) => ({
+  userDisciplinaIdx: index('study_sessions_user_disciplina_idx').on(table.userId, table.disciplinaId),
+}));
 
 export const contentItems = pgTable('content_items', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -118,7 +123,9 @@ export const contentItems = pgTable('content_items', {
   templateId: uuid('template_id').references(() => editalTemplates.id, { onDelete: 'cascade' }),
   disciplinaName: varchar('disciplina_name', { length: 255 }),
   source: varchar('source', { length: 20 }).default('ai_curated'),
-});
+}, (table) => ({
+  statusIdx: index('content_items_status_idx').on(table.status),
+}));
 
 export const flashcardReviews = pgTable('flashcard_reviews', {
   id: uuid('id').primaryKey().defaultRandom(),

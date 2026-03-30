@@ -94,7 +94,7 @@ router.get('/templates', async (_req: Request, res: Response) => {
       };
     });
 
-    res.json(lightweight);
+    res.json({ data: lightweight });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch templates' });
   }
@@ -164,8 +164,11 @@ router.get('/', async (req: Request, res: Response) => {
       .where(eq(editais.userId, userId))
       .orderBy(desc(editais.updatedAt));
 
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+    const offset = Math.max(Number(req.query.offset) || 0, 0);
+
     if (userEditais.length === 0) {
-      res.json([]);
+      res.json({ data: [] });
       return;
     }
 
@@ -188,7 +191,8 @@ router.get('/', async (req: Request, res: Response) => {
       disciplinas: disciplinasByEdital.get(e.id) ?? [],
     }));
 
-    res.json(enriched);
+    const paginated = enriched.slice(offset, offset + limit);
+    res.json({ data: paginated });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch editais' });
   }
@@ -253,7 +257,7 @@ router.post('/parse-pdf', uploadPdf, async (req: Request, res: Response) => {
       rawContent: text,
     });
 
-    res.status(201).json(result);
+    res.status(201).json({ data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to parse PDF edital';
     res.status(500).json({ error: message });

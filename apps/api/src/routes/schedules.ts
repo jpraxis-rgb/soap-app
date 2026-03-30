@@ -79,7 +79,7 @@ router.get('/', async (req: Request, res: Response) => {
       .where(and(...conditions))
       .orderBy(asc(scheduleBlocks.scheduledDate), asc(scheduleBlocks.startTime));
 
-    res.json(rows);
+    res.json({ data: rows });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch schedule blocks' });
   }
