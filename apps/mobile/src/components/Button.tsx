@@ -7,18 +7,18 @@ import {
   ViewStyle,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, spacing, typography, borderRadius } from '../theme';
+import { useTheme, spacing, typography, borderRadius, ThemeColors } from '../theme';
 
 type ButtonSize = 'sm' | 'md' | 'lg';
 
-interface ButtonProps {
+export interface ButtonProps {
   label: string;
   onPress: () => void;
-  variant?: 'gradient' | 'outlined';
+  variant?: 'filled' | 'outlined';
   size?: ButtonSize;
   icon?: ReactNode;
   loading?: boolean;
+  disabled?: boolean;
   style?: ViewStyle;
 }
 
@@ -31,16 +31,21 @@ const sizeConfig: Record<ButtonSize, { paddingVertical: number; paddingHorizonta
 export function Button({
   label,
   onPress,
-  variant = 'gradient',
+  variant = 'filled',
   size = 'md',
   icon,
   loading = false,
+  disabled = false,
   style,
 }: ButtonProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { paddingVertical, paddingHorizontal, fontSize } = sizeConfig[size];
 
+  const isFilled = variant === 'filled';
+
   const content = loading ? (
-    <ActivityIndicator color={variant === 'gradient' ? colors.text : colors.accent} />
+    <ActivityIndicator color={isFilled ? colors.accentForeground : colors.accent} />
   ) : (
     <View style={styles.contentRow}>
       {icon && <View style={styles.iconWrapper}>{icon}</View>}
@@ -48,60 +53,57 @@ export function Button({
         style={[
           styles.label,
           { fontSize },
-          variant === 'outlined' && { color: colors.accent },
+          isFilled && { color: colors.accentForeground },
+          !isFilled && { color: colors.accent },
         ]}
+        maxFontSizeMultiplier={1.3}
       >
         {label}
       </Text>
     </View>
   );
 
-  if (variant === 'gradient') {
-    return (
-      <Pressable onPress={onPress} disabled={loading} style={style}>
-        <LinearGradient
-          colors={[colors.accent, colors.accentPink]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={[styles.base, { paddingVertical, paddingHorizontal }]}
-        >
-          {content}
-        </LinearGradient>
-      </Pressable>
-    );
-  }
-
   return (
     <Pressable
       onPress={onPress}
-      disabled={loading}
-      style={[styles.base, styles.outlined, { paddingVertical, paddingHorizontal }, style]}
+      disabled={loading || disabled}
+      style={[
+        styles.base,
+        { paddingVertical, paddingHorizontal },
+        isFilled && { backgroundColor: colors.accent },
+        !isFilled && styles.outlined,
+        style,
+        (loading || disabled) && { opacity: 0.5 },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: loading || disabled }}
     >
       {content}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  outlined: {
-    borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  contentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconWrapper: {
-    marginRight: spacing.sm,
-  },
-  label: {
-    color: colors.text,
-    fontWeight: typography.weights.semibold,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    base: {
+      borderRadius: borderRadius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    outlined: {
+      borderWidth: 1,
+      borderColor: colors.accent,
+    },
+    contentRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    iconWrapper: {
+      marginRight: spacing.sm,
+    },
+    label: {
+      fontWeight: typography.weights.semibold,
+    },
+  });

@@ -6,7 +6,7 @@ import {
   StyleSheet,
   ScrollView,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '../theme';
+import { useTheme, spacing, borderRadius, ThemeColors } from '../theme';
 
 interface BottomSheetProps {
   isVisible: boolean;
@@ -21,6 +21,8 @@ export function BottomSheet({
   children,
   snapPoints = ['50%'],
 }: BottomSheetProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const height = snapPoints[0] || '50%';
 
   return (
@@ -36,27 +38,28 @@ export function BottomSheet({
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  sheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: borderRadius.lg,
-    borderTopRightRadius: borderRadius.lg,
-    paddingTop: spacing.sm,
-  },
-  indicator: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.textSecondary,
-    alignSelf: 'center',
-    marginBottom: spacing.sm,
-  },
-  content: {
-    flex: 1,
-    padding: spacing.md,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    sheet: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: borderRadius.lg,
+      borderTopRightRadius: borderRadius.lg,
+      paddingTop: spacing.sm,
+    },
+    indicator: {
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.textSecondary,
+      alignSelf: 'center',
+      marginBottom: spacing.sm,
+    },
+    content: {
+      flex: 1,
+      padding: spacing.md,
+    },
+  });

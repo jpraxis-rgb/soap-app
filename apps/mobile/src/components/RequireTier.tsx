@@ -2,7 +2,7 @@ import React, { ReactNode } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, ThemeColors } from '../theme';
 import { Button } from './Button';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -22,7 +22,9 @@ interface RequireTierProps {
 }
 
 export function RequireTier({ tier, children, onUpgrade }: RequireTierProps) {
+  const { colors } = useTheme();
   const { subscriptionTier } = useAuth();
+  const styles = createStyles(colors);
 
   const currentLevel = TIER_ORDER.indexOf(subscriptionTier);
   const requiredLevel = TIER_ORDER.indexOf(tier);
@@ -36,7 +38,7 @@ export function RequireTier({ tier, children, onUpgrade }: RequireTierProps) {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={[colors.accent, colors.accentPink]}
+        colors={[colors.gradientStart, colors.gradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.iconContainer}
@@ -58,37 +60,38 @@ export function RequireTier({ tier, children, onUpgrade }: RequireTierProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xl,
-  },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
-  },
-  title: {
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
-    color: colors.text,
-    marginBottom: spacing.sm,
-    textAlign: 'center',
-  },
-  description: {
-    fontSize: typography.sizes.md,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.lg,
-    lineHeight: typography.sizes.md * typography.lineHeights.relaxed,
-  },
-  button: {
-    width: '100%',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.xl,
+    },
+    iconContainer: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.lg,
+    },
+    title: {
+      fontSize: typography.sizes.xl,
+      fontWeight: typography.weights.bold,
+      color: colors.text,
+      marginBottom: spacing.sm,
+      textAlign: 'center',
+    },
+    description: {
+      fontSize: typography.sizes.md,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: spacing.lg,
+      lineHeight: typography.sizes.md * typography.lineHeights.relaxed,
+    },
+    button: {
+      width: '100%',
+    },
+  });

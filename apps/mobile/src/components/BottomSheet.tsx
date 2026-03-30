@@ -4,7 +4,7 @@ import GorhomBottomSheet, {
   BottomSheetBackdrop,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
-import { colors, spacing } from '../theme';
+import { useTheme, spacing, ThemeColors } from '../theme';
 
 interface BottomSheetProps {
   isVisible: boolean;
@@ -19,6 +19,8 @@ export function BottomSheet({
   children,
   snapPoints: snapPointsProp = ['50%'],
 }: BottomSheetProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const bottomSheetRef = useRef<GorhomBottomSheet>(null);
   const snapPoints = useMemo(() => snapPointsProp, [snapPointsProp]);
 
@@ -51,21 +53,23 @@ export function BottomSheet({
       backdropComponent={renderBackdrop}
       backgroundStyle={styles.background}
       handleIndicatorStyle={styles.indicator}
+      accessibilityViewIsModal={true}
     >
       <BottomSheetView style={styles.content}>{children}</BottomSheetView>
     </GorhomBottomSheet>
   );
 }
 
-const styles = StyleSheet.create({
-  background: {
-    backgroundColor: colors.card,
-  },
-  indicator: {
-    backgroundColor: colors.textSecondary,
-  },
-  content: {
-    flex: 1,
-    padding: spacing.md,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    background: {
+      backgroundColor: colors.card,
+    },
+    indicator: {
+      backgroundColor: colors.textSecondary,
+    },
+    content: {
+      flex: 1,
+      padding: spacing.md,
+    },
+  });

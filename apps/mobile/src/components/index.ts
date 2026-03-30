@@ -4,3 +4,5 @@ export { Badge } from './Badge';
 export { BottomSheet } from './BottomSheet';
 export { GradientText } from './GradientText';
 export { RequireTier } from './RequireTier';
+export { AnimatedSplash } from './AnimatedSplash';
+export { PhoneFrame } from './PhoneFrame';
