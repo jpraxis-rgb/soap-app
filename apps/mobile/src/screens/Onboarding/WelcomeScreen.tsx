@@ -79,14 +79,6 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
 
   const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
-  const handleNext = () => {
-    if (activeIndex < slides.length - 1) {
-      flatListRef.current?.scrollToIndex({ index: activeIndex + 1 });
-    } else {
-      navigation.navigate('SignUp');
-    }
-  };
-
   const renderSlide = ({ item, index }: { item: SlideData; index: number }) => {
     const inputRange = [
       (index - 1) * width,
@@ -130,8 +122,6 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
       </View>
     );
   };
-
-  const isLastSlide = activeIndex === slides.length - 1;
 
   return (
     <View style={styles.container}>
@@ -198,20 +188,12 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           </View>
         </View>
 
-        {/* CTA button */}
-        {isLastSlide ? (
-          <Button
-            label="Começar"
-            onPress={handleNext}
-            variant="filled"
-          />
-        ) : (
-          <Button
-            label="Próximo"
-            onPress={handleNext}
-            variant="outlined"
-          />
-        )}
+        {/* CTA button — always visible */}
+        <Button
+          label="Criar conta"
+          onPress={() => navigation.navigate('SignUp')}
+          variant="filled"
+        />
 
         {/* Sign in link */}
         <Button
