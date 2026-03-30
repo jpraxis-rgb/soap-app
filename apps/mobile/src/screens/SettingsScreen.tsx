@@ -7,6 +7,7 @@ import {
   Switch,
   Alert,
   Pressable,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors, type ThemeMode } from '../theme';
@@ -30,20 +31,26 @@ export function SettingsScreen() {
   });
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Excluir conta',
-      'Tem certeza? Esta ação não pode ser desfeita.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Info', 'Funcionalidade em breve');
+    if (Platform.OS === 'web') {
+      if (window.confirm('Excluir conta — Tem certeza? Esta ação não pode ser desfeita.')) {
+        window.alert('Funcionalidade em breve');
+      }
+    } else {
+      Alert.alert(
+        'Excluir conta',
+        'Tem certeza? Esta ação não pode ser desfeita.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Excluir',
+            style: 'destructive',
+            onPress: () => {
+              Alert.alert('Info', 'Funcionalidade em breve');
+            },
           },
-        },
-      ],
-    );
+        ],
+      );
+    }
   };
 
   const styles = createStyles(colors);
@@ -174,10 +181,14 @@ export function SettingsScreen() {
       <Pressable
         style={styles.logoutButton}
         onPress={() => {
-          Alert.alert('Sair', 'Tem certeza?', [
-            { text: 'Cancelar', style: 'cancel' },
-            { text: 'Sair', style: 'destructive', onPress: () => logout() },
-          ]);
+          if (Platform.OS === 'web') {
+            if (window.confirm('Sair — Tem certeza?')) logout();
+          } else {
+            Alert.alert('Sair', 'Tem certeza?', [
+              { text: 'Cancelar', style: 'cancel' },
+              { text: 'Sair', style: 'destructive', onPress: () => logout() },
+            ]);
+          }
         }}
       >
         <Ionicons name="log-out-outline" size={20} color={colors.error} />
