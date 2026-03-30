@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { authApi, tokenStorage } from '../services/api';
 
 interface AuthUser {
@@ -32,6 +32,11 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   const loadUser = useCallback(async () => {
     // Dev bypass disabled for demo — show onboarding flow
@@ -59,22 +64,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // }
 
     try {
-      // DEMO: clear tokens to force onboarding — remove after recording
-      await tokenStorage.clearTokens();
+      if (__DEV__) {
+        // DEMO: clear tokens to force onboarding — only in dev mode
+        await tokenStorage.clearTokens();
+      }
 
       const token = await tokenStorage.getToken();
       if (!token) {
-        setIsLoading(false);
+        if (isMountedRef.current) setIsLoading(false);
         return;
       }
 
       const userData = await authApi.getMe() as AuthUser;
-      setUser(userData);
+      if (isMountedRef.current) setUser(userData);
     } catch {
       await tokenStorage.clearTokens();
-      setUser(null);
+      if (isMountedRef.current) setUser(null);
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) setIsLoading(false);
     }
   }, []);
 
@@ -104,7 +111,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshUser = useCallback(async () => {
     try {
       const userData = await authApi.getMe() as AuthUser;
-      setUser(userData);
+      if (isMountedRef.current) setUser(userData);
     } catch {
       // Ignore errors during refresh
     }

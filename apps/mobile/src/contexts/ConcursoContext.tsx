@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { parseEdital as apiParseEdital, getEditais, deleteEdital as apiDeleteEdital, generateSchedule, updateEditalDisciplinas } from '../services/api';
 
@@ -60,6 +60,11 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
   const [concursos, setConcursos] = useState<Concurso[]>([]);
   const [activeConcursoId, setActiveConcursoId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   const activeConcurso = concursos.find(c => c.id === activeConcursoId) || null;
 
@@ -92,9 +97,11 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
           created_at: e.updatedAt || new Date().toISOString(),
         };
       });
+      if (!isMountedRef.current) return;
       setConcursos(mapped);
 
       const savedId = await AsyncStorage.getItem(ACTIVE_CONCURSO_KEY);
+      if (!isMountedRef.current) return;
       if (savedId && mapped.some(c => c.id === savedId)) {
         setActiveConcursoId(savedId);
       } else if (mapped.length > 0) {
@@ -103,7 +110,7 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // API unreachable, keep current state
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) setIsLoading(false);
     }
   }, []);
 
@@ -121,7 +128,7 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
   }, [activeConcursoId]);
 
   const addConcurso = useCallback(async (sourceUrl: string): Promise<ParsedEditalData> => {
-    const editalData = await apiParseEdital(sourceUrl) as ParsedEditalData;
+    const editalData = await apiParseEdital(sourceUrl) as unknown as ParsedEditalData;
 
     const newConcurso: Concurso = {
       id: editalData.id || `concurso-${Date.now()}`,
@@ -192,11 +199,8 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Continue with local removal even if API fails
     }
-    setConcursos(prev => {
-      const remaining = prev.filter(c => c.id !== concursoId);
-      setActiveConcursoId(p => p === concursoId ? (remaining[0]?.id ?? null) : p);
-      return remaining;
-    });
+    setConcursos(prev => prev.filter(c => c.id !== concursoId));
+    setActiveConcursoId(prev => prev === concursoId ? null : prev);
   }, []);
 
   return (

@@ -5,37 +5,47 @@ import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { ConcursoProvider } from './src/contexts/ConcursoContext';
-import { colors } from './src/theme';
+import { ThemeProvider, useTheme } from './src/theme';
 
-const theme = {
-  dark: true,
-  colors: {
-    primary: colors.accent,
-    background: colors.background,
-    card: colors.card,
-    text: colors.text,
-    border: colors.surface,
-    notification: colors.accentPink,
-  },
-  fonts: {
-    regular: { fontFamily: 'System', fontWeight: '400' as const },
-    medium: { fontFamily: 'System', fontWeight: '500' as const },
-    bold: { fontFamily: 'System', fontWeight: '700' as const },
-    heavy: { fontFamily: 'System', fontWeight: '900' as const },
-  },
-};
+function AppInner() {
+  const { colors, isDark } = useTheme();
+
+  const navigationTheme = {
+    dark: isDark,
+    colors: {
+      primary: colors.accent,
+      background: colors.background,
+      card: colors.card,
+      text: colors.text,
+      border: colors.border,
+      notification: colors.accentSecondary,
+    },
+    fonts: {
+      regular: { fontFamily: 'System', fontWeight: '400' as const },
+      medium: { fontFamily: 'System', fontWeight: '500' as const },
+      bold: { fontFamily: 'System', fontWeight: '700' as const },
+      heavy: { fontFamily: 'System', fontWeight: '900' as const },
+    },
+  };
+
+  return (
+    <NavigationContainer theme={navigationTheme}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <AppNavigator />
+    </NavigationContainer>
+  );
+}
 
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <ConcursoProvider>
-          <NavigationContainer theme={theme}>
-            <StatusBar style="light" />
-            <AppNavigator />
-          </NavigationContainer>
-        </ConcursoProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <ConcursoProvider>
+            <AppInner />
+          </ConcursoProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }

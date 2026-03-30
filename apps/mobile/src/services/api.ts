@@ -25,27 +25,37 @@ async function request<T>(
 ): Promise<T> {
   const authHeaders = await getAuthHeaders();
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeaders,
-      ...options.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders,
+        ...options.headers,
+      },
+    });
+  } catch {
+    throw new Error('Sem conexão. Verifique sua internet.');
+  }
 
   if (response.status === 401) {
     const refreshed = await tryRefreshToken();
     if (refreshed) {
       const newAuthHeaders = await getAuthHeaders();
-      const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...newAuthHeaders,
-          ...options.headers,
-        },
-      });
+      let retryResponse: Response;
+      try {
+        retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            ...newAuthHeaders,
+            ...options.headers,
+          },
+        });
+      } catch {
+        throw new Error('Sem conexão. Verifique sua internet.');
+      }
 
       if (!retryResponse.ok) {
         const error = await retryResponse.json().catch(() => ({ error: 'Request failed' }));
@@ -65,7 +75,19 @@ async function request<T>(
   return response.json();
 }
 
+let refreshPromise: Promise<boolean> | null = null;
+
 async function tryRefreshToken(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = _doRefresh();
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
+}
+
+async function _doRefresh(): Promise<boolean> {
   try {
     const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
     if (!refreshToken) return false;
@@ -180,7 +202,7 @@ export function parseEdital(sourceUrl: string) {
 }
 
 export function getEditais() {
-  return request<unknown[]>('/editais');
+  return request<{ data: unknown[] }>('/editais').then(res => res.data);
 }
 
 export function getEdital(id: string) {
@@ -253,7 +275,7 @@ export interface EditalTemplateDetail {
 }
 
 export function getEditalTemplates() {
-  return request<EditalTemplate[]>('/editais/templates');
+  return request<{ data: EditalTemplate[] }>('/editais/templates').then(res => res.data);
 }
 
 export function getEditalTemplateDetail(id: string) {
@@ -315,9 +337,11 @@ export interface ScheduleBlockData {
 export interface StudySessionData {
   id: string;
   disciplina_id: string;
+  disciplina_name?: string;
   topic: string;
   duration_minutes: number;
   self_rating: number;
+  notes?: string;
   started_at: string;
   completed_at: string | null;
 }
@@ -451,8 +475,8 @@ export async function getTodayScheduleBlocks(): Promise<ScheduleBlockData[]> {
 
 export async function getUpcomingScheduleBlocks(from: string, to: string): Promise<ScheduleBlockData[]> {
   if (USE_MOCK) return MOCK_SCHEDULE_BLOCKS;
-  const result = await request<ScheduleBlockData[]>(`/schedules?from=${from}&to=${to}`);
-  return Array.isArray(result) ? result : [];
+  const result = await request<{ data: ScheduleBlockData[] }>(`/schedules?from=${from}&to=${to}`);
+  return Array.isArray(result.data) ? result.data : [];
 }
 
 export async function getProgressOverview(): Promise<ProgressOverviewData> {
@@ -499,6 +523,23 @@ export async function logStudySession(session: {
     body: JSON.stringify(session),
   });
   return result.data;
+}
+
+export async function updateStudySession(
+  id: string,
+  updates: Partial<Omit<StudySessionData, 'id' | 'disciplina_id' | 'disciplina_name'>>,
+): Promise<StudySessionData> {
+  const result = await request<{ data: StudySessionData }>(`/sessions/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  });
+  return result.data;
+}
+
+export async function deleteStudySession(id: string): Promise<void> {
+  await request<{ message: string }>(`/sessions/${id}`, {
+    method: 'DELETE',
+  });
 }
 
 export async function getDisciplinaDetail(disciplinaId: string): Promise<{

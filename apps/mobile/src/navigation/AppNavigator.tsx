@@ -1,10 +1,11 @@
-import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, View, Text } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme';
+import { useTheme } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
+import { AnimatedSplash } from '../components';
 
 import { HomeScreen } from '../screens/HomeScreen';
 import { ScheduleDetailScreen } from '../screens/ScheduleDetailScreen';
@@ -28,6 +29,7 @@ import { SchedulePreviewScreen } from '../screens/SchedulePreviewScreen';
 import { CargoSelectScreen } from '../screens/CargoSelectScreen';
 import { EditalPickerScreen } from '../screens/EditalPickerScreen';
 import { StudySessionScreen } from '../screens/StudySessionScreen';
+import { ManualSessionScreen } from '../screens/ManualSessionScreen';
 
 const AuthStackNav = createNativeStackNavigator();
 const HomeStackNav = createNativeStackNavigator();
@@ -37,13 +39,14 @@ const ProfileStackNav = createNativeStackNavigator();
 const RootStackNav = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const screenOptions = {
-  headerStyle: { backgroundColor: colors.background },
-  headerTintColor: colors.text,
-  headerShadowVisible: false,
-};
-
 function AuthStack() {
+  const { colors } = useTheme();
+  const screenOptions = {
+    headerStyle: { backgroundColor: colors.background },
+    headerTintColor: colors.text,
+    headerShadowVisible: false,
+  };
+
   return (
     <AuthStackNav.Navigator screenOptions={{ headerShown: false }}>
       <AuthStackNav.Screen name="Welcome" component={WelcomeScreen} />
@@ -70,6 +73,13 @@ function AuthStack() {
 }
 
 function HomeStack() {
+  const { colors } = useTheme();
+  const screenOptions = {
+    headerStyle: { backgroundColor: colors.background },
+    headerTintColor: colors.text,
+    headerShadowVisible: false,
+  };
+
   return (
     <HomeStackNav.Navigator screenOptions={screenOptions}>
       <HomeStackNav.Screen
@@ -122,6 +132,13 @@ function HomeStack() {
 }
 
 function ProgressStack() {
+  const { colors } = useTheme();
+  const screenOptions = {
+    headerStyle: { backgroundColor: colors.background },
+    headerTintColor: colors.text,
+    headerShadowVisible: false,
+  };
+
   return (
     <ProgressStackNav.Navigator screenOptions={screenOptions}>
       <ProgressStackNav.Screen
@@ -139,6 +156,13 @@ function ProgressStack() {
 }
 
 function StudyStack() {
+  const { colors } = useTheme();
+  const screenOptions = {
+    headerStyle: { backgroundColor: colors.background },
+    headerTintColor: colors.text,
+    headerShadowVisible: false,
+  };
+
   return (
     <StudyStackNav.Navigator screenOptions={screenOptions}>
       <StudyStackNav.Screen
@@ -181,6 +205,13 @@ function StudyStack() {
 }
 
 function ProfileStack() {
+  const { colors } = useTheme();
+  const screenOptions = {
+    headerStyle: { backgroundColor: colors.background },
+    headerTintColor: colors.text,
+    headerShadowVisible: false,
+  };
+
   return (
     <ProfileStackNav.Navigator screenOptions={screenOptions}>
       <ProfileStackNav.Screen
@@ -238,6 +269,8 @@ function ProfileStack() {
 }
 
 function MainTabs() {
+  const { colors } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -261,33 +294,45 @@ function MainTabs() {
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
           backgroundColor: colors.card,
-          borderTopColor: colors.surface,
+          borderTopColor: colors.border,
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeStack} options={{ title: 'Início' }} />
-      <Tab.Screen name="Progresso" component={ProgressStack} />
-      <Tab.Screen name="Estudar" component={StudyStack} />
-      <Tab.Screen name="Perfil" component={ProfileStack} />
+      <Tab.Screen name="Home" component={HomeStack} options={{ title: 'Início', tabBarAccessibilityLabel: 'Início' }} />
+      <Tab.Screen name="Progresso" component={ProgressStack} options={{ tabBarAccessibilityLabel: 'Progresso' }} />
+      <Tab.Screen name="Estudar" component={StudyStack} options={{ tabBarAccessibilityLabel: 'Estudar' }} />
+      <Tab.Screen name="Perfil" component={ProfileStack} options={{ tabBarAccessibilityLabel: 'Perfil' }} />
     </Tab.Navigator>
   );
 }
 
 export default function AppNavigator() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { colors } = useTheme();
+  const [splashDone, setSplashDone] = useState(false);
 
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.accent} />
-      </View>
-    );
+  if (isLoading || !splashDone) {
+    return <AnimatedSplash onComplete={() => setSplashDone(true)} />;
   }
 
   return (
     <RootStackNav.Navigator screenOptions={{ headerShown: false }}>
       {isAuthenticated ? (
-        <RootStackNav.Screen name="Main" component={MainTabs} />
+        <>
+          <RootStackNav.Screen name="Main" component={MainTabs} />
+          <RootStackNav.Screen
+            name="ManualSession"
+            component={ManualSessionScreen}
+            options={{
+              presentation: 'modal',
+              headerShown: true,
+              title: 'Registrar sessão',
+              headerStyle: { backgroundColor: colors.background },
+              headerTintColor: colors.text,
+              headerShadowVisible: false,
+            }}
+          />
+        </>
       ) : (
         <RootStackNav.Screen name="Auth" component={AuthStack} />
       )}
