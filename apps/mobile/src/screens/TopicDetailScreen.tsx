@@ -9,7 +9,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card } from '../components';
 import { TopicContent, DisciplineContent, fetchContentForTopic } from '../services/api';
 
@@ -28,12 +28,14 @@ const FORMATS: FormatInfo[] = [
   { key: 'mind_map', label: 'Mapa', icon: 'git-branch', color: '#00D4AA', screen: 'Content' },
 ];
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, colors }: { status: string; colors: ThemeColors }) {
   const config = {
     complete: { label: 'Completo', bg: colors.success + '25', color: colors.success },
     in_progress: { label: 'Em progresso', bg: colors.accent + '25', color: colors.accent },
     new: { label: 'Novo', bg: colors.surface, color: colors.textSecondary },
   }[status] ?? { label: status, bg: colors.surface, color: colors.textSecondary };
+
+  const badgeStyles = createBadgeStyles(colors);
 
   return (
     <View style={[badgeStyles.badge, { backgroundColor: config.bg }]}>
@@ -42,7 +44,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-const badgeStyles = StyleSheet.create({
+const createBadgeStyles = (colors: ThemeColors) => StyleSheet.create({
   badge: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
@@ -55,9 +57,12 @@ const badgeStyles = StyleSheet.create({
 });
 
 export function TopicDetailScreen() {
+  const { colors } = useTheme();
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<{ TopicDetail: { discipline: DisciplineContent } }, 'TopicDetail'>>();
   const { discipline } = route.params;
+
+  const styles = createStyles(colors);
 
   const percent = discipline.topicCount > 0
     ? Math.round((discipline.completedCount / discipline.topicCount) * 100)
@@ -88,7 +93,7 @@ export function TopicDetailScreen() {
       <Card style={styles.topicCard}>
         <View style={styles.topicHeader}>
           <Text style={styles.topicName} numberOfLines={2}>{item.name}</Text>
-          <StatusBadge status={item.status} />
+          <StatusBadge status={item.status} colors={colors} />
         </View>
 
         <View style={styles.formatsRow}>
@@ -138,7 +143,7 @@ export function TopicDetailScreen() {
         </View>
         <View style={styles.progressBarBg}>
           <LinearGradient
-            colors={[colors.accent, colors.accentPink]}
+            colors={[colors.gradientStart, colors.gradientEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={[styles.progressBarFill, { width: `${Math.max(percent, 2)}%` }]}
@@ -157,7 +162,7 @@ export function TopicDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

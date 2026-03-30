@@ -9,9 +9,8 @@ import {
   TextInput,
   Switch,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography, borderRadius } from '../theme';
+import { useTheme, spacing, typography, borderRadius, type ThemeColors } from '../theme';
 import { Card, Button } from '../components';
 
 // ── Types ──────────────────────────────────────────────
@@ -75,12 +74,17 @@ function MiniStepper({
   onDecrement: () => void;
   onIncrement: () => void;
 }) {
+  const { colors } = useTheme();
+  const miniStepperStyles = createMiniStepperStyles(colors);
+
   return (
     <View style={miniStepperStyles.container}>
       <Pressable
         onPress={onDecrement}
         style={[miniStepperStyles.button, value <= min && miniStepperStyles.buttonDisabled]}
         disabled={value <= min}
+        accessibilityLabel="Diminuir"
+        accessibilityRole="button"
       >
         <Ionicons
           name="remove"
@@ -95,6 +99,8 @@ function MiniStepper({
         onPress={onIncrement}
         style={[miniStepperStyles.button, value >= max && miniStepperStyles.buttonDisabled]}
         disabled={value >= max}
+        accessibilityLabel="Aumentar"
+        accessibilityRole="button"
       >
         <Ionicons
           name="add"
@@ -106,16 +112,16 @@ function MiniStepper({
   );
 }
 
-const miniStepperStyles = StyleSheet.create({
+const createMiniStepperStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
   },
   button: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -135,6 +141,8 @@ const miniStepperStyles = StyleSheet.create({
 // ── Main Screen ────────────────────────────────────────
 
 export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreenProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { edital } = route.params;
 
   const [dayConfigs, setDayConfigs] = useState<Record<number, number>>(DEFAULT_DAY_CONFIGS);
@@ -261,7 +269,7 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
       >
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Pressable onPress={() => navigation.goBack()} style={styles.backButton} accessibilityLabel="Voltar" accessibilityRole="button">
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
           <View style={styles.headerText}>
@@ -445,7 +453,7 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
             onPress={handleGenerate}
             size="lg"
             disabled={availableDays.length === 0}
-            icon={<Ionicons name="sparkles" size={20} color={colors.text} />}
+            icon={<Ionicons name="sparkles" size={20} color={colors.accentForeground} />}
           />
         </View>
       </ScrollView>
@@ -455,7 +463,7 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
 
 // ── Styles ─────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -534,7 +542,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    minHeight: 40,
+    minHeight: 44,
   },
   dayConfigLeft: {
     flexDirection: 'row',
@@ -601,7 +609,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
   },
   segmentTextSelected: {
-    color: colors.text,
+    color: colors.accentForeground,
     fontWeight: typography.weights.bold,
   },
   examDate: {

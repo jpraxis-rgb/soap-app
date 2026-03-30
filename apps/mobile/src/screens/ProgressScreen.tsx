@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { colors, spacing, typography } from '../theme';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card } from '../components';
 import {
   getProgressOverview,
@@ -25,6 +25,8 @@ import {
 
 // Donut chart approximation with View + border tricks
 function DonutChart({ percent }: { percent: number }) {
+  const { colors } = useTheme();
+  const donutStyles = createDonutStyles(colors);
   const size = 140;
 
   return (
@@ -67,7 +69,7 @@ function DonutChart({ percent }: { percent: number }) {
   );
 }
 
-const donutStyles = StyleSheet.create({
+const createDonutStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -100,6 +102,8 @@ function DisciplinaBar({
   maxHours: number;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+  const barStyles = createBarStyles(colors);
   const progressWidth = maxHours > 0 ? (data.hours_studied / maxHours) * 100 : 0;
   const plannedWidth = maxHours > 0 ? (data.hours_planned / maxHours) * 100 : 0;
 
@@ -137,7 +141,7 @@ function DisciplinaBar({
   );
 }
 
-const barStyles = StyleSheet.create({
+const createBarStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     marginBottom: spacing.md,
   },
@@ -193,6 +197,8 @@ const barStyles = StyleSheet.create({
 
 // Weekly histogram using Views
 function WeeklyHistogram({ data }: { data: WeeklyHistogramData[] }) {
+  const { colors } = useTheme();
+  const histStyles = createHistStyles(colors);
   const maxHours = Math.max(...data.map((d) => d.hours), 1);
 
   return (
@@ -211,7 +217,7 @@ function WeeklyHistogram({ data }: { data: WeeklyHistogramData[] }) {
                   histStyles.bar,
                   {
                     height: `${Math.max(barHeight, 2)}%`,
-                    backgroundColor: isToday ? colors.accentPink : colors.accent,
+                    backgroundColor: isToday ? colors.accentSecondary : colors.accent,
                   },
                 ]}
               />
@@ -228,7 +234,7 @@ function WeeklyHistogram({ data }: { data: WeeklyHistogramData[] }) {
   );
 }
 
-const histStyles = StyleSheet.create({
+const createHistStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -283,6 +289,8 @@ function StatCard({
   value: string;
   color: string;
 }) {
+  const { colors } = useTheme();
+  const statStyles = createStatStyles(colors);
   return (
     <View style={statStyles.card}>
       <Ionicons name={icon} size={20} color={iconColor} />
@@ -292,7 +300,7 @@ function StatCard({
   );
 }
 
-const statStyles = StyleSheet.create({
+const createStatStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     flex: 1,
     backgroundColor: colors.card,
@@ -316,6 +324,8 @@ const statStyles = StyleSheet.create({
 // ── Main Progress Screen ───────────────────────────────
 
 export function ProgressScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const navigation = useNavigation<any>();
   const [overview, setOverview] = useState<ProgressOverviewData | null>(null);
   const [disciplinas, setDisciplinas] = useState<DisciplinaProgressData[]>([]);
@@ -323,27 +333,34 @@ export function ProgressScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const [ov, disc, wk] = await Promise.all([
-          getProgressOverview(),
-          getProgressByDisciplina(),
-          getWeeklyProgress(),
-        ]);
-        setOverview(ov);
-        setDisciplinas(disc);
-        setWeekly(wk);
-      } catch {
-        setError('Não foi possível carregar o progresso.');
-      } finally {
-        setLoading(false);
-      }
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [ov, disc, wk] = await Promise.all([
+        getProgressOverview(),
+        getProgressByDisciplina(),
+        getWeeklyProgress(),
+      ]);
+      setOverview(ov);
+      setDisciplinas(disc);
+      setWeekly(wk);
+    } catch {
+      setError('Não foi possível carregar o progresso.');
+    } finally {
+      setLoading(false);
     }
-    load();
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   if (loading) {
     return (
@@ -451,7 +468,7 @@ export function ProgressScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

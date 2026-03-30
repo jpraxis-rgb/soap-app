@@ -6,10 +6,9 @@ import {
   ScrollView,
   Pressable,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Button } from '../components';
 import { MOCK_QUIZZES } from '../services/api';
 
@@ -33,10 +32,13 @@ interface QuizBody {
 type QuestionResult = 'correct' | 'incorrect' | 'unanswered';
 
 export function QuizScreen() {
+  const { colors } = useTheme();
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const item = route.params?.item || MOCK_QUIZZES[0];
   const questions: Question[] = ((item.body as QuizBody)?.questions) || [];
+
+  const styles = createStyles(colors);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -357,7 +359,7 @@ export function QuizScreen() {
           <Button
             label="Confirmar"
             onPress={handleConfirm}
-            variant={selectedAnswer ? 'gradient' : 'outlined'}
+            variant={selectedAnswer ? 'filled' : 'outlined'}
           />
         ) : (
           <Button
@@ -374,7 +376,7 @@ export function QuizScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

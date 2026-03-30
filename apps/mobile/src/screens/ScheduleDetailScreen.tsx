@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Badge } from '../components';
 
 // ── Mock Data ──────────────────────────────────────────
@@ -59,22 +59,23 @@ const MOCK_SECTIONS: DaySection[] = [
   },
 ];
 
-// ── Status Badge Helper ────────────────────────────────
-
-function statusConfig(status: ScheduleBlock['status']) {
-  switch (status) {
-    case 'completed':
-      return { label: 'Conclu\u00EDdo', color: colors.success };
-    case 'skipped':
-      return { label: 'Pulado', color: colors.warning };
-    default:
-      return { label: 'Pendente', color: colors.textSecondary };
-  }
-}
-
 // ── Block Item ─────────────────────────────────────────
 
 function BlockItem({ block }: { block: ScheduleBlock }) {
+  const { colors } = useTheme();
+  const blockStyles = createBlockStyles(colors);
+
+  function statusConfig(status: ScheduleBlock['status']) {
+    switch (status) {
+      case 'completed':
+        return { label: 'Conclu\u00EDdo', color: colors.success };
+      case 'skipped':
+        return { label: 'Pulado', color: colors.warning };
+      default:
+        return { label: 'Pendente', color: colors.textSecondary };
+    }
+  }
+
   const { label, color } = statusConfig(block.status);
   const isCompleted = block.status === 'completed';
 
@@ -116,7 +117,7 @@ function BlockItem({ block }: { block: ScheduleBlock }) {
   );
 }
 
-const blockStyles = StyleSheet.create({
+const createBlockStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     marginHorizontal: spacing.md,
     marginBottom: spacing.sm,
@@ -168,6 +169,9 @@ const blockStyles = StyleSheet.create({
 // ── Main Screen ────────────────────────────────────────
 
 export function ScheduleDetailScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   const totalBlocks = MOCK_SECTIONS.reduce((sum, s) => sum + s.data.length, 0);
   const completedBlocks = MOCK_SECTIONS.reduce(
     (sum, s) => sum + s.data.filter((b) => b.status === 'completed').length,
@@ -185,7 +189,7 @@ export function ScheduleDetailScreen() {
             {/* Overview Card */}
             <View style={styles.overviewWrapper}>
               <LinearGradient
-                colors={[colors.accent, colors.accentPink]}
+                colors={[colors.gradientStart, colors.gradientEnd]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.overviewCard}
@@ -219,13 +223,19 @@ export function ScheduleDetailScreen() {
           </View>
         )}
         renderItem={({ item }) => <BlockItem block={item} />}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Ionicons name="document-text-outline" size={48} color={colors.textSecondary} />
+            <Text style={styles.emptyText}>Nenhum tópico encontrado</Text>
+          </View>
+        }
         ListFooterComponent={<View style={{ height: spacing.xxl }} />}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -258,13 +268,13 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
   },
   overviewLabel: {
-    color: 'rgba(255,255,255,0.7)',
+    color: colors.textSecondary,
     fontSize: typography.sizes.xs,
     marginTop: 2,
   },
   overviewDivider: {
     width: 1,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: colors.border,
   },
   sectionHeader: {
     paddingHorizontal: spacing.md,
@@ -275,5 +285,15 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+    gap: spacing.sm,
+  },
+  emptyText: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.sm,
+    textAlign: 'center',
   },
 });

@@ -11,12 +11,13 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card } from '../components';
 import { useConcurso } from '../contexts/ConcursoContext';
 import { fetchContentForEdital, DisciplineContent, EditalContentMap } from '../services/api';
 
 export function StudyScreen() {
+  const { colors } = useTheme();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { activeConcurso } = useConcurso();
@@ -24,6 +25,8 @@ export function StudyScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const styles = createStyles(colors);
 
   const loadContent = useCallback(async () => {
     if (!activeConcurso?.id) {
@@ -112,7 +115,7 @@ export function StudyScreen() {
           </View>
           <View style={styles.progressBarBg}>
             <LinearGradient
-              colors={[colors.accent, colors.accentPink]}
+              colors={[colors.gradientStart, colors.gradientEnd]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={[styles.progressBarFill, { width: `${Math.max(percent, 2)}%` }]}
@@ -149,7 +152,7 @@ export function StudyScreen() {
         <Text style={styles.overallPercent}>{overallPercent}%</Text>
         <View style={styles.overallBarBg}>
           <LinearGradient
-            colors={[colors.accent, colors.accentPink]}
+            colors={[colors.gradientStart, colors.gradientEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={[styles.overallBarFill, { width: `${Math.max(overallPercent, 2)}%` }]}
@@ -193,7 +196,7 @@ export function StudyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

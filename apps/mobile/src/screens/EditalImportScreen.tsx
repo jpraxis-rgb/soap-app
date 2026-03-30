@@ -11,10 +11,9 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { parseEdital, getEditalTemplates, getEditalTemplateDetail, createEditalFromTemplate } from '../services/api';
 import type { EditalTemplate } from '../services/api';
 import type { ParsedEditalData } from '../contexts/ConcursoContext';
@@ -43,12 +42,18 @@ const normalizeDisciplinas = (discs: any[]) => discs.map((d: any) => ({
 }));
 
 export function EditalImportScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const navigation = useNavigation<any>();
   const [url, setUrl] = useState('');
+  const [urlTouched, setUrlTouched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [templates, setTemplates] = useState<EditalTemplate[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [tappedTemplateId, setTappedTemplateId] = useState<string | null>(null);
+
+  const isValidUrl = (u: string) => /^https?:\/\/.+\..+/.test(u);
+  const urlError = urlTouched && url.trim() && !isValidUrl(url.trim()) ? 'URL inválida' : '';
 
   useEffect(() => {
     getEditalTemplates()
@@ -108,8 +113,12 @@ export function EditalImportScreen() {
   };
 
   const handleAnalyze = async () => {
+    setUrlTouched(true);
     if (!url.trim()) {
       Alert.alert('URL obrigatória', 'Cole a URL do edital para continuar.');
+      return;
+    }
+    if (!isValidUrl(url.trim())) {
       return;
     }
 
@@ -261,7 +270,7 @@ export function EditalImportScreen() {
         {/* URL Input */}
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>URL do Edital (PDF ou página web)</Text>
-          <View style={styles.inputWrapper}>
+          <View style={[styles.inputWrapper, !!urlError && styles.inputWrapperError]}>
             <Ionicons
               name="link-outline"
               size={20}
@@ -274,12 +283,14 @@ export function EditalImportScreen() {
               placeholderTextColor={colors.textSecondary}
               value={url}
               onChangeText={setUrl}
+              onBlur={() => setUrlTouched(true)}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="url"
               editable={!loading}
             />
           </View>
+          {!!urlError && <Text style={styles.urlErrorText}>{urlError}</Text>}
         </View>
 
         {/* Analyze Button */}
@@ -290,15 +301,10 @@ export function EditalImportScreen() {
           </View>
         ) : (
           <Pressable onPress={handleAnalyze} style={styles.buttonWrapper}>
-            <LinearGradient
-              colors={[colors.accent, colors.accentPink]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.gradientButton}
-            >
-              <Ionicons name="search-outline" size={20} color={colors.text} />
-              <Text style={styles.buttonText}>Analisar</Text>
-            </LinearGradient>
+            <View style={[styles.gradientButton, { backgroundColor: colors.accent }]}>
+              <Ionicons name="search-outline" size={20} color={colors.accentForeground} />
+              <Text style={[styles.buttonText, { color: colors.accentForeground }]}>Analisar</Text>
+            </View>
           </Pressable>
         )}
 
@@ -312,7 +318,7 @@ export function EditalImportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -418,6 +424,9 @@ const styles = StyleSheet.create({
     borderColor: colors.surface,
     paddingHorizontal: spacing.md,
   },
+  inputWrapperError: {
+    borderColor: colors.error,
+  },
   inputIcon: {
     marginRight: spacing.sm,
   },
@@ -426,6 +435,11 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: typography.sizes.md,
     paddingVertical: 14,
+  },
+  urlErrorText: {
+    color: colors.error,
+    fontSize: typography.sizes.xs,
+    marginTop: spacing.xs,
   },
   loadingContainer: {
     alignItems: 'center',

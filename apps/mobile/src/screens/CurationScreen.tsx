@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Badge, Button } from '../components';
 import {
   fetchCurationQueue,
@@ -18,21 +18,24 @@ import {
   ContentItem,
 } from '../services/api';
 
-const FORMAT_LABELS: Record<string, string> = {
-  summary: 'Resumo',
-  flashcard: 'Flashcards',
-  quiz: 'Quiz',
-  mind_map: 'Mapa Mental',
-};
-
-const FORMAT_COLORS: Record<string, string> = {
-  summary: colors.accent,
-  flashcard: colors.warning,
-  quiz: colors.accentPink,
-  mind_map: colors.success,
-};
-
 export function CurationScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
+  const FORMAT_LABELS: Record<string, string> = {
+    summary: 'Resumo',
+    flashcard: 'Flashcards',
+    quiz: 'Quiz',
+    mind_map: 'Mapa Mental',
+  };
+
+  const FORMAT_COLORS: Record<string, string> = {
+    summary: colors.accent,
+    flashcard: colors.warning,
+    quiz: colors.accentSecondary,
+    mind_map: colors.success,
+  };
+
   const [items, setItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -204,7 +207,7 @@ export function CurationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

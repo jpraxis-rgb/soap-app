@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  FlatList,
+  Pressable,
   ActivityIndicator,
 } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Badge } from '../components';
 import {
   getDisciplinaDetail,
@@ -21,6 +21,8 @@ import {
 // ── Topic Checklist ────────────────────────────────────
 
 function TopicItem({ name, completed }: { name: string; completed: boolean }) {
+  const { colors } = useTheme();
+  const topicStyles = createTopicStyles(colors);
   return (
     <View style={topicStyles.row}>
       <Ionicons
@@ -40,7 +42,7 @@ function TopicItem({ name, completed }: { name: string; completed: boolean }) {
   );
 }
 
-const topicStyles = StyleSheet.create({
+const createTopicStyles = (colors: ThemeColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -62,32 +64,48 @@ const topicStyles = StyleSheet.create({
 
 // ── Session History Item ───────────────────────────────
 
-function SessionItem({ session }: { session: StudySessionData }) {
+function SessionItem({ session, onPress }: { session: StudySessionData; onPress?: () => void }) {
+  const { colors } = useTheme();
+  const sessionStyles = createSessionStyles(colors);
   const date = new Date(session.started_at);
   const dateStr = date.toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
   });
-  const ratingEmojis = ['\u{1F629}', '\u{1F610}', '\u{1F60A}'];
-  const ratingEmoji = ratingEmojis[session.self_rating - 1] || '\u{1F610}';
+  const ratingIcons: { icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
+    { icon: 'thunderstorm-outline', color: '#FF6B6B' },
+    { icon: 'partly-sunny-outline', color: '#FFB347' },
+    { icon: 'sunny-outline', color: '#4ECB71' },
+  ];
+  const rating = ratingIcons[session.self_rating - 1] || ratingIcons[1];
 
   return (
-    <View style={sessionStyles.row}>
+    <Pressable style={sessionStyles.row} onPress={onPress}>
       <View style={sessionStyles.left}>
         <Text style={sessionStyles.topic} numberOfLines={1}>
           {session.topic}
         </Text>
-        <Text style={sessionStyles.date}>{dateStr}</Text>
+        <View style={sessionStyles.metaRow}>
+          <Text style={sessionStyles.date}>{dateStr}</Text>
+          {session.notes ? (
+            <View style={sessionStyles.notesBadge}>
+              <Ionicons name="document-text-outline" size={10} color={colors.textSecondary} />
+              <Text style={sessionStyles.notesPreview} numberOfLines={1}>
+                {session.notes}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
       <View style={sessionStyles.right}>
         <Text style={sessionStyles.duration}>{session.duration_minutes}min</Text>
-        <Text style={sessionStyles.rating}>{ratingEmoji}</Text>
+        <Ionicons name={rating.icon} size={18} color={rating.color} />
       </View>
-    </View>
+    </Pressable>
   );
 }
 
-const sessionStyles = StyleSheet.create({
+const createSessionStyles = (colors: ThemeColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -105,10 +123,27 @@ const sessionStyles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
   },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: 2,
+  },
   date: {
     color: colors.textSecondary,
     fontSize: typography.sizes.xs,
-    marginTop: 2,
+  },
+  notesBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    flex: 1,
+  },
+  notesPreview: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.xs,
+    fontStyle: 'italic',
+    flex: 1,
   },
   right: {
     flexDirection: 'row',
@@ -119,15 +154,15 @@ const sessionStyles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: typography.sizes.sm,
   },
-  rating: {
-    fontSize: 18,
-  },
 });
 
 // ── Main Screen ────────────────────────────────────────
 
 export function DisciplinaDetailScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const route = useRoute<any>();
+  const navigation = useNavigation<any>();
   const { disciplinaId, disciplinaName } = route.params || {
     disciplinaId: 'd1',
     disciplinaName: 'Disciplina',
@@ -139,7 +174,7 @@ export function DisciplinaDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     setLoading(true);
     setError(null);
     getDisciplinaDetail(disciplinaId)
@@ -151,6 +186,16 @@ export function DisciplinaDetailScreen() {
       .catch(() => setError('Não foi possível carregar a disciplina.'))
       .finally(() => setLoading(false));
   }, [disciplinaId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData]),
+  );
 
   if (loading) {
     return (
@@ -180,7 +225,7 @@ export function DisciplinaDetailScreen() {
       {/* Header Card */}
       <View style={styles.headerCard}>
         <LinearGradient
-          colors={[colors.accent, colors.accentPink]}
+          colors={[colors.gradientStart, colors.gradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -253,10 +298,27 @@ export function DisciplinaDetailScreen() {
       </Card>
 
       {/* Session History */}
-      <Card style={styles.section} header="Histórico de sessões">
+      <Card style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionHeaderText}>Histórico de sessões</Text>
+          <Pressable
+            style={styles.addSessionButton}
+            onPress={() =>
+              navigation.navigate('ManualSession', { disciplinaId, disciplinaName })
+            }
+            accessibilityLabel="Adicionar sessão"
+            accessibilityRole="button"
+          >
+            <Ionicons name="add-circle-outline" size={22} color={colors.accent} />
+          </Pressable>
+        </View>
         {sessions.length > 0 ? (
           sessions.map((session) => (
-            <SessionItem key={session.id} session={session} />
+            <SessionItem
+              key={session.id}
+              session={session}
+              onPress={() => navigation.navigate('ManualSession', { session, disciplinaId, disciplinaName })}
+            />
           ))
         ) : (
           <Text style={styles.emptyText}>Nenhuma sessão registrada</Text>
@@ -268,7 +330,7 @@ export function DisciplinaDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -318,13 +380,13 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
   },
   headerStatLabel: {
-    color: 'rgba(255,255,255,0.7)',
+    color: colors.textSecondary,
     fontSize: typography.sizes.xs,
     marginTop: 2,
   },
   headerDivider: {
     width: 1,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: colors.border,
   },
   infoRow: {
     flexDirection: 'row',
@@ -375,5 +437,19 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     textAlign: 'center',
     paddingVertical: spacing.md,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  sectionHeaderText: {
+    color: colors.text,
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+  },
+  addSessionButton: {
+    padding: spacing.xs,
   },
 });

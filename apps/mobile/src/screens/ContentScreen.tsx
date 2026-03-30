@@ -12,7 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card } from '../components';
 import { MOCK_MIND_MAPS } from '../services/api';
 import Svg, { Circle, Line, Text as SvgText } from 'react-native-svg';
@@ -54,6 +54,7 @@ interface MindMapBody {
 }
 
 export function ContentScreen() {
+  const { colors } = useTheme();
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -61,6 +62,8 @@ export function ContentScreen() {
 
   const item = route.params?.item;
   const mode = route.params?.mode;
+
+  const styles = createStyles(colors);
 
   if (mode === 'mindmap') {
     return <MindMapView item={item} />;
@@ -84,7 +87,7 @@ export function ContentScreen() {
       {/* Progress bar */}
       <View style={styles.progressBarContainer}>
         <LinearGradient
-          colors={[colors.accent, colors.accentPink]}
+          colors={[colors.gradientStart, colors.gradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={[styles.progressBar, { width: `${scrollProgress * 100}%` }]}
@@ -107,6 +110,14 @@ export function ContentScreen() {
             <Text style={styles.authorText}>
               Revisado por {item.professor_name}
             </Text>
+          </View>
+        )}
+
+        {/* Empty state */}
+        {sections.length === 0 && keyTerms.length === 0 && (
+          <View style={styles.emptyState}>
+            <Ionicons name="document-text-outline" size={48} color={colors.textSecondary} />
+            <Text style={styles.emptyText}>Conteúdo ainda não disponível</Text>
           </View>
         )}
 
@@ -183,7 +194,7 @@ export function ContentScreen() {
               style={styles.continueButton}
               onPress={() => navigation.navigate('Quiz', { item: route.params?.item })}
             >
-              <Ionicons name="help-circle" size={24} color={colors.accentPink} />
+              <Ionicons name="help-circle" size={24} color={colors.accentSecondary} />
               <Text style={styles.continueButtonText}>Quiz</Text>
             </Pressable>
           </View>
@@ -196,6 +207,8 @@ export function ContentScreen() {
 }
 
 function MindMapView({ item }: { item: any }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const body = (item?.body || MOCK_MIND_MAPS[0].body) as MindMapBody;
   const centerX = SCREEN_WIDTH / 2;
   const centerY = 200;
@@ -325,7 +338,7 @@ function MindMapView({ item }: { item: any }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -519,5 +532,16 @@ const styles = StyleSheet.create({
   legendChildCount: {
     color: colors.textSecondary,
     fontSize: typography.sizes.xs,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  emptyText: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.sm,
+    textAlign: 'center',
   },
 });

@@ -10,10 +10,9 @@ import {
   Platform,
   UIManager,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Badge } from '../components';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -53,6 +52,8 @@ function DisciplinaCard({
   excluded: boolean;
   onToggleExclude: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [expanded, setExpanded] = useState(false);
 
   const toggleExpand = () => {
@@ -74,7 +75,7 @@ function DisciplinaCard({
           >
             <View style={[styles.checkbox, !excluded && styles.checkboxChecked]}>
               {!excluded && (
-                <Ionicons name="checkmark" size={14} color={colors.text} />
+                <Ionicons name="checkmark" size={14} color={colors.accentForeground} />
               )}
             </View>
           </Pressable>
@@ -129,6 +130,8 @@ function formatDate(dateStr: string): string {
 }
 
 export function EditalReviewScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const params = route.params as { edital?: ParsedEditalData } | undefined;
@@ -243,7 +246,12 @@ export function EditalReviewScreen() {
         </Card>
 
         {/* Disciplinas */}
-        {hasCategories ? (
+        {edital.disciplinas.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="school-outline" size={48} color={colors.textSecondary} />
+            <Text style={styles.emptyStateText}>Nenhuma disciplina encontrada</Text>
+          </View>
+        ) : hasCategories ? (
           <>
             {gerais.length > 0 && (
               <>
@@ -288,24 +296,19 @@ export function EditalReviewScreen() {
           style={styles.confirmButtonWrapper}
           disabled={activeCount === 0}
         >
-          <LinearGradient
-            colors={activeCount > 0 ? [colors.accent, colors.accentPink] : [colors.surface, colors.surface]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.confirmButton}
-          >
-            <Ionicons name="checkmark-circle-outline" size={20} color={activeCount > 0 ? colors.text : colors.textSecondary} />
-            <Text style={[styles.confirmButtonText, activeCount === 0 && { color: colors.textSecondary }]}>
+          <View style={[styles.confirmButton, { backgroundColor: activeCount > 0 ? colors.accent : colors.surface }]}>
+            <Ionicons name="checkmark-circle-outline" size={20} color={activeCount > 0 ? colors.accentForeground : colors.textSecondary} />
+            <Text style={[styles.confirmButtonText, { color: activeCount > 0 ? colors.accentForeground : colors.textSecondary }]}>
               Confirmar e gerar cronograma
             </Text>
-          </LinearGradient>
+          </View>
         </Pressable>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -495,5 +498,15 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+    gap: spacing.sm,
+  },
+  emptyStateText: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.sm,
+    textAlign: 'center',
   },
 });

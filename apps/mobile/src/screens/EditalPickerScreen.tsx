@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { getEditalTemplates, getEditalTemplateDetail, createEditalFromTemplate } from '../services/api';
 import type { EditalTemplate } from '../services/api';
 import type { ParsedEditalData } from '../contexts/ConcursoContext';
@@ -74,6 +74,8 @@ function sortTemplates(list: EditalTemplate[], mode: SortMode): EditalTemplate[]
 }
 
 export function EditalPickerScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const navigation = useNavigation<any>();
   const [templates, setTemplates] = useState<EditalTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -296,7 +298,7 @@ export function EditalPickerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography, borderRadius } from '../theme';
+import { useTheme, spacing, typography, borderRadius, type ThemeColors } from '../theme';
 import { Card } from '../components';
 import { logStudySession, type ScheduleBlockData } from '../services/api';
 
@@ -48,6 +48,8 @@ function formatTimer(seconds: number): string {
 // ── Main Screen ────────────────────────────────────────
 
 export function StudySessionScreen({ navigation, route }: StudySessionScreenProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { block } = route.params;
 
   // Step 1: Topic selection
@@ -221,15 +223,10 @@ export function StudySessionScreen({ navigation, route }: StudySessionScreenProp
 
         <View style={styles.bottomAction}>
           <Pressable onPress={startTimer} style={styles.startButtonWrapper}>
-            <LinearGradient
-              colors={[colors.accent, colors.accentPink]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.startButton}
-            >
-              <Ionicons name="play" size={24} color={colors.text} />
-              <Text style={styles.startButtonText}>Iniciar timer</Text>
-            </LinearGradient>
+            <View style={[styles.startButton, { backgroundColor: colors.accent }]}>
+              <Ionicons name="play" size={24} color={colors.accentForeground} />
+              <Text style={[styles.startButtonText, { color: colors.accentForeground }]}>Iniciar timer</Text>
+            </View>
           </Pressable>
         </View>
       </View>
@@ -263,7 +260,7 @@ export function StudySessionScreen({ navigation, route }: StudySessionScreenProp
           {/* Progress bar */}
           <View style={styles.progressBarBg}>
             <LinearGradient
-              colors={[colors.accent, colors.accentPink]}
+              colors={[colors.gradientStart, colors.gradientEnd]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={[styles.progressBarFill, { width: `${progress * 100}%` }]}
@@ -368,21 +365,16 @@ export function StudySessionScreen({ navigation, route }: StudySessionScreenProp
           disabled={saving}
           style={styles.startButtonWrapper}
         >
-          <LinearGradient
-            colors={rating !== null ? [colors.accent, colors.accentPink] : [colors.surface, colors.surface]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.startButton}
-          >
+          <View style={[styles.startButton, { backgroundColor: rating !== null ? colors.accent : colors.surface }]}>
             <Ionicons
               name="checkmark"
               size={24}
-              color={rating !== null ? colors.text : colors.textSecondary}
+              color={rating !== null ? colors.accentForeground : colors.textSecondary}
             />
-            <Text style={[styles.startButtonText, rating === null && { color: colors.textSecondary }]}>
+            <Text style={[styles.startButtonText, { color: rating !== null ? colors.accentForeground : colors.textSecondary }]}>
               {saving ? 'Salvando...' : 'Salvar sessão'}
             </Text>
-          </LinearGradient>
+          </View>
         </Pressable>
       </View>
     </View>
@@ -391,7 +383,7 @@ export function StudySessionScreen({ navigation, route }: StudySessionScreenProp
 
 // ── Styles ─────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

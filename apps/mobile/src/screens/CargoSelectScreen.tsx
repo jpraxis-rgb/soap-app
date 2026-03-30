@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Badge } from '../components';
 import { createEditalFromTemplate } from '../services/api';
 import type { ParsedEditalData } from '../contexts/ConcursoContext';
@@ -50,6 +50,8 @@ const normalizeDisciplinas = (discs: any[]) => discs.map((d: any) => ({
 }));
 
 export function CargoSelectScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const { editalBase, cargos, sharedDisciplinas, templateId } = route.params as CargoSelectParams;
@@ -152,7 +154,7 @@ export function CargoSelectScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

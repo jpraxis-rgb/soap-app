@@ -6,9 +6,10 @@ import {
   StyleSheet,
   Pressable,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { BottomSheet } from '../components';
 import { logStudySession, ScheduleBlockData } from '../services/api';
 
@@ -33,6 +34,8 @@ export function SessionLogSheet({
   onSessionLogged,
   block,
 }: SessionLogSheetProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [duration, setDuration] = useState(block.duration_minutes);
   const [rating, setRating] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
@@ -68,7 +71,10 @@ export function SessionLogSheet({
       onClose={onClose}
       snapPoints={['70%']}
     >
-      <View style={styles.content}>
+      <KeyboardAvoidingView
+        style={styles.content}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         {/* Header */}
         <Text style={styles.title}>Registrar sessão</Text>
         <Text style={styles.subtitle}>
@@ -142,23 +148,18 @@ export function SessionLogSheet({
           disabled={!canSubmit || loading}
           style={{ opacity: canSubmit && !loading ? 1 : 0.5 }}
         >
-          <LinearGradient
-            colors={[colors.accent, colors.accentPink]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.submitButton}
-          >
-            <Text style={styles.submitText}>
+          <View style={[styles.submitButton, { backgroundColor: colors.accent }]}>
+            <Text style={[styles.submitText, { color: colors.accentForeground }]}>
               {loading ? 'Registrando...' : 'Registrar sessão'}
             </Text>
-          </LinearGradient>
+          </View>
         </Pressable>
-      </View>
+      </KeyboardAvoidingView>
     </BottomSheet>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     flex: 1,
     gap: spacing.md,

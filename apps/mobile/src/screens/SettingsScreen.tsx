@@ -9,11 +9,12 @@ import {
   Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors, type ThemeMode } from '../theme';
 import { Card } from '../components';
 import { useAuth } from '../contexts/AuthContext';
 
 export function SettingsScreen() {
+  const { colors, mode, setMode } = useTheme();
   const { logout } = useAuth();
 
   const [notifications, setNotifications] = useState({
@@ -24,7 +25,6 @@ export function SettingsScreen() {
   });
 
   const [preferences, setPreferences] = useState({
-    darkTheme: true,
     autoPlay: false,
     downloadOverWifi: true,
   });
@@ -45,6 +45,8 @@ export function SettingsScreen() {
       ],
     );
   };
+
+  const styles = createStyles(colors);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -82,13 +84,40 @@ export function SettingsScreen() {
 
       {/* App Preferences */}
       <Card header="Preferências" style={styles.section}>
-        <ToggleRow
-          icon="moon"
-          label="Tema escuro"
-          subtitle="Sempre ativado (em breve mais opções)"
-          value={preferences.darkTheme}
-          onToggle={(v) => setPreferences(prev => ({ ...prev, darkTheme: v }))}
-        />
+        <View style={styles.themeRow}>
+          <View style={styles.themeLabel}>
+            <Ionicons name="color-palette-outline" size={20} color={colors.textSecondary} />
+            <View>
+              <Text style={styles.toggleLabel}>Aparência</Text>
+              <Text style={styles.toggleSubtitle}>Escolha o tema do app</Text>
+            </View>
+          </View>
+          <View style={styles.themeOptions}>
+            {([
+              { key: 'system' as ThemeMode, label: 'Auto' },
+              { key: 'light' as ThemeMode, label: 'Claro' },
+              { key: 'dark' as ThemeMode, label: 'Escuro' },
+            ]).map((option) => (
+              <Pressable
+                key={option.key}
+                style={[
+                  styles.themeOption,
+                  mode === option.key && styles.themeOptionActive,
+                ]}
+                onPress={() => setMode(option.key)}
+              >
+                <Text
+                  style={[
+                    styles.themeOptionText,
+                    mode === option.key && styles.themeOptionTextActive,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
         <ToggleRow
           icon="play-circle-outline"
           label="Reprodução automática"
@@ -171,6 +200,9 @@ function ToggleRow({
   value: boolean;
   onToggle: (value: boolean) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return (
     <View style={styles.toggleRow}>
       <Ionicons name={icon} size={20} color={colors.textSecondary} />
@@ -188,7 +220,7 @@ function ToggleRow({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -250,4 +282,11 @@ const styles = StyleSheet.create({
     color: colors.error,
     fontWeight: typography.weights.semibold,
   },
+  themeRow: { gap: spacing.sm, paddingVertical: spacing.sm },
+  themeLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  themeOptions: { flexDirection: 'row', gap: spacing.xs, marginTop: spacing.sm },
+  themeOption: { flex: 1, paddingVertical: spacing.sm, borderRadius: 8, backgroundColor: colors.surface, alignItems: 'center' },
+  themeOptionActive: { backgroundColor: colors.accent },
+  themeOptionText: { color: colors.textSecondary, fontSize: typography.sizes.sm, fontWeight: typography.weights.medium },
+  themeOptionTextActive: { color: '#FFFFFF', fontWeight: typography.weights.bold },
 });

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography, borderRadius } from '../theme';
+import { useTheme, spacing, typography, borderRadius, type ThemeColors } from '../theme';
 import { Card, Button } from '../components';
 import { useConcurso } from '../contexts/ConcursoContext';
 
@@ -154,12 +154,17 @@ function HoursStepper({
   min: number;
   max: number;
 }) {
+  const { colors } = useTheme();
+  const stepperStyles = createStepperStyles(colors);
+
   return (
     <View style={stepperStyles.container}>
       <Pressable
         onPress={onDecrement}
         disabled={value <= min}
         style={[stepperStyles.btn, value <= min && stepperStyles.btnDisabled]}
+        accessibilityLabel="Diminuir"
+        accessibilityRole="button"
       >
         <Ionicons name="remove" size={14} color={value <= min ? colors.textSecondary : colors.text} />
       </Pressable>
@@ -168,6 +173,8 @@ function HoursStepper({
         onPress={onIncrement}
         disabled={value >= max}
         style={[stepperStyles.btn, value >= max && stepperStyles.btnDisabled]}
+        accessibilityLabel="Aumentar"
+        accessibilityRole="button"
       >
         <Ionicons name="add" size={14} color={value >= max ? colors.textSecondary : colors.text} />
       </Pressable>
@@ -175,16 +182,16 @@ function HoursStepper({
   );
 }
 
-const stepperStyles = StyleSheet.create({
+const createStepperStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
   btn: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -204,6 +211,8 @@ const stepperStyles = StyleSheet.create({
 // ── Main Screen ────────────────────────────────────────
 
 export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScreenProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { confirmEdital, setScheduleConfig } = useConcurso();
   const { edital, config } = route.params;
   const [saving, setSaving] = useState(false);
@@ -292,7 +301,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
       >
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Pressable onPress={() => navigation.goBack()} style={styles.backButton} accessibilityLabel="Voltar" accessibilityRole="button">
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
           <View style={styles.headerText}>
@@ -306,7 +315,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
         {/* Summary Card */}
         <View style={styles.summaryWrapper}>
           <LinearGradient
-            colors={[colors.accent, colors.accentPink]}
+            colors={[colors.gradientStart, colors.gradientEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.summaryCard}
@@ -330,6 +339,13 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
 
         {/* Per-disciplina allocation — editable */}
         <Card style={styles.card} header="Distribuição por disciplina">
+          {allocations.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="bar-chart-outline" size={48} color={colors.textSecondary} />
+              <Text style={styles.emptyStateText}>Nenhuma alocação disponível</Text>
+            </View>
+          ) : (
+          <>
           <View style={styles.allocationList}>
             {allocations.map((alloc) => (
               <View key={alloc.id} style={styles.allocationRow}>
@@ -347,7 +363,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
                           styles.allocationBar,
                           {
                             backgroundColor: alloc.color,
-                            width: `${(alloc.hours / maxHours) * 100}%`,
+                            width: `${Math.min((alloc.hours / maxHours) * 100, 100)}%`,
                           },
                         ]}
                       />
@@ -382,6 +398,8 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
             <Text style={styles.budgetWarning}>
               +{overUnder.toFixed(1)}h acima do disponível
             </Text>
+          )}
+          </>
           )}
         </Card>
 
@@ -452,8 +470,8 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
             size="lg"
             disabled={saving}
             icon={saving
-              ? <ActivityIndicator size={16} color={colors.text} />
-              : <Ionicons name="checkmark-circle" size={20} color={colors.text} />
+              ? <ActivityIndicator size={16} color={colors.accentForeground} />
+              : <Ionicons name="checkmark-circle" size={20} color={colors.accentForeground} />
             }
           />
           <Button
@@ -472,7 +490,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
 
 // ── Styles ─────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -531,7 +549,7 @@ const styles = StyleSheet.create({
     lineHeight: typography.sizes.xxl + 6,
   },
   summaryLabel: {
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.7)',
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.medium,
     marginTop: spacing.xs,
@@ -691,5 +709,15 @@ const styles = StyleSheet.create({
   },
   adjustButton: {
     marginTop: 0,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+    gap: spacing.sm,
+  },
+  emptyStateText: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.sm,
+    textAlign: 'center',
   },
 });

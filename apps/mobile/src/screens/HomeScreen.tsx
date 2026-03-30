@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,16 +11,27 @@ import {
   Platform,
   UIManager,
   ActivityIndicator,
+  AccessibilityInfo,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Badge, Card } from '../components';
 import { getTodayScheduleBlocks, ScheduleBlockData, getUpcomingScheduleBlocks } from '../services/api';
 import { useConcurso } from '../contexts/ConcursoContext';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+function useReducedMotion() {
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => sub.remove();
+  }, []);
+  return reduceMotion;
 }
 
 // ── Week Calendar ──────────────────────────────────────
@@ -38,6 +49,8 @@ function WeekCalendar({
   onSelectDate: (date: string) => void;
   blockDates: Set<string>;
 }) {
+  const { colors } = useTheme();
+  const calStyles = createCalStyles(colors);
   const today = new Date();
   const dayLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
 
@@ -69,7 +82,7 @@ function WeekCalendar({
             </Text>
             {isSelected ? (
               <LinearGradient
-                colors={[colors.accent, colors.accentPink]}
+                colors={[colors.gradientStart, colors.gradientEnd]}
                 style={calStyles.todayCircle}
               >
                 <Text style={calStyles.dayNumberActive}>{d.getDate()}</Text>
@@ -89,7 +102,7 @@ function WeekCalendar({
   );
 }
 
-const calStyles = StyleSheet.create({
+const createCalStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -110,16 +123,16 @@ const calStyles = StyleSheet.create({
     fontWeight: typography.weights.bold,
   },
   todayCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dayCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surface,
@@ -154,10 +167,15 @@ function StudyBlockCard({
   onStartSession: (block: ScheduleBlockData) => void;
   onViewMaterial: (block: ScheduleBlockData) => void;
 }) {
+  const { colors } = useTheme();
+  const blockStyles = createBlockStyles(colors);
   const [expanded, setExpanded] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   const toggleExpand = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    if (!reduceMotion) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    }
     setExpanded(!expanded);
   };
 
@@ -165,7 +183,7 @@ function StudyBlockCard({
 
   return (
     <Pressable onPress={toggleExpand}>
-      <Card style={[blockStyles.card, isCompleted && blockStyles.cardCompleted]}>
+      <Card style={[blockStyles.card, isCompleted ? blockStyles.cardCompleted : undefined]}>
         <View style={blockStyles.header}>
           <View style={blockStyles.timeContainer}>
             <Ionicons
@@ -209,15 +227,10 @@ function StudyBlockCard({
               style={blockStyles.actionButton}
               onPress={() => onStartSession(block)}
             >
-              <LinearGradient
-                colors={[colors.accent, colors.accentPink]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={blockStyles.gradientButton}
-              >
-                <Ionicons name="play" size={16} color={colors.text} />
-                <Text style={blockStyles.actionText}>Iniciar sessão</Text>
-              </LinearGradient>
+              <View style={[blockStyles.gradientButton, { backgroundColor: colors.accent }]}>
+                <Ionicons name="play" size={16} color={colors.accentForeground} />
+                <Text style={[blockStyles.actionText, { color: colors.accentForeground }]}>Iniciar sessão</Text>
+              </View>
             </Pressable>
             <Pressable style={blockStyles.outlinedButton} onPress={() => onViewMaterial(block)}>
               <Ionicons name="document-text-outline" size={16} color={colors.accent} />
@@ -239,7 +252,7 @@ function StudyBlockCard({
   );
 }
 
-const blockStyles = StyleSheet.create({
+const createBlockStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     marginHorizontal: spacing.md,
     marginBottom: spacing.sm,
@@ -347,12 +360,15 @@ interface HomeScreenProps {
 }
 
 export function HomeScreen({ navigation }: HomeScreenProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { hasAnyConcurso, hasActiveSchedule, activeConcurso, concursos, setActiveConcurso } = useConcurso();
   const [allWeekBlocks, setAllWeekBlocks] = useState<ScheduleBlockData[]>([]);
   const [selectedDate, setSelectedDate] = useState(() => formatDateKey(new Date()));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showConcursoSelector, setShowConcursoSelector] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   // Compute week range (Mon-Sun)
   const weekRange = React.useMemo(() => {
@@ -425,15 +441,10 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             Escolha um concurso popular ou importe seu edital para começar a estudar de forma inteligente.
           </Text>
           <Pressable onPress={() => navigation.navigate('EditalImport')}>
-            <LinearGradient
-              colors={[colors.accent, colors.accentPink]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.importButton}
-            >
-              <Ionicons name="add-circle-outline" size={20} color={colors.text} />
-              <Text style={styles.importButtonText}>Selecionar concurso</Text>
-            </LinearGradient>
+            <View style={[styles.importButton, { backgroundColor: colors.accent }]}>
+              <Ionicons name="add-circle-outline" size={20} color={colors.accentForeground} />
+              <Text style={[styles.importButtonText, { color: colors.accentForeground }]}>Selecionar concurso</Text>
+            </View>
           </Pressable>
         </ScrollView>
       </View>
@@ -480,7 +491,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             <Pressable
               style={styles.concursoSelector}
               onPress={() => {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                if (!reduceMotion) LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                 setShowConcursoSelector(!showConcursoSelector);
               }}
             >
@@ -507,7 +518,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                     ]}
                     onPress={() => {
                       setActiveConcurso(c.id);
-                      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                      if (!reduceMotion) LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                       setShowConcursoSelector(false);
                     }}
                   >
@@ -545,7 +556,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         {/* Exam Countdown Card */}
         <View style={styles.countdownWrapper}>
           <LinearGradient
-            colors={[colors.accent, colors.accentPink]}
+            colors={[colors.gradientStart, colors.gradientEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.countdownCard}
@@ -613,11 +624,23 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
+
+      {/* FAB — Manual Session */}
+      <Pressable
+        style={styles.fab}
+        onPress={() => navigation.navigate('ManualSession')}
+        accessibilityLabel="Registrar sessão manualmente"
+        accessibilityRole="button"
+      >
+        <View style={[styles.fabGradient, { backgroundColor: colors.accent }]}>
+          <Ionicons name="add" size={28} color={colors.accentForeground} />
+        </View>
+      </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -650,7 +673,7 @@ const styles = StyleSheet.create({
   },
   countdownLeft: {},
   countdownLabel: {
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.7)',
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
   },
@@ -833,5 +856,22 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: spacing.lg,
+    right: spacing.md,
+  },
+  fabGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
   },
 });

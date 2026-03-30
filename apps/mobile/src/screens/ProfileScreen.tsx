@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Badge } from '../components';
 import { useAuth } from '../contexts/AuthContext';
 import { useConcurso } from '../contexts/ConcursoContext';
@@ -21,18 +21,12 @@ const TIER_LABELS: Record<string, string> = {
   mentor: 'Mentor',
 };
 
-const TIER_COLORS: Record<string, string> = {
-  free: colors.textSecondary,
-  registro: colors.success,
-  microlearning: colors.accent,
-  mentor: colors.accentPink,
-};
-
 interface ProfileScreenProps {
   navigation: { navigate: (screen: string, params?: any) => void };
 }
 
 export function ProfileScreen({ navigation }: ProfileScreenProps) {
+  const { colors } = useTheme();
   const { user, logout, subscriptionTier } = useAuth();
   const { concursos, activeConcurso, setActiveConcurso, removeConcurso } = useConcurso();
   const [notifications, setNotifications] = useState({
@@ -41,6 +35,15 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
     newContent: false,
     quietHours: false,
   });
+
+  const styles = createStyles(colors);
+
+  const TIER_COLORS: Record<string, string> = {
+    free: colors.textSecondary,
+    registro: colors.success,
+    microlearning: colors.accent,
+    mentor: colors.accentSecondary,
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -118,6 +121,8 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
                       { text: 'Remover', style: 'destructive', onPress: () => removeConcurso(c.id) },
                     ]);
                   }}
+                  accessibilityLabel="Remover concurso"
+                  accessibilityRole="button"
                 >
                   <Ionicons name="trash-outline" size={18} color={colors.error} />
                 </Pressable>
@@ -139,21 +144,25 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
           label="Lembrete de estudo"
           value={notifications.studyReminder}
           onToggle={(v) => setNotifications(prev => ({ ...prev, studyReminder: v }))}
+          colors={colors}
         />
         <ToggleRow
           label="Resumo semanal"
           value={notifications.weeklySummary}
           onToggle={(v) => setNotifications(prev => ({ ...prev, weeklySummary: v }))}
+          colors={colors}
         />
         <ToggleRow
           label="Novo conteúdo"
           value={notifications.newContent}
           onToggle={(v) => setNotifications(prev => ({ ...prev, newContent: v }))}
+          colors={colors}
         />
         <ToggleRow
           label="Horário silencioso"
           value={notifications.quietHours}
           onToggle={(v) => setNotifications(prev => ({ ...prev, quietHours: v }))}
+          colors={colors}
         />
       </Card>
 
@@ -179,14 +188,17 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
         <MenuRow
           label="Termos de uso"
           onPress={() => Alert.alert('Termos', 'Em breve')}
+          colors={colors}
         />
         <MenuRow
           label="Política de privacidade"
           onPress={() => Alert.alert('Privacidade', 'Em breve')}
+          colors={colors}
         />
         <MenuRow
           label="Ajuda e suporte"
           onPress={() => Alert.alert('Ajuda', 'Em breve')}
+          colors={colors}
         />
         <View style={styles.versionRow}>
           <Text style={styles.versionText}>Versão 1.0.0</Text>
@@ -217,11 +229,14 @@ function ToggleRow({
   label,
   value,
   onToggle,
+  colors,
 }: {
   label: string;
   value: boolean;
   onToggle: (value: boolean) => void;
+  colors: ThemeColors;
 }) {
+  const styles = createStyles(colors);
   return (
     <View style={styles.toggleRow}>
       <Text style={styles.toggleLabel}>{label}</Text>
@@ -235,7 +250,8 @@ function ToggleRow({
   );
 }
 
-function MenuRow({ label, onPress }: { label: string; onPress: () => void }) {
+function MenuRow({ label, onPress, colors }: { label: string; onPress: () => void; colors: ThemeColors }) {
+  const styles = createStyles(colors);
   return (
     <Pressable style={styles.menuRow} onPress={onPress}>
       <Text style={styles.menuLabel}>{label}</Text>
@@ -244,7 +260,7 @@ function MenuRow({ label, onPress }: { label: string; onPress: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

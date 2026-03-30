@@ -8,7 +8,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Button } from '../components';
 
 interface PlanFeature {
@@ -58,6 +58,8 @@ const PLANS: Plan[] = [
 ];
 
 export function PaywallScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const navigation = useNavigation<any>();
 
   function handleSubscribe(_plan: Plan) {
@@ -90,7 +92,7 @@ export function PaywallScreen() {
           >
             {plan.recommended && (
               <LinearGradient
-                colors={[colors.accent, colors.accentPink]}
+                colors={[colors.gradientStart, colors.gradientEnd]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.recommendedBadge}
@@ -129,7 +131,7 @@ export function PaywallScreen() {
               <Button
                 label={plan.recommended ? 'Assinar Microlearning' : 'Assinar Básico'}
                 onPress={() => handleSubscribe(plan)}
-                variant={plan.recommended ? 'gradient' : 'outlined'}
+                variant={plan.recommended ? 'filled' : 'outlined'}
               />
             </View>
           </View>
@@ -144,7 +146,7 @@ export function PaywallScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

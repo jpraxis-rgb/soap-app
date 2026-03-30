@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Button } from '../components';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -23,66 +23,68 @@ interface PlanInfo {
   recommended?: boolean;
 }
 
-const plans: PlanInfo[] = [
-  {
-    tier: 'free',
-    name: 'Gratuito',
-    price: 'R$ 0',
-    description: 'Comece a organizar seus estudos',
-    features: [
-      'Upload de 1 edital',
-      'Cronograma básico',
-      'Acompanhamento de progresso',
-    ],
-    gradientColors: [colors.textSecondary, '#666688'],
-  },
-  {
-    tier: 'registro',
-    name: 'Básico',
-    price: 'R$ 19,90/mês',
-    description: 'Para quem quer mais organização',
-    features: [
-      'Upload ilimitado de editais',
-      'Cronograma personalizado',
-      'Relatórios detalhados',
-      'Suporte prioritário',
-    ],
-    gradientColors: [colors.success, '#009977'],
-  },
-  {
-    tier: 'microlearning',
-    name: 'Microlearning',
-    price: 'R$ 39,90/mês',
-    description: 'Conteúdo inteligente adaptado a você',
-    features: [
-      'Tudo do Básico',
-      'Flashcards com IA',
-      'Resumos personalizados',
-      'Quizzes adaptativos',
-      'Conteúdo offline',
-    ],
-    gradientColors: [colors.accent, '#4A3ACD'],
-    recommended: true,
-  },
-  {
-    tier: 'mentor',
-    name: 'Mentor',
-    price: 'R$ 79,90/mês',
-    description: 'Acompanhamento completo',
-    features: [
-      'Tudo do Microlearning',
-      'Mentoria com IA',
-      'Plano de estudos avançado',
-      'Simulados exclusivos',
-      'Acesso antecipado a novidades',
-    ],
-    gradientColors: [colors.accentPink, '#CC4477'],
-  },
-];
-
 export function SubscriptionScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { subscriptionTier, refreshUser } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
+
+  const plans: PlanInfo[] = [
+    {
+      tier: 'free',
+      name: 'Gratuito',
+      price: 'R$ 0',
+      description: 'Comece a organizar seus estudos',
+      features: [
+        'Upload de 1 edital',
+        'Cronograma básico',
+        'Acompanhamento de progresso',
+      ],
+      gradientColors: [colors.textSecondary, '#666688'],
+    },
+    {
+      tier: 'registro',
+      name: 'Básico',
+      price: 'R$ 19,90/mês',
+      description: 'Para quem quer mais organização',
+      features: [
+        'Upload ilimitado de editais',
+        'Cronograma personalizado',
+        'Relatórios detalhados',
+        'Suporte prioritário',
+      ],
+      gradientColors: [colors.success, '#009977'],
+    },
+    {
+      tier: 'microlearning',
+      name: 'Microlearning',
+      price: 'R$ 39,90/mês',
+      description: 'Conteúdo inteligente adaptado a você',
+      features: [
+        'Tudo do Básico',
+        'Flashcards com IA',
+        'Resumos personalizados',
+        'Quizzes adaptativos',
+        'Conteúdo offline',
+      ],
+      gradientColors: [colors.accent, '#4A3ACD'],
+      recommended: true,
+    },
+    {
+      tier: 'mentor',
+      name: 'Mentor',
+      price: 'R$ 79,90/mês',
+      description: 'Acompanhamento completo',
+      features: [
+        'Tudo do Microlearning',
+        'Mentoria com IA',
+        'Plano de estudos avançado',
+        'Simulados exclusivos',
+        'Acesso antecipado a novidades',
+      ],
+      gradientColors: [colors.accentSecondary, '#CC4477'],
+    },
+  ];
 
   const handleSelectPlan = async (tier: string) => {
     if (tier === subscriptionTier) return;
@@ -143,7 +145,7 @@ export function SubscriptionScreen() {
             key={plan.tier}
             style={[
               styles.planCard,
-              isCurrent && styles.currentPlanCard,
+              isCurrent ? styles.currentPlanCard : undefined,
             ]}
           >
             {plan.recommended && (
@@ -189,20 +191,15 @@ export function SubscriptionScreen() {
                 onPress={() => handleSelectPlan(plan.tier)}
                 disabled={loading !== null}
               >
-                <LinearGradient
-                  colors={plan.gradientColors}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.selectButton}
-                >
-                  <Text style={styles.selectButtonText}>
+                <View style={[styles.selectButton, { backgroundColor: colors.accent }]}>
+                  <Text style={[styles.selectButtonText, { color: colors.accentForeground }]}>
                     {loading === plan.tier
                       ? 'Processando...'
                       : plan.tier === 'free'
                         ? 'Voltar ao gratuito'
                         : 'Assinar'}
                   </Text>
-                </LinearGradient>
+                </View>
               </Pressable>
             )}
           </Card>
@@ -212,7 +209,7 @@ export function SubscriptionScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

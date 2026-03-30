@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
   Dimensions,
+  AccessibilityInfo,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -16,7 +17,7 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { colors, spacing, typography } from '../theme';
+import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { MOCK_FLASHCARDS } from '../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -27,24 +28,34 @@ interface FlashcardData {
   hint?: string;
 }
 
-const RATING_BUTTONS = [
-  { key: 'again', label: 'Errei', color: colors.error, icon: 'close-circle' as const },
-  { key: 'hard', label: 'Difícil', color: colors.warning, icon: 'alert-circle' as const },
-  { key: 'good', label: 'Bom', color: colors.success, icon: 'checkmark-circle' as const },
-  { key: 'easy', label: 'Fácil', color: colors.accent, icon: 'star' as const },
-];
-
 export function FlashcardScreen() {
+  const { colors } = useTheme();
   const navigation = useNavigation();
   const route = useRoute<any>();
   const item = route.params?.item || MOCK_FLASHCARDS[0];
   const cards: FlashcardData[] = (item.body as any)?.cards || [];
+
+  const styles = createStyles(colors);
+
+  const RATING_BUTTONS = [
+    { key: 'again', label: 'Errei', color: colors.error, icon: 'close-circle' as const },
+    { key: 'hard', label: 'Difícil', color: colors.warning, icon: 'alert-circle' as const },
+    { key: 'good', label: 'Bom', color: colors.success, icon: 'checkmark-circle' as const },
+    { key: 'easy', label: 'Fácil', color: colors.accent, icon: 'star' as const },
+  ];
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [streak, setStreak] = useState(0);
   const [completed, setCompleted] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => sub.remove();
+  }, []);
 
   const flipProgress = useSharedValue(0);
 
@@ -69,10 +80,10 @@ export function FlashcardScreen() {
     setIsFlipped(true);
     setShowRating(true);
     flipProgress.value = withTiming(1, {
-      duration: 500,
+      duration: reduceMotion ? 0 : 500,
       easing: Easing.out(Easing.cubic),
     });
-  }, [isFlipped, flipProgress]);
+  }, [isFlipped, flipProgress, reduceMotion]);
 
   const handleRate = useCallback(
     (rating: string) => {
@@ -127,14 +138,9 @@ export function FlashcardScreen() {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <LinearGradient
-              colors={[colors.accent, colors.accentPink]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.backButtonGradient}
-            >
-              <Text style={styles.backButtonText}>Concluir</Text>
-            </LinearGradient>
+            <View style={[styles.backButtonGradient, { backgroundColor: colors.accent }]}>
+              <Text style={[styles.backButtonText, { color: colors.accentForeground }]}>Concluir</Text>
+            </View>
           </Pressable>
         </View>
       </View>
@@ -149,7 +155,7 @@ export function FlashcardScreen() {
       <View style={styles.progressContainer}>
         <View style={styles.progressBackground}>
           <LinearGradient
-            colors={[colors.accent, colors.accentPink]}
+            colors={[colors.gradientStart, colors.gradientEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={[
@@ -221,7 +227,7 @@ export function FlashcardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
