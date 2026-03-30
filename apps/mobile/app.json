@@ -21,7 +21,13 @@
       "bundler": "metro"
     },
     "plugins": [
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.992045506382-ttk81obo6v4fk2i3cks6pjb5drfrbr34"
+        }
+      ]
     ]
   }
 }

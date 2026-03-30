@@ -24,6 +24,10 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+const googleSchema = z.object({
+  token: z.string().min(1, 'Google token is required'),
+});
+
 router.post('/register', validateBody(registerSchema), async (req: Request, res: Response) => {
   try {
     const { email, password, name } = req.body;
@@ -47,20 +51,15 @@ router.post('/login', validateBody(loginSchema), async (req: Request, res: Respo
   }
 });
 
-router.post('/google', async (req: Request, res: Response) => {
+router.post('/google', validateBody(googleSchema), async (req: Request, res: Response) => {
   try {
     const { token } = req.body;
-
-    if (!token) {
-      res.status(400).json({ error: 'Google token is required' });
-      return;
-    }
-
     const result = await googleAuth(token);
     res.json({ data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Google auth failed';
-    res.status(500).json({ error: message });
+    const status = message.includes('not configured') ? 503 : 401;
+    res.status(status).json({ error: message });
   }
 });
 

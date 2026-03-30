@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import * as schema from '../../db/schema.js';
@@ -13,6 +14,12 @@ if (!process.env.JWT_SECRET) {
 if (!process.env.JWT_REFRESH_SECRET) {
   console.warn('[AUTH] WARNING: JWT_REFRESH_SECRET not set, using insecure default. Set JWT_REFRESH_SECRET in production.');
 }
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+if (!GOOGLE_CLIENT_ID) {
+  console.warn('[AUTH] WARNING: GOOGLE_CLIENT_ID not set. Google auth will fail in production.');
+}
+const googleOAuth2Client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // Use seconds: 7 days = 604800, 30 days = 2592000
 const JWT_EXPIRES_IN = 604800;
@@ -90,20 +97,41 @@ export async function loginUser(email: string, password: string) {
   };
 }
 
-export async function googleAuth(googleToken: string) {
-  // Stub: In production, verify googleToken with Google's API
-  // For now, decode it as a mock payload
-  const mockEmail = `google_${googleToken.substring(0, 8)}@example.com`;
-  const mockName = 'Google User';
+export async function googleAuth(googleIdToken: string) {
+  if (!GOOGLE_CLIENT_ID) {
+    throw new Error('Google auth is not configured');
+  }
 
-  let [user] = await db.select().from(schema.users).where(eq(schema.users.email, mockEmail)).limit(1);
+  const ticket = await googleOAuth2Client.verifyIdToken({
+    idToken: googleIdToken,
+    audience: GOOGLE_CLIENT_ID,
+  });
+
+  const payload = ticket.getPayload();
+  if (!payload || !payload.email) {
+    throw new Error('Invalid Google token: no email in payload');
+  }
+
+  const { email, name, picture, email_verified } = payload;
+
+  if (!email_verified) {
+    throw new Error('Google email not verified');
+  }
+
+  let [user] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
 
   if (!user) {
     [user] = await db.insert(schema.users).values({
-      email: mockEmail,
-      name: mockName,
+      email,
+      name: name || email.split('@')[0],
       authProvider: 'google',
+      avatarUrl: picture || null,
     }).returning();
+  } else if (!user.avatarUrl && picture) {
+    [user] = await db.update(schema.users)
+      .set({ avatarUrl: picture, updatedAt: new Date() })
+      .where(eq(schema.users.id, user.id))
+      .returning();
   }
 
   const token = signToken({ id: user.id, email: user.email });

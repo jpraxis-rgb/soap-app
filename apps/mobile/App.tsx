@@ -6,6 +6,9 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { ConcursoProvider } from './src/contexts/ConcursoContext';
 import { ThemeProvider, useTheme } from './src/theme';
+import { configureGoogleSignIn } from './src/services/googleAuth';
+
+configureGoogleSignIn();
 
 function AppInner() {
   const { colors, isDark } = useTheme();

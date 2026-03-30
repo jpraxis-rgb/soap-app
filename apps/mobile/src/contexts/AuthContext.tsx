@@ -19,6 +19,7 @@ interface AuthContextType {
   subscriptionTier: string;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
+  googleAuth: () => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -103,6 +104,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(result.user as AuthUser);
   }, []);
 
+  const googleAuth = useCallback(async () => {
+    const { signInWithGoogle } = await import('../services/googleAuth');
+    const idToken = await signInWithGoogle();
+    const result = await authApi.googleAuth(idToken);
+    await tokenStorage.setToken(result.token);
+    await tokenStorage.setRefreshToken(result.refreshToken);
+    setUser(result.user as AuthUser);
+  }, []);
+
   const logout = useCallback(async () => {
     await tokenStorage.clearTokens();
     setUser(null);
@@ -124,6 +134,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     subscriptionTier: user?.subscription_tier || 'free',
     login,
     register,
+    googleAuth,
     logout,
     refreshUser,
   };

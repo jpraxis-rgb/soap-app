@@ -23,10 +23,11 @@ interface SignInScreenProps {
 export function SignInScreen({ navigation }: SignInScreenProps) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
-  const { login } = useAuth();
+  const { login, googleAuth } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [focused, setFocused] = useState<Record<string, boolean>>({});
 
@@ -48,8 +49,18 @@ export function SignInScreen({ navigation }: SignInScreenProps) {
 
   const handleFocus = (field: string) => setFocused(prev => ({ ...prev, [field]: true }));
 
-  const handleGoogleSignIn = () => {
-    Alert.alert('Em breve', 'Login com Google disponível em breve.');
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    try {
+      await googleAuth();
+    } catch (error: any) {
+      const { statusCodes } = await import('../../services/googleAuth');
+      if (error?.code === statusCodes.SIGN_IN_CANCELLED) return;
+      const message = error instanceof Error ? error.message : 'Erro ao entrar com Google.';
+      Alert.alert('Erro', message);
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   const handleForgotPassword = () => {
@@ -103,9 +114,15 @@ export function SignInScreen({ navigation }: SignInScreenProps) {
         </View>
 
         {/* Google Sign-In button */}
-        <Pressable style={styles.googleButton} onPress={handleGoogleSignIn}>
+        <Pressable
+          style={[styles.googleButton, googleLoading && { opacity: 0.6 }]}
+          onPress={handleGoogleSignIn}
+          disabled={googleLoading}
+        >
           <Ionicons name="logo-google" size={20} color="#1A1A2E" />
-          <Text style={styles.googleButtonText}>Continuar com Google</Text>
+          <Text style={styles.googleButtonText}>
+            {googleLoading ? 'Conectando...' : 'Continuar com Google'}
+          </Text>
         </Pressable>
 
         {/* "ou" divider */}
