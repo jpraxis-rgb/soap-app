@@ -5,10 +5,12 @@ import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { ConcursoProvider } from './src/contexts/ConcursoContext';
+import { Platform } from 'react-native';
 import { ThemeProvider, useTheme } from './src/theme';
-import { configureGoogleSignIn } from './src/services/googleAuth';
 
-configureGoogleSignIn();
+if (Platform.OS !== 'web') {
+  require('./src/services/googleAuth').configureGoogleSignIn();
+}
 
 function AppInner() {
   const { colors, isDark } = useTheme();
