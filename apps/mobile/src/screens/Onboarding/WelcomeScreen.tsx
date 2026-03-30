@@ -9,10 +9,14 @@ import {
   ViewToken,
   Pressable,
   AccessibilityInfo,
+  Platform,
+  Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, spacing, typography, type ThemeColors } from '../../theme';
+import { useAuth } from '../../contexts/AuthContext';
 import { Button, PhoneFrame } from '../../components';
 import { EditalMockup } from './mockups/EditalMockup';
 import { HomeMockup } from './mockups/HomeMockup';
@@ -56,10 +60,12 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
   const { colors } = useTheme();
+  const { googleAuth } = useAuth();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const [activeIndex, setActiveIndex] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
 
@@ -68,6 +74,26 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
     const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
     return () => sub.remove();
   }, []);
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    try {
+      await googleAuth();
+    } catch (error: any) {
+      if (Platform.OS !== 'web') {
+        const { statusCodes } = await import('../../services/googleAuth');
+        if (error?.code === statusCodes.SIGN_IN_CANCELLED) return;
+      }
+      const message = error instanceof Error ? error.message : 'Erro ao entrar com Google.';
+      if (Platform.OS === 'web') {
+        window.alert(message);
+      } else {
+        Alert.alert('Erro', message);
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -195,6 +221,18 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           variant="filled"
         />
 
+        {/* Google sign in */}
+        <Pressable
+          style={[styles.googleButton, googleLoading && { opacity: 0.6 }]}
+          onPress={handleGoogleSignIn}
+          disabled={googleLoading}
+        >
+          <Ionicons name="logo-google" size={20} color="#1A1A2E" />
+          <Text style={styles.googleButtonText}>
+            {googleLoading ? 'Conectando...' : 'Continuar com Google'}
+          </Text>
+        </Pressable>
+
         {/* Sign in link */}
         <Button
           label="Já tenho conta"
@@ -230,6 +268,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
+    paddingBottom: 180,
   },
   slideContent: {
     alignItems: 'center',
@@ -268,6 +307,23 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    paddingVertical: 14,
+    gap: 10,
+    marginTop: spacing.sm,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A2E',
   },
   signInButton: {
     marginTop: spacing.sm,

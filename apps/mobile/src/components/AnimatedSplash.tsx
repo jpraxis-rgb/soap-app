@@ -12,7 +12,7 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, type ThemeColors } from '../theme';
 
-const UNDERLINE_MAX_WIDTH = 90;
+const UNDERLINE_MAX_WIDTH = 120;
 
 interface AnimatedSplashProps {
   onComplete: () => void;
@@ -87,6 +87,12 @@ export function AnimatedSplash({ onComplete }: AnimatedSplashProps) {
 
   return (
     <Animated.View style={[styles.container, containerAnimatedStyle]}>
+      <LinearGradient
+        colors={[`${colors.gradientStart}1A`, 'transparent']}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      />
       <View style={styles.content}>
         <Animated.Text
           style={[styles.title, titleAnimatedStyle]}
@@ -126,19 +132,19 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
     },
     title: {
-      color: '#FFFFFF',
-      fontSize: 34,
+      color: colors.text,
+      fontSize: 44,
       fontWeight: '800',
       letterSpacing: 3,
     },
     underlineContainer: {
       width: UNDERLINE_MAX_WIDTH,
-      height: 3,
+      height: 4,
       marginTop: 8,
       marginBottom: 16,
     },
     underlineWrapper: {
-      height: 3,
+      height: 4,
       overflow: 'hidden',
     },
     underline: {
