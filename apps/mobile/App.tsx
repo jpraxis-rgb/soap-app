@@ -1,15 +1,11 @@
-import 'react-native-gesture-handler';
-import { enableScreens } from 'react-native-screens';
-enableScreens(true);
-
 import React from 'react';
+import { Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { ConcursoProvider } from './src/contexts/ConcursoContext';
-import { Platform } from 'react-native';
 import { ThemeProvider, useTheme } from './src/theme';
 
 if (Platform.OS !== 'web') {

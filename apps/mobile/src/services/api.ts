@@ -15,8 +15,7 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   if (token) {
     return { Authorization: `Bearer ${token}` };
   }
-  // Beta: always send dev token (API runs in dev mode)
-  return { Authorization: 'Bearer dev-token' };
+  return {};
 }
 
 async function request<T>(
@@ -100,9 +99,10 @@ async function _doRefresh(): Promise<boolean> {
 
     if (!response.ok) return false;
 
-    const data = await response.json();
-    await AsyncStorage.setItem(TOKEN_KEY, data.token);
-    await AsyncStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+    const res = await response.json();
+    const tokens = res.data || res;
+    await AsyncStorage.setItem(TOKEN_KEY, tokens.token);
+    await AsyncStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
     return true;
   } catch {
     return false;

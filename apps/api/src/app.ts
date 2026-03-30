@@ -53,8 +53,11 @@ app.post('/api/v1/subscriptions/webhook', async (req, res) => {
   }
 });
 
-// Protected routes
-app.use('/api/v1/editais', authMiddleware, editaisRoutes);
+// Editais: templates are public, everything else requires auth
+app.use('/api/v1/editais', (req, res, next) => {
+  if (req.path.startsWith('/templates')) return next();
+  authMiddleware(req, res, next);
+}, editaisRoutes);
 app.use('/api/v1/schedules', authMiddleware, schedulesRoutes);
 app.use('/api/v1/sessions', authMiddleware, sessionsRoutes);
 app.use('/api/v1/content', authMiddleware, contentRoutes);
