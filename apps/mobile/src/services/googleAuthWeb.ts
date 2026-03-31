@@ -40,77 +40,87 @@ export async function signInWithGoogleWeb(): Promise<GoogleAuthResult> {
 
     let settled = false;
 
-    // Poll localStorage for the result written by auth-callback.html
+    function handleResult(authData: string) {
+      localStorage.removeItem(LS_RESULT_KEY);
+      if (!popup!.closed) popup!.close();
+      try {
+        const result = JSON.parse(atob(authData)) as GoogleAuthResult;
+        resolve(result);
+      } catch {
+        reject(new Error('Erro ao processar resposta do Google.'));
+      }
+    }
+
+    function handleError(authError: string) {
+      localStorage.removeItem(LS_ERROR_KEY);
+      if (!popup!.closed) popup!.close();
+      try {
+        const err = JSON.parse(atob(authError)) as { error: string };
+        reject(new Error(err.error));
+      } catch {
+        reject(new Error('Erro ao entrar com Google.'));
+      }
+    }
+
+    function cleanup() {
+      clearInterval(pollTimer);
+      window.removeEventListener('storage', onStorage);
+    }
+
+    function checkLocalStorage(): boolean {
+      const authData = localStorage.getItem(LS_RESULT_KEY);
+      const authError = localStorage.getItem(LS_ERROR_KEY);
+      if (authData) {
+        settled = true;
+        cleanup();
+        handleResult(authData);
+        return true;
+      } else if (authError) {
+        settled = true;
+        cleanup();
+        handleError(authError);
+        return true;
+      }
+      return false;
+    }
+
+    // Listen for storage events (fires cross-window when localStorage changes)
+    function onStorage(e: StorageEvent) {
+      if (settled) return;
+      if (e.key === LS_RESULT_KEY && e.newValue) {
+        settled = true;
+        cleanup();
+        handleResult(e.newValue);
+      } else if (e.key === LS_ERROR_KEY && e.newValue) {
+        settled = true;
+        cleanup();
+        handleError(e.newValue);
+      }
+    }
+    window.addEventListener('storage', onStorage);
+
+    // Poll localStorage as fallback (storage event doesn't fire in same window)
     const pollTimer = setInterval(() => {
       if (settled) return;
 
       // Check if popup was closed without completing auth
       if (popup.closed) {
-        const authData = localStorage.getItem(LS_RESULT_KEY);
-        const authError = localStorage.getItem(LS_ERROR_KEY);
-
-        if (authData) {
+        if (!checkLocalStorage()) {
           settled = true;
-          clearInterval(pollTimer);
-          localStorage.removeItem(LS_RESULT_KEY);
-          try {
-            const result = JSON.parse(atob(authData)) as GoogleAuthResult;
-            resolve(result);
-          } catch {
-            reject(new Error('Erro ao processar resposta do Google.'));
-          }
-        } else if (authError) {
-          settled = true;
-          clearInterval(pollTimer);
-          localStorage.removeItem(LS_ERROR_KEY);
-          try {
-            const err = JSON.parse(atob(authError)) as { error: string };
-            reject(new Error(err.error));
-          } catch {
-            reject(new Error('Erro ao entrar com Google.'));
-          }
-        } else {
-          settled = true;
-          clearInterval(pollTimer);
+          cleanup();
           reject(new Error('Login cancelado.'));
         }
         return;
       }
 
-      // Popup still open — check localStorage
-      const authData = localStorage.getItem(LS_RESULT_KEY);
-      const authError = localStorage.getItem(LS_ERROR_KEY);
-
-      if (authData) {
-        settled = true;
-        clearInterval(pollTimer);
-        localStorage.removeItem(LS_RESULT_KEY);
-        if (!popup.closed) popup.close();
-        try {
-          const result = JSON.parse(atob(authData)) as GoogleAuthResult;
-          resolve(result);
-        } catch {
-          reject(new Error('Erro ao processar resposta do Google.'));
-        }
-      } else if (authError) {
-        settled = true;
-        clearInterval(pollTimer);
-        localStorage.removeItem(LS_ERROR_KEY);
-        if (!popup.closed) popup.close();
-        try {
-          const err = JSON.parse(atob(authError)) as { error: string };
-          reject(new Error(err.error));
-        } catch {
-          reject(new Error('Erro ao entrar com Google.'));
-        }
-      }
+      checkLocalStorage();
     }, 300);
 
     // Safety timeout — 2 minutes
     setTimeout(() => {
       if (!settled) {
         settled = true;
-        clearInterval(pollTimer);
+        cleanup();
         if (!popup.closed) popup.close();
         reject(new Error('Tempo limite atingido. Tente novamente.'));
       }

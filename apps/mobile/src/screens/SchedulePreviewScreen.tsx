@@ -7,6 +7,7 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -267,23 +268,29 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
 
       await confirmEdital(edital, finalConfig);
 
-      Alert.alert(
-        'Cronograma salvo!',
-        `Seu plano de estudos para ${edital.orgao} - ${edital.cargo} foi criado com sucesso.`,
-        [
-          {
-            text: 'Ir para início',
-            onPress: () => {
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Main' }],
-              });
-            },
-          },
-        ],
-      );
+      const goHome = () => {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Main' }],
+        });
+      };
+
+      if (Platform.OS === 'web') {
+        window.alert(`Cronograma salvo!\n\nSeu plano de estudos para ${edital.orgao} - ${edital.cargo} foi criado com sucesso.`);
+        goHome();
+      } else {
+        Alert.alert(
+          'Cronograma salvo!',
+          `Seu plano de estudos para ${edital.orgao} - ${edital.cargo} foi criado com sucesso.`,
+          [{ text: 'Ir para início', onPress: goHome }],
+        );
+      }
     } catch (err: any) {
-      Alert.alert('Erro', err?.message || 'Não foi possível salvar o cronograma.');
+      if (Platform.OS === 'web') {
+        window.alert(err?.message || 'Não foi possível salvar o cronograma.');
+      } else {
+        Alert.alert('Erro', err?.message || 'Não foi possível salvar o cronograma.');
+      }
     } finally {
       setSaving(false);
     }

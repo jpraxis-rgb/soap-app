@@ -1,8 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Dimensions, Platform, type ViewStyle } from 'react-native';
 import { useTheme, type ThemeColors } from '../theme';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface PhoneFrameProps {
   children: React.ReactNode;
@@ -11,7 +9,18 @@ interface PhoneFrameProps {
 
 export function PhoneFrame({ children, style }: PhoneFrameProps) {
   const { colors } = useTheme();
-  const styles = createStyles(colors);
+  const [screenWidth, setScreenWidth] = useState(() => Dimensions.get('window').width);
+
+  useEffect(() => {
+    const sub = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenWidth(window.width);
+    });
+    return () => sub.remove();
+  }, []);
+
+  const frameWidth = Math.min(screenWidth * 0.45, 200);
+  const frameHeight = frameWidth * 2;
+  const styles = createStyles(colors, frameWidth, frameHeight);
 
   return (
     <View style={[styles.frame, style]}>
@@ -23,14 +32,11 @@ export function PhoneFrame({ children, style }: PhoneFrameProps) {
   );
 }
 
-const FRAME_WIDTH = SCREEN_WIDTH * 0.48;
-const FRAME_HEIGHT = FRAME_WIDTH * 2;
-
-const createStyles = (colors: ThemeColors) =>
+const createStyles = (colors: ThemeColors, frameWidth: number, frameHeight: number) =>
   StyleSheet.create({
     frame: {
-      width: FRAME_WIDTH,
-      height: FRAME_HEIGHT,
+      width: frameWidth,
+      height: frameHeight,
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.border,

@@ -90,11 +90,11 @@ router.get('/google/callback', async (req: Request, res: Response) => {
 
     const result = await googleAuthCallback(code);
     const payload = Buffer.from(JSON.stringify(result)).toString('base64');
-    res.redirect(`${frontendUrl}/auth-callback.html?google_auth=${payload}`);
+    res.redirect(`${frontendUrl}/auth-callback.html?google_auth=${encodeURIComponent(payload)}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Google callback failed';
     const errPayload = Buffer.from(JSON.stringify({ error: message })).toString('base64');
-    res.redirect(`${frontendUrl}/auth-callback.html?google_auth_error=${errPayload}`);
+    res.redirect(`${frontendUrl}/auth-callback.html?google_auth_error=${encodeURIComponent(errPayload)}`);
   }
 });
 

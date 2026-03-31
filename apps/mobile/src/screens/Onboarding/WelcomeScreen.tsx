@@ -22,8 +22,6 @@ import { EditalMockup } from './mockups/EditalMockup';
 import { HomeMockup } from './mockups/HomeMockup';
 import { FlashcardMockup } from './mockups/FlashcardMockup';
 
-const { width } = Dimensions.get('window');
-
 // ── Slide data ────────────────────────────────────────────────
 interface SlideData {
   id: string;
@@ -61,18 +59,27 @@ interface WelcomeScreenProps {
 export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
   const { colors } = useTheme();
   const { googleAuth } = useAuth();
-  const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const [activeIndex, setActiveIndex] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [width, setWidth] = useState(() => Dimensions.get('window').width);
+  const [bottomHeight, setBottomHeight] = useState(300);
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
+  const styles = createStyles(colors, width);
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
     const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
     return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setWidth(window.width);
+    });
+    return () => subscription.remove();
   }, []);
 
   const handleGoogleSignIn = async () => {
@@ -131,7 +138,7 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
     const { MockupComponent } = item;
 
     return (
-      <View style={styles.slide}>
+      <View style={[styles.slide, { paddingBottom: bottomHeight }]}>
         <Animated.View style={[styles.slideContent, { opacity, transform: [{ translateY }] }]}>
           {/* Phone frame mockup */}
           <PhoneFrame>
@@ -166,7 +173,10 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
         renderItem={renderSlide}
         keyExtractor={(item) => item.id}
         horizontal
-        pagingEnabled
+        pagingEnabled={Platform.OS !== 'web'}
+        snapToInterval={Platform.OS === 'web' ? width : undefined}
+        snapToAlignment={Platform.OS === 'web' ? 'start' : undefined}
+        decelerationRate={Platform.OS === 'web' ? 'fast' : undefined}
         showsHorizontalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
@@ -174,10 +184,20 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
           { useNativeDriver: false },
         )}
+        getItemLayout={(_, index) => ({
+          length: width,
+          offset: width * index,
+          index,
+        })}
       />
 
-      {/* Bottom area */}
-      <View style={styles.bottomArea}>
+      {/* Bottom area — positioned over the FlatList so slides get full height */}
+      <View
+        style={styles.bottomArea}
+        pointerEvents="box-none"
+        onLayout={(e) => setBottomHeight(e.nativeEvent.layout.height + 8)}
+      >
+      <View style={styles.bottomCard}>
         {/* Animated pagination dots */}
         <View style={styles.paginationRow}>
           <View style={styles.pagination}>
@@ -241,11 +261,12 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           style={styles.signInButton}
         />
       </View>
+      </View>
     </View>
   );
 }
 
-const createStyles = (colors: ThemeColors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors, width: number) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -268,7 +289,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
-    paddingBottom: 180,
+    paddingBottom: 270, // overridden dynamically
   },
   slideContent: {
     alignItems: 'center',
@@ -291,11 +312,17 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   bottomArea: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+  },
+  bottomCard: {
     backgroundColor: colors.card,
     borderRadius: 20,
     padding: spacing.lg,
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.md,
   },
   paginationRow: {
     flexDirection: 'row',

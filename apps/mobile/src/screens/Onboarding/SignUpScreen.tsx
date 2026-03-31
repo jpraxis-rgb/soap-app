@@ -61,10 +61,16 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
     try {
       await googleAuth();
     } catch (error: any) {
-      const { statusCodes } = await import('../../services/googleAuth');
-      if (error?.code === statusCodes.SIGN_IN_CANCELLED) return;
+      if (Platform.OS !== 'web') {
+        const { statusCodes } = await import('../../services/googleAuth');
+        if (error?.code === statusCodes.SIGN_IN_CANCELLED) return;
+      }
       const message = error instanceof Error ? error.message : 'Erro ao entrar com Google.';
-      Alert.alert('Erro', message);
+      if (Platform.OS === 'web') {
+        window.alert(message);
+      } else {
+        Alert.alert('Erro', message);
+      }
     } finally {
       setGoogleLoading(false);
     }
@@ -120,28 +126,24 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
           </Text>
         </View>
 
-        {/* Google Sign-In button (native only) */}
-        {Platform.OS !== 'web' && (
-          <>
-            <Pressable
-              style={[styles.googleButton, googleLoading && { opacity: 0.6 }]}
-              onPress={handleGoogleSignIn}
-              disabled={googleLoading}
-            >
-              <Ionicons name="logo-google" size={20} color="#1A1A2E" />
-              <Text style={styles.googleButtonText}>
-                {googleLoading ? 'Conectando...' : 'Continuar com Google'}
-              </Text>
-            </Pressable>
+        {/* Google Sign-In button */}
+        <Pressable
+          style={[styles.googleButton, googleLoading && { opacity: 0.6 }]}
+          onPress={handleGoogleSignIn}
+          disabled={googleLoading}
+        >
+          <Ionicons name="logo-google" size={20} color="#1A1A2E" />
+          <Text style={styles.googleButtonText}>
+            {googleLoading ? 'Conectando...' : 'Continuar com Google'}
+          </Text>
+        </Pressable>
 
-            {/* "ou" divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>ou</Text>
-              <View style={styles.dividerLine} />
-            </View>
-          </>
-        )}
+        {/* "ou" divider */}
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>ou</Text>
+          <View style={styles.dividerLine} />
+        </View>
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>

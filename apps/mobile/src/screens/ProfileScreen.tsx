@@ -7,6 +7,7 @@ import {
   Switch,
   Pressable,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
@@ -46,18 +47,18 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Sair',
-      'Tem certeza que deseja sair?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Sair',
-          style: 'destructive',
-          onPress: () => logout(),
-        },
-      ],
-    );
+    if (Platform.OS === 'web') {
+      if (window.confirm('Sair — Tem certeza que deseja sair?')) logout();
+    } else {
+      Alert.alert(
+        'Sair',
+        'Tem certeza que deseja sair?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Sair', style: 'destructive', onPress: () => logout() },
+        ],
+      );
+    }
   };
 
   const tierLabel = TIER_LABELS[subscriptionTier] || 'Gratuito';
@@ -116,10 +117,15 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
                 </Pressable>
                 <Pressable
                   onPress={() => {
-                    Alert.alert('Remover concurso', `Remover ${c.edital?.orgao || (c as any).parsedData?.orgao || 'este concurso'}?`, [
-                      { text: 'Cancelar', style: 'cancel' },
-                      { text: 'Remover', style: 'destructive', onPress: () => removeConcurso(c.id) },
-                    ]);
+                    const name = c.edital?.orgao || (c as any).parsedData?.orgao || 'este concurso';
+                    if (Platform.OS === 'web') {
+                      if (window.confirm(`Remover concurso — Remover ${name}?`)) removeConcurso(c.id);
+                    } else {
+                      Alert.alert('Remover concurso', `Remover ${name}?`, [
+                        { text: 'Cancelar', style: 'cancel' },
+                        { text: 'Remover', style: 'destructive', onPress: () => removeConcurso(c.id) },
+                      ]);
+                    }
                   }}
                   accessibilityLabel="Remover concurso"
                   accessibilityRole="button"
