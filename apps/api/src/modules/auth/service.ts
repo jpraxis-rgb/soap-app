@@ -16,10 +16,15 @@ if (!process.env.JWT_REFRESH_SECRET) {
 }
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 if (!GOOGLE_CLIENT_ID) {
   console.warn('[AUTH] WARNING: GOOGLE_CLIENT_ID not set. Google auth will fail in production.');
 }
-const googleOAuth2Client = new OAuth2Client(GOOGLE_CLIENT_ID);
+if (!GOOGLE_CLIENT_SECRET) {
+  console.warn('[AUTH] WARNING: GOOGLE_CLIENT_SECRET not set. Google web OAuth redirect flow will not work.');
+}
+const GOOGLE_REDIRECT_URI = `${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1'}/auth/google/callback`;
+const googleOAuth2Client = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI);
 
 // Use seconds: 7 days = 604800, 30 days = 2592000
 const JWT_EXPIRES_IN = 604800;
@@ -97,23 +102,131 @@ export async function loginUser(email: string, password: string) {
   };
 }
 
-export async function googleAuth(googleIdToken: string) {
+export async function googleAuth(googleToken: string) {
   if (!GOOGLE_CLIENT_ID) {
     throw new Error('Google auth is not configured');
   }
 
-  const ticket = await googleOAuth2Client.verifyIdToken({
-    idToken: googleIdToken,
-    audience: GOOGLE_CLIENT_ID,
-  });
+  let email: string | undefined;
+  let name: string | undefined;
+  let picture: string | undefined;
+  let email_verified: boolean | undefined;
 
-  const payload = ticket.getPayload();
-  if (!payload || !payload.email) {
+  // Try verifying as an ID token first (native mobile flow)
+  try {
+    const ticket = await googleOAuth2Client.verifyIdToken({
+      idToken: googleToken,
+      audience: GOOGLE_CLIENT_ID,
+    });
+    const idPayload = ticket.getPayload();
+    if (idPayload?.email) {
+      email = idPayload.email;
+      name = idPayload.name;
+      picture = idPayload.picture;
+      email_verified = idPayload.email_verified;
+    }
+  } catch {
+    // Not a valid ID token — try as an OAuth2 access token (web flow)
+  }
+
+  // Fallback: treat as an OAuth2 access token and fetch user info
+  if (!email) {
+    try {
+      const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${googleToken}` },
+      });
+      if (!res.ok) {
+        throw new Error('Failed to verify Google token');
+      }
+      const userInfo = await res.json() as {
+        email?: string;
+        name?: string;
+        picture?: string;
+        email_verified?: boolean;
+      };
+      email = userInfo.email;
+      name = userInfo.name;
+      picture = userInfo.picture;
+      email_verified = userInfo.email_verified;
+    } catch (fetchErr) {
+      throw new Error('Invalid Google token');
+    }
+  }
+
+  if (!email) {
     throw new Error('Invalid Google token: no email in payload');
   }
 
-  const { email, name, picture, email_verified } = payload;
+  if (!email_verified) {
+    throw new Error('Google email not verified');
+  }
 
+  let [user] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
+
+  if (!user) {
+    [user] = await db.insert(schema.users).values({
+      email,
+      name: name || email.split('@')[0],
+      authProvider: 'google',
+      avatarUrl: picture || null,
+    }).returning();
+  } else if (!user.avatarUrl && picture) {
+    [user] = await db.update(schema.users)
+      .set({ avatarUrl: picture, updatedAt: new Date() })
+      .where(eq(schema.users.id, user.id))
+      .returning();
+  }
+
+  const token = signToken({ id: user.id, email: user.email });
+  const refreshTokenValue = signRefreshToken({ id: user.id, email: user.email });
+
+  return {
+    user: sanitizeUser(user),
+    token,
+    refreshToken: refreshTokenValue,
+  };
+}
+
+// ── Google OAuth2 redirect flow (for web — avoids JS origin requirement) ──
+
+export function getGoogleRedirectUrl(state: string): string {
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    throw new Error('Google OAuth redirect is not configured (missing GOOGLE_CLIENT_SECRET)');
+  }
+  return googleOAuth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: ['openid', 'email', 'profile'],
+    state,
+    prompt: 'select_account',
+  });
+}
+
+export async function googleAuthCallback(code: string) {
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    throw new Error('Google OAuth redirect is not configured');
+  }
+
+  const { tokens } = await googleOAuth2Client.getToken(code);
+  googleOAuth2Client.setCredentials(tokens);
+
+  const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${tokens.access_token}` },
+  });
+  if (!res.ok) {
+    throw new Error('Failed to fetch Google user info');
+  }
+  const userInfo = await res.json() as {
+    email?: string;
+    name?: string;
+    picture?: string;
+    email_verified?: boolean;
+  };
+
+  const { email, name, picture, email_verified } = userInfo;
+
+  if (!email) {
+    throw new Error('No email returned from Google');
+  }
   if (!email_verified) {
     throw new Error('Google email not verified');
   }

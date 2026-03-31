@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><title>Login</title></head>
+<body>
+<p>Processando login...</p>
+<script>
+  var params = new URLSearchParams(window.location.search);
+  var authData = params.get('google_auth');
+  var authError = params.get('google_auth_error');
+  if (authData) {
+    localStorage.setItem('google_auth_result', authData);
+  } else if (authError) {
+    localStorage.setItem('google_auth_error', authError);
+  }
+  window.close();
+</script>
+</body>
+</html>

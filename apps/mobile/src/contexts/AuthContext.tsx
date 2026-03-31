@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import { Platform } from 'react-native';
 import { authApi, tokenStorage } from '../services/api';
 
 interface AuthUser {
@@ -65,11 +66,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // }
 
     try {
-      if (__DEV__) {
-        // DEMO: clear tokens to force onboarding — only in dev mode
-        await tokenStorage.clearTokens();
-      }
-
       const token = await tokenStorage.getToken();
       if (!token) {
         if (isMountedRef.current) setIsLoading(false);
@@ -105,9 +101,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const googleAuth = useCallback(async () => {
-    const { signInWithGoogle } = await import('../services/googleAuth');
-    const idToken = await signInWithGoogle();
-    const result = await authApi.googleAuth(idToken);
+    let result: { user: unknown; token: string; refreshToken: string };
+
+    if (Platform.OS === 'web') {
+      // Web uses backend redirect flow — returns full auth result directly
+      const { signInWithGoogleWeb } = await import('../services/googleAuthWeb');
+      result = await signInWithGoogleWeb();
+    } else {
+      // Native uses Google Sign-In SDK — returns ID token, then calls API
+      const { signInWithGoogle } = await import('../services/googleAuth');
+      const idToken = await signInWithGoogle();
+      result = await authApi.googleAuth(idToken);
+    }
+
     await tokenStorage.setToken(result.token);
     await tokenStorage.setRefreshToken(result.refreshToken);
     setUser(result.user as AuthUser);

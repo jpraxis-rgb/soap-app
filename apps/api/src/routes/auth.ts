@@ -1,10 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { validateBody } from '../middleware/validate.js';
+import crypto from 'crypto';
 import {
   registerUser,
   loginUser,
   googleAuth,
+  getGoogleRedirectUrl,
+  googleAuthCallback,
   appleAuth,
   refreshToken as refreshTokenService,
   getMe,
@@ -60,6 +63,38 @@ router.post('/google', validateBody(googleSchema), async (req: Request, res: Res
     const message = error instanceof Error ? error.message : 'Google auth failed';
     const status = message.includes('not configured') ? 503 : 401;
     res.status(status).json({ error: message });
+  }
+});
+
+// ── Google OAuth2 redirect flow (web) ──────────────────────
+
+router.get('/google/redirect', (_req: Request, res: Response) => {
+  try {
+    const state = crypto.randomBytes(16).toString('hex');
+    const url = getGoogleRedirectUrl(state);
+    res.redirect(url);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Google redirect failed';
+    res.status(503).json({ error: message });
+  }
+});
+
+router.get('/google/callback', async (req: Request, res: Response) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
+
+  try {
+    const { code } = req.query;
+    if (!code || typeof code !== 'string') {
+      throw new Error('Missing authorization code');
+    }
+
+    const result = await googleAuthCallback(code);
+    const payload = Buffer.from(JSON.stringify(result)).toString('base64');
+    res.redirect(`${frontendUrl}/auth-callback.html?google_auth=${payload}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Google callback failed';
+    const errPayload = Buffer.from(JSON.stringify({ error: message })).toString('base64');
+    res.redirect(`${frontendUrl}/auth-callback.html?google_auth_error=${errPayload}`);
   }
 });
 
