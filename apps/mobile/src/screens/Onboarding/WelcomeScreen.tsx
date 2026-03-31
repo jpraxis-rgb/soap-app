@@ -148,9 +148,6 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           {/* Title */}
           <Text style={styles.title}>{item.title}</Text>
 
-          {/* Subtitle */}
-          <Text style={styles.subtitle}>{item.subtitle}</Text>
-
         </Animated.View>
       </View>
     );
@@ -296,20 +293,12 @@ const createStyles = (colors: ThemeColors, width: number) => StyleSheet.create({
     width: '100%',
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     color: colors.text,
     textAlign: 'center',
-    marginBottom: spacing.md,
-    marginTop: spacing.xl,
+    marginTop: spacing.md,
     letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: spacing.sm,
   },
   bottomArea: {
     position: 'absolute',

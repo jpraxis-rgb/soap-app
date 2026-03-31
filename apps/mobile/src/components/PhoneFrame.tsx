@@ -18,8 +18,8 @@ export function PhoneFrame({ children, style }: PhoneFrameProps) {
     return () => sub.remove();
   }, []);
 
-  const frameWidth = Math.min(screenWidth * 0.45, 200);
-  const frameHeight = frameWidth * 2;
+  const frameWidth = Math.min(screenWidth * 0.38, 170);
+  const frameHeight = frameWidth * 1.9;
   const styles = createStyles(colors, frameWidth, frameHeight);
 
   return (
@@ -41,8 +41,9 @@ const createStyles = (colors: ThemeColors, frameWidth: number, frameHeight: numb
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: 20,
-      padding: 10,
+      padding: 4,
       alignItems: 'center',
+      overflow: 'hidden',
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -56,11 +57,11 @@ const createStyles = (colors: ThemeColors, frameWidth: number, frameHeight: numb
       }),
     },
     notch: {
-      width: 40,
-      height: 4,
+      width: 30,
+      height: 3,
       borderRadius: 2,
       backgroundColor: colors.border,
-      marginBottom: 6,
+      marginBottom: 3,
     },
     content: {
       flex: 1,

@@ -218,7 +218,7 @@ export function updateEditalDisciplinas(
   cargo: string,
   disciplinas: Array<{ name: string; weight: number | null; topics: string[]; orderIndex: number }>,
 ) {
-  return request<{ data: unknown }>(`/editais/${editalId}`, {
+  return request<{ data: { edital: any; disciplinas: any[] } }>(`/editais/${editalId}`, {
     method: 'PUT',
     body: JSON.stringify({
       parsed_data: { cargo },
@@ -533,6 +533,20 @@ export async function updateStudySession(
     method: 'PATCH',
     body: JSON.stringify(updates),
   });
+  return result.data;
+}
+
+export async function getStudySessions(params?: {
+  from?: string;
+  to?: string;
+  disciplina_id?: string;
+}): Promise<StudySessionData[]> {
+  const query = new URLSearchParams();
+  if (params?.from) query.set('from', params.from);
+  if (params?.to) query.set('to', params.to);
+  if (params?.disciplina_id) query.set('disciplina_id', params.disciplina_id);
+  const qs = query.toString();
+  const result = await request<{ data: StudySessionData[] }>(`/sessions${qs ? `?${qs}` : ''}`);
   return result.data;
 }
 

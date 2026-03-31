@@ -3,24 +3,37 @@
 <head><title>Login</title></head>
 <body>
 <p id="msg">Processando login...</p>
+<p id="debug" style="font-size:12px;color:#888;word-break:break-all;"></p>
 <script>
-  var params = new URLSearchParams(window.location.search);
-  var authData = params.get('google_auth');
-  var authError = params.get('google_auth_error');
-  if (authData) {
-    localStorage.setItem('google_auth_result', authData);
-  } else if (authError) {
-    localStorage.setItem('google_auth_error', authError);
-  }
-  // Small delay to ensure localStorage write flushes before close
-  setTimeout(function() {
-    window.close();
-    // If window.close() didn't work (browser restriction), show fallback message
+  var dbg = document.getElementById('debug');
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var authData = params.get('google_auth');
+    var authError = params.get('google_auth_error');
+
+    dbg.textContent = 'google_auth=' + (authData ? authData.substring(0, 40) + '...' : 'null')
+      + ' | google_auth_error=' + (authError ? 'yes' : 'null');
+
+    if (authData) {
+      localStorage.setItem('google_auth_result', authData);
+      dbg.textContent += ' | STORED OK';
+    } else if (authError) {
+      localStorage.setItem('google_auth_error', authError);
+      dbg.textContent += ' | STORED ERROR';
+    } else {
+      dbg.textContent += ' | NO DATA IN URL';
+    }
+
+    document.getElementById('msg').textContent =
+      'Login concluído! Você pode fechar esta janela.';
+
+    // Try to close after a generous delay — parent window polls localStorage
     setTimeout(function() {
-      document.getElementById('msg').textContent =
-        'Login concluído! Você pode fechar esta janela.';
-    }, 300);
-  }, 100);
+      try { window.close(); } catch(e) {}
+    }, 2000);
+  } catch(e) {
+    dbg.textContent = 'EXCEPTION: ' + e.message;
+  }
 </script>
 </body>
 </html>

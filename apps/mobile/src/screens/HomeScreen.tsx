@@ -17,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Badge, Card } from '../components';
-import { getTodayScheduleBlocks, ScheduleBlockData, getUpcomingScheduleBlocks } from '../services/api';
+import { getTodayScheduleBlocks, ScheduleBlockData, getUpcomingScheduleBlocks, getStudySessions, StudySessionData } from '../services/api';
 import { useConcurso } from '../contexts/ConcursoContext';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -364,6 +364,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const styles = createStyles(colors);
   const { hasAnyConcurso, hasActiveSchedule, activeConcurso, concursos, setActiveConcurso } = useConcurso();
   const [allWeekBlocks, setAllWeekBlocks] = useState<ScheduleBlockData[]>([]);
+  const [daySessions, setDaySessions] = useState<StudySessionData[]>([]);
   const [selectedDate, setSelectedDate] = useState(() => formatDateKey(new Date()));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -386,18 +387,27 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     if (!hasAnyConcurso) {
       setLoading(false);
       setAllWeekBlocks([]);
+      setDaySessions([]);
       return;
     }
     setLoading(true);
     setError(null);
-    getUpcomingScheduleBlocks(weekRange.from, weekRange.to)
-      .then(setAllWeekBlocks)
+    Promise.all([
+      getUpcomingScheduleBlocks(weekRange.from, weekRange.to),
+      getStudySessions({ from: weekRange.from + 'T00:00:00Z', to: weekRange.to + 'T23:59:59Z' }).catch(() => [] as StudySessionData[]),
+    ])
+      .then(([blocks, sessions]) => {
+        setAllWeekBlocks(blocks);
+        setDaySessions(sessions);
+      })
       .catch(() => setError('Não foi possível carregar os blocos.'))
       .finally(() => setLoading(false));
   }, [hasAnyConcurso, activeConcurso?.id, weekRange.from, weekRange.to]);
 
   // Filter blocks for selected date
   const blocks = allWeekBlocks.filter(b => b.scheduled_date === selectedDate);
+  // Filter manual sessions for selected date
+  const sessionsForDate = daySessions.filter(s => s.started_at?.startsWith(selectedDate));
   // Dates that have blocks (for calendar dots)
   const blockDates = React.useMemo(
     () => new Set(allWeekBlocks.map(b => b.scheduled_date)),
@@ -612,7 +622,53 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           />
         ))}
 
-        {blocks.length === 0 && (
+        {/* Manual Sessions */}
+        {sessionsForDate.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Sessões registradas</Text>
+              <Text style={styles.sectionCount}>{sessionsForDate.length}</Text>
+            </View>
+            {sessionsForDate.map((session) => {
+              const ratingIcons = ['', 'thunderstorm-outline', 'partly-sunny-outline', 'sunny-outline'] as const;
+              const ratingColors = ['', '#FF6B6B', '#FFB347', '#4ECB71'];
+              const time = session.started_at ? new Date(session.started_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+              return (
+                <Pressable
+                  key={session.id}
+                  onPress={() => navigation.navigate('ManualSession', { session })}
+                >
+                  <Card style={{ marginHorizontal: spacing.md, marginBottom: spacing.sm }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                        <Ionicons name="time-outline" size={16} color={colors.success} />
+                        <Text style={{ color: colors.success, fontSize: typography.sizes.sm, fontWeight: typography.weights.medium }}>{time}</Text>
+                        <Text style={{ color: colors.textSecondary, fontSize: typography.sizes.xs }}>{session.duration_minutes}min</Text>
+                      </View>
+                      {session.self_rating >= 1 && session.self_rating <= 3 && (
+                        <Ionicons
+                          name={ratingIcons[session.self_rating] as any}
+                          size={18}
+                          color={ratingColors[session.self_rating]}
+                        />
+                      )}
+                    </View>
+                    <Text style={{ color: colors.text, fontSize: typography.sizes.lg, fontWeight: typography.weights.semibold, marginBottom: spacing.xs }}>
+                      {session.disciplina_name || 'Disciplina'}
+                    </Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: typography.sizes.sm }}>{session.topic}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.sm }}>
+                      <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                      <Text style={{ color: colors.success, fontSize: typography.sizes.sm, fontWeight: typography.weights.medium }}>Registrado</Text>
+                    </View>
+                  </Card>
+                </Pressable>
+              );
+            })}
+          </>
+        )}
+
+        {blocks.length === 0 && sessionsForDate.length === 0 && (
           <View style={styles.emptyState}>
             <Ionicons name="moon-outline" size={48} color={colors.textSecondary} />
             <Text style={styles.emptyText}>Nenhum bloco neste dia</Text>

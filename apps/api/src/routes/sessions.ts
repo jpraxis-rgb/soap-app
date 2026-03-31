@@ -124,8 +124,19 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     const sessions = await db
-      .select()
+      .select({
+        id: schema.studySessions.id,
+        disciplina_id: schema.studySessions.disciplinaId,
+        disciplina_name: schema.disciplinas.name,
+        topic: schema.studySessions.topic,
+        duration_minutes: schema.studySessions.durationMinutes,
+        self_rating: schema.studySessions.selfRating,
+        notes: schema.studySessions.notes,
+        started_at: schema.studySessions.startedAt,
+        completed_at: schema.studySessions.completedAt,
+      })
       .from(schema.studySessions)
+      .leftJoin(schema.disciplinas, eq(schema.studySessions.disciplinaId, schema.disciplinas.id))
       .where(and(...conditions))
       .orderBy(schema.studySessions.startedAt)
       .limit(limit)

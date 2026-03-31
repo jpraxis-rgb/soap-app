@@ -126,32 +126,50 @@ export function ManualSessionScreen() {
       }
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Erro', e.message || 'Não foi possível salvar a sessão.');
+      const msg = e.message || 'Não foi possível salvar a sessão.';
+      if (Platform.OS === 'web') {
+        window.alert(msg);
+      } else {
+        Alert.alert('Erro', msg);
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!session) return;
-    Alert.alert('Excluir sessão', 'Tem certeza que deseja excluir esta sessão de estudo?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Excluir',
-        style: 'destructive',
-        onPress: async () => {
-          setSubmitting(true);
-          try {
-            await deleteStudySession(session.id);
-            navigation.goBack();
-          } catch (e: any) {
-            Alert.alert('Erro', e.message || 'Não foi possível excluir a sessão.');
-          } finally {
-            setSubmitting(false);
-          }
+    if (Platform.OS === 'web') {
+      if (!window.confirm('Tem certeza que deseja excluir esta sessão de estudo?')) return;
+      setSubmitting(true);
+      try {
+        await deleteStudySession(session.id);
+        navigation.goBack();
+      } catch (e: any) {
+        window.alert(e.message || 'Não foi possível excluir a sessão.');
+      } finally {
+        setSubmitting(false);
+      }
+    } else {
+      Alert.alert('Excluir sessão', 'Tem certeza que deseja excluir esta sessão de estudo?', [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            setSubmitting(true);
+            try {
+              await deleteStudySession(session.id);
+              navigation.goBack();
+            } catch (e: any) {
+              Alert.alert('Erro', e.message || 'Não foi possível excluir a sessão.');
+            } finally {
+              setSubmitting(false);
+            }
+          },
         },
-      },
-    ]);
+      ]);
+    }
   };
 
   const formatDuration = (minutes: number) => {
@@ -321,62 +339,96 @@ export function ManualSessionScreen() {
 
       {/* Date/Time */}
       <Text style={styles.sectionLabel}>Data e hora</Text>
-      <View style={styles.dateRow}>
-        <Pressable style={styles.dateButton} onPress={() => setShowDatePicker(true)} accessibilityLabel="Selecionar data" accessibilityRole="button">
-          <Ionicons name="calendar-outline" size={18} color={colors.accent} />
-          <Text style={styles.dateText}>{formattedDate}</Text>
-        </Pressable>
-        <Pressable style={styles.dateButton} onPress={() => setShowTimePicker(true)} accessibilityLabel="Selecionar horário" accessibilityRole="button">
-          <Ionicons name="time-outline" size={18} color={colors.accent} />
-          <Text style={styles.dateText}>{formattedTime}</Text>
-        </Pressable>
-      </View>
-      {showDatePicker && (
-        <View style={styles.pickerContainer}>
-          <DateTimePicker
-            value={sessionDate}
-            mode="date"
-            display="inline"
-            maximumDate={new Date()}
-            themeVariant={isDark ? 'dark' : 'light'}
-            onChange={(_, date) => {
-              if (Platform.OS !== 'ios') setShowDatePicker(false);
-              if (date) {
-                const updated = new Date(sessionDate);
-                updated.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-                setSessionDate(updated);
-              }
-            }}
-          />
-          {Platform.OS === 'ios' && (
-            <Pressable style={styles.pickerDoneButton} onPress={() => setShowDatePicker(false)}>
-              <Text style={styles.pickerDoneText}>Confirmar</Text>
-            </Pressable>
-          )}
+      {Platform.OS === 'web' ? (
+        <View style={styles.dateRow}>
+          <View style={styles.dateButton}>
+            <Ionicons name="calendar-outline" size={18} color={colors.accent} />
+            <input
+              type="date"
+              value={sessionDate.toISOString().slice(0, 10)}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e: any) => {
+                const d = new Date(e.target.value + 'T' + sessionDate.toTimeString().slice(0, 5));
+                if (!isNaN(d.getTime())) setSessionDate(d);
+              }}
+              style={{ background: 'transparent', border: 'none', color: colors.text, fontSize: 14, flex: 1 }}
+            />
+          </View>
+          <View style={styles.dateButton}>
+            <Ionicons name="time-outline" size={18} color={colors.accent} />
+            <input
+              type="time"
+              value={sessionDate.toTimeString().slice(0, 5)}
+              onChange={(e: any) => {
+                const [h, m] = e.target.value.split(':');
+                const d = new Date(sessionDate);
+                d.setHours(parseInt(h), parseInt(m));
+                setSessionDate(d);
+              }}
+              style={{ background: 'transparent', border: 'none', color: colors.text, fontSize: 14, flex: 1 }}
+            />
+          </View>
         </View>
-      )}
-      {showTimePicker && (
-        <View style={styles.pickerContainer}>
-          <DateTimePicker
-            value={sessionDate}
-            mode="time"
-            display="spinner"
-            themeVariant={isDark ? 'dark' : 'light'}
-            onChange={(_, date) => {
-              if (Platform.OS !== 'ios') setShowTimePicker(false);
-              if (date) {
-                const updated = new Date(sessionDate);
-                updated.setHours(date.getHours(), date.getMinutes());
-                setSessionDate(updated);
-              }
-            }}
-          />
-          {Platform.OS === 'ios' && (
-            <Pressable style={styles.pickerDoneButton} onPress={() => setShowTimePicker(false)}>
-              <Text style={styles.pickerDoneText}>Confirmar</Text>
+      ) : (
+        <>
+          <View style={styles.dateRow}>
+            <Pressable style={styles.dateButton} onPress={() => setShowDatePicker(true)} accessibilityLabel="Selecionar data" accessibilityRole="button">
+              <Ionicons name="calendar-outline" size={18} color={colors.accent} />
+              <Text style={styles.dateText}>{formattedDate}</Text>
             </Pressable>
+            <Pressable style={styles.dateButton} onPress={() => setShowTimePicker(true)} accessibilityLabel="Selecionar horário" accessibilityRole="button">
+              <Ionicons name="time-outline" size={18} color={colors.accent} />
+              <Text style={styles.dateText}>{formattedTime}</Text>
+            </Pressable>
+          </View>
+          {showDatePicker && (
+            <View style={styles.pickerContainer}>
+              <DateTimePicker
+                value={sessionDate}
+                mode="date"
+                display="inline"
+                maximumDate={new Date()}
+                themeVariant={isDark ? 'dark' : 'light'}
+                onChange={(_, date) => {
+                  if (Platform.OS !== 'ios') setShowDatePicker(false);
+                  if (date) {
+                    const updated = new Date(sessionDate);
+                    updated.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+                    setSessionDate(updated);
+                  }
+                }}
+              />
+              {Platform.OS === 'ios' && (
+                <Pressable style={styles.pickerDoneButton} onPress={() => setShowDatePicker(false)}>
+                  <Text style={styles.pickerDoneText}>Confirmar</Text>
+                </Pressable>
+              )}
+            </View>
           )}
-        </View>
+          {showTimePicker && (
+            <View style={styles.pickerContainer}>
+              <DateTimePicker
+                value={sessionDate}
+                mode="time"
+                display="spinner"
+                themeVariant={isDark ? 'dark' : 'light'}
+                onChange={(_, date) => {
+                  if (Platform.OS !== 'ios') setShowTimePicker(false);
+                  if (date) {
+                    const updated = new Date(sessionDate);
+                    updated.setHours(date.getHours(), date.getMinutes());
+                    setSessionDate(updated);
+                  }
+                }}
+              />
+              {Platform.OS === 'ios' && (
+                <Pressable style={styles.pickerDoneButton} onPress={() => setShowTimePicker(false)}>
+                  <Text style={styles.pickerDoneText}>Confirmar</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+        </>
       )}
 
       {/* Rating */}

@@ -145,7 +145,7 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
 
   const confirmEdital = useCallback(async (edital: ParsedEditalData, config: ScheduleConfig) => {
     // Sync disciplinas to DB before generating schedule
-    await updateEditalDisciplinas(
+    const syncResult = await updateEditalDisciplinas(
       edital.id,
       edital.cargo,
       edital.disciplinas.map((d, i) => ({
@@ -155,6 +155,20 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
         orderIndex: i,
       })),
     );
+
+    // Update edital with real DB disciplina IDs from the server response
+    const dbDisciplinas = syncResult.data?.disciplinas;
+    if (dbDisciplinas && dbDisciplinas.length > 0) {
+      edital = {
+        ...edital,
+        disciplinas: dbDisciplinas.map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          weight: d.weight,
+          topics: Array.isArray(d.topics?.items) ? d.topics.items : (Array.isArray(d.topics) ? d.topics : []),
+        })),
+      };
+    }
 
     await generateSchedule({
       edital_id: edital.id,
@@ -176,7 +190,7 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
     setConcursos(prev => {
       const exists = prev.some(c => c.id === edital.id);
       if (exists) {
-        return prev.map(c => c.id === edital.id ? { ...c, schedule_config: config } : c);
+        return prev.map(c => c.id === edital.id ? { ...c, edital, schedule_config: config } : c);
       }
       return [...prev, newConcurso];
     });
