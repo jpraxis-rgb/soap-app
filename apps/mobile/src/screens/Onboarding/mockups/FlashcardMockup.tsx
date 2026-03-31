@@ -130,6 +130,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     cardWrapper: {
       width: '100%',
+      flex: 1,
       borderRadius: 10,
       overflow: 'hidden',
       marginBottom: 8,
@@ -142,7 +143,7 @@ const createStyles = (colors: ThemeColors) =>
       padding: 14,
       alignItems: 'center',
       justifyContent: 'center',
-      minHeight: 70,
+      flex: 1,
     },
     categoryLabel: {
       fontSize: 9,

@@ -148,8 +148,8 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.success,
     },
     disciplineList: {
-      gap: 5,
-      marginBottom: 10,
+      gap: 4,
+      marginBottom: 6,
     },
     disciplineRow: {
       flexDirection: 'row',
@@ -172,7 +172,7 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textSecondary,
     },
     weightSection: {
-      marginBottom: 10,
+      marginBottom: 6,
     },
     weightTitle: {
       fontSize: 9,

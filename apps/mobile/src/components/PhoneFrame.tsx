@@ -41,9 +41,10 @@ const createStyles = (colors: ThemeColors, frameWidth: number, frameHeight: numb
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: 20,
-      padding: 4,
+      paddingHorizontal: 10,
+      paddingTop: 10,
+      paddingBottom: 10,
       alignItems: 'center',
-      overflow: 'hidden',
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -57,14 +58,16 @@ const createStyles = (colors: ThemeColors, frameWidth: number, frameHeight: numb
       }),
     },
     notch: {
-      width: 30,
-      height: 3,
+      width: 36,
+      height: 4,
       borderRadius: 2,
       backgroundColor: colors.border,
-      marginBottom: 3,
+      marginBottom: 6,
     },
     content: {
       flex: 1,
       width: '100%',
+      borderRadius: 12,
+      overflow: 'hidden',
     },
   });

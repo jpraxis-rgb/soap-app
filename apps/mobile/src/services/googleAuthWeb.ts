@@ -100,15 +100,20 @@ export async function signInWithGoogleWeb(): Promise<GoogleAuthResult> {
     window.addEventListener('storage', onStorage);
 
     // Poll localStorage as fallback (storage event doesn't fire in same window)
+    let closedRetries = 0;
     const pollTimer = setInterval(() => {
       if (settled) return;
 
       // Check if popup was closed without completing auth
       if (popup.closed) {
         if (!checkLocalStorage()) {
-          settled = true;
-          cleanup();
-          reject(new Error('Login cancelado.'));
+          // Give localStorage a few more polls after popup closes (race condition)
+          closedRetries++;
+          if (closedRetries > 5) {
+            settled = true;
+            cleanup();
+            reject(new Error('Login cancelado.'));
+          }
         }
         return;
       }

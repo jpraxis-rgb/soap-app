@@ -120,7 +120,7 @@ const createStyles = (colors: ThemeColors) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 10,
+      marginBottom: 6,
     },
     countdownLeft: {
       flexDirection: 'row',
@@ -151,7 +151,7 @@ const createStyles = (colors: ThemeColors) =>
     weekStrip: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginBottom: 10,
+      marginBottom: 6,
     },
     dayCell: {
       width: 22,
