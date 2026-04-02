@@ -35,7 +35,7 @@ export interface ScheduleConfig {
 
 interface ScheduleConfigScreenProps {
   navigation: { navigate: (screen: string, params?: any) => void; goBack: () => void };
-  route: { params: { edital: ParsedEditalData } };
+  route: { params: { edital: ParsedEditalData; isEditing?: boolean; existingConfig?: ScheduleConfig } };
 }
 
 // ── Day Config ──────────────────────────────────────────
@@ -143,12 +143,39 @@ const createMiniStepperStyles = (colors: ThemeColors) => StyleSheet.create({
 export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreenProps) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
-  const { edital } = route.params;
+  const { edital, isEditing, existingConfig } = route.params;
 
-  const [dayConfigs, setDayConfigs] = useState<Record<number, number>>(DEFAULT_DAY_CONFIGS);
-  const [disciplinesPerDay, setDisciplinesPerDay] = useState(3);
-  const [preferredTime, setPreferredTime] = useState<'morning' | 'afternoon' | 'evening'>('morning');
+  const [dayConfigs, setDayConfigs] = useState<Record<number, number>>(
+    existingConfig?.day_configs || DEFAULT_DAY_CONFIGS,
+  );
+  const [disciplinesPerDay, setDisciplinesPerDay] = useState(
+    existingConfig?.disciplines_per_day || 3,
+  );
+  const [preferredTime, setPreferredTime] = useState<'morning' | 'afternoon' | 'evening'>(
+    existingConfig?.preferred_time || 'morning',
+  );
   const [loading, setLoading] = useState(false);
+
+  // Editable disciplinas (only active in edit mode)
+  const [editableDisciplinas, setEditableDisciplinas] = useState(edital.disciplinas);
+  const [newDisciplinaName, setNewDisciplinaName] = useState('');
+  const [showAllDisciplinas, setShowAllDisciplinas] = useState(false);
+
+  const removeDisciplina = (id: string) => {
+    setEditableDisciplinas(prev => prev.filter(d => d.id !== id));
+  };
+
+  const addDisciplina = () => {
+    const name = newDisciplinaName.trim();
+    if (!name) return;
+    setEditableDisciplinas(prev => [
+      ...prev,
+      { id: `new-${Date.now()}`, name, weight: null, topics: [] },
+    ]);
+    setNewDisciplinaName('');
+  };
+
+  const currentDisciplinas = isEditing ? editableDisciplinas : edital.disciplinas;
 
   const examDateValid = (() => {
     if (!edital.exam_date || !edital.exam_date.trim()) return false;
@@ -219,15 +246,15 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
   })();
 
   const handleGenerate = () => {
-    if (availableDays.length === 0) return;
+    if (availableDays.length === 0 || currentDisciplinas.length === 0) return;
 
-    let finalEdital = edital;
+    let finalEdital = { ...edital, disciplinas: currentDisciplinas };
     if (!hasExamDate) {
       const parsed = parseUserDate(dateInput);
       if (!parsed) {
-        finalEdital = { ...edital, exam_date: '' };
+        finalEdital = { ...finalEdital, exam_date: '' };
       } else {
-        finalEdital = { ...edital, exam_date: parsed };
+        finalEdital = { ...finalEdital, exam_date: parsed };
       }
     }
 
@@ -241,7 +268,7 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
         day_configs: dayConfigs,
         disciplines_per_day: disciplinesPerDay,
       };
-      navigation.navigate('SchedulePreview', { edital: finalEdital, config });
+      navigation.navigate('SchedulePreview', { edital: finalEdital, config, isEditing });
     }, 1000);
   };
 
@@ -253,7 +280,7 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
         <ActivityIndicator size="large" color={colors.accent} />
         <Text style={styles.loadingTitle}>Calculando seu plano de estudos...</Text>
         <Text style={styles.loadingSubtitle}>
-          Analisando {edital.disciplinas.length} disciplinas
+          Analisando {currentDisciplinas.length} disciplinas
         </Text>
       </View>
     );
@@ -273,7 +300,7 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
           <View style={styles.headerText}>
-            <Text style={styles.title}>Configurar cronograma</Text>
+            <Text style={styles.title}>{isEditing ? 'Editar cronograma' : 'Configurar cronograma'}</Text>
             <Text style={styles.concursoName} numberOfLines={1}>
               {concursoName}
             </Text>
@@ -417,42 +444,84 @@ export function ScheduleConfigScreen({ navigation, route }: ScheduleConfigScreen
           )}
         </Card>
 
-        {/* Disciplinas summary */}
+        {/* Disciplinas summary / edit */}
         <Card style={styles.card}>
           <View style={styles.fieldHeader}>
             <Ionicons name="book-outline" size={20} color={colors.accent} />
             <Text style={styles.fieldLabel}>
-              {edital.disciplinas.length} disciplinas do edital
+              {currentDisciplinas.length} disciplinas {isEditing ? '' : 'do edital'}
             </Text>
           </View>
           <View style={styles.disciplinaList}>
-            {edital.disciplinas.slice(0, 5).map((d) => (
+            {(isEditing || showAllDisciplinas
+              ? currentDisciplinas
+              : currentDisciplinas.slice(0, 5)
+            ).map((d) => (
               <View key={d.id} style={styles.disciplinaRow}>
                 <Text style={styles.disciplinaName} numberOfLines={1}>
                   {d.name}
                 </Text>
-                {d.weight != null && d.weight > 0 && (
-                  <Text style={styles.disciplinaWeight}>
-                    Peso {d.weight}
-                  </Text>
-                )}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                  {d.weight != null && d.weight > 0 && (
+                    <Text style={styles.disciplinaWeight}>
+                      Peso {d.weight}
+                    </Text>
+                  )}
+                  {isEditing && (
+                    <Pressable
+                      onPress={() => removeDisciplina(d.id)}
+                      accessibilityLabel={`Remover ${d.name}`}
+                      accessibilityRole="button"
+                      hitSlop={8}
+                    >
+                      <Ionicons name="close-circle" size={20} color={colors.error} />
+                    </Pressable>
+                  )}
+                </View>
               </View>
             ))}
-            {edital.disciplinas.length > 5 && (
-              <Text style={styles.moreText}>
-                +{edital.disciplinas.length - 5} mais
-              </Text>
+            {!isEditing && !showAllDisciplinas && currentDisciplinas.length > 5 && (
+              <Pressable onPress={() => setShowAllDisciplinas(true)}>
+                <Text style={styles.moreText}>
+                  +{currentDisciplinas.length - 5} mais
+                </Text>
+              </Pressable>
             )}
           </View>
+          {isEditing && (
+            <View style={styles.addDisciplinaRow}>
+              <TextInput
+                style={styles.addDisciplinaInput}
+                placeholder="Nome da disciplina"
+                placeholderTextColor={colors.textSecondary}
+                value={newDisciplinaName}
+                onChangeText={setNewDisciplinaName}
+                onSubmitEditing={addDisciplina}
+                returnKeyType="done"
+              />
+              <Pressable
+                onPress={addDisciplina}
+                disabled={!newDisciplinaName.trim()}
+                style={[
+                  styles.addDisciplinaButton,
+                  !newDisciplinaName.trim() && { opacity: 0.4 },
+                ]}
+                accessibilityLabel="Adicionar disciplina"
+                accessibilityRole="button"
+              >
+                <Ionicons name="add-circle" size={28} color={colors.accent} />
+              </Pressable>
+            </View>
+          )}
         </Card>
 
         {/* Generate button */}
         <View style={styles.buttonContainer}>
           <Button
-            label="Gerar cronograma"
+            label={isEditing ? 'Gerar novo cronograma' : 'Gerar cronograma'}
             onPress={handleGenerate}
             size="lg"
-            disabled={availableDays.length === 0}
+            disabled={availableDays.length === 0 || currentDisciplinas.length === 0}
             icon={<Ionicons name="sparkles" size={20} color={colors.accentForeground} />}
           />
         </View>
@@ -655,6 +724,27 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
     marginTop: spacing.xs,
+  },
+  addDisciplinaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.surface,
+  },
+  addDisciplinaInput: {
+    flex: 1,
+    color: colors.text,
+    fontSize: typography.sizes.sm,
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+  },
+  addDisciplinaButton: {
+    padding: spacing.xs,
   },
   buttonContainer: {
     paddingHorizontal: spacing.md,

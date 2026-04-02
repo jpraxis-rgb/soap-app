@@ -362,7 +362,7 @@ interface HomeScreenProps {
 export function HomeScreen({ navigation }: HomeScreenProps) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
-  const { hasAnyConcurso, hasActiveSchedule, activeConcurso, concursos, setActiveConcurso } = useConcurso();
+  const { hasAnyConcurso, hasActiveSchedule, activeConcurso, concursos, setActiveConcurso, getScheduleConfig } = useConcurso();
   const [allWeekBlocks, setAllWeekBlocks] = useState<ScheduleBlockData[]>([]);
   const [daySessions, setDaySessions] = useState<StudySessionData[]>([]);
   const [selectedDate, setSelectedDate] = useState(() => formatDateKey(new Date()));
@@ -436,6 +436,16 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
       params: {
         focusDiscipline: block.disciplina_name,
       },
+    });
+  };
+
+  const handleEditSchedule = async () => {
+    if (!activeConcurso) return;
+    const existingConfig = await getScheduleConfig(activeConcurso.id);
+    navigation.navigate('ScheduleConfig', {
+      edital: activeConcurso.edital,
+      isEditing: true,
+      existingConfig,
     });
   };
 
@@ -593,6 +603,18 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               </View>
             </View>
           </LinearGradient>
+          {(hasActiveSchedule || allWeekBlocks.length > 0) && (
+            <Pressable
+              style={styles.editScheduleRow}
+              onPress={handleEditSchedule}
+              accessibilityLabel="Editar cronograma"
+              accessibilityRole="button"
+            >
+              <Ionicons name="pencil-outline" size={14} color={colors.accent} />
+              <Text style={styles.editScheduleText}>Editar cronograma</Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+            </Pressable>
+          )}
         </View>
 
         {/* Week Calendar */}
@@ -726,6 +748,18 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
     padding: spacing.lg,
+  },
+  editScheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
+  },
+  editScheduleText: {
+    color: colors.accent,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
   },
   countdownLeft: {},
   countdownLabel: {

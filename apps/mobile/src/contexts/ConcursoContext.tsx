@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { parseEdital as apiParseEdital, getEditais, deleteEdital as apiDeleteEdital, generateSchedule, updateEditalDisciplinas } from '../services/api';
 
 const ACTIVE_CONCURSO_KEY = '@soap/active_concurso_id';
+const SCHEDULE_CONFIG_KEY_PREFIX = '@soap/schedule_config_';
 
 export interface ParsedDisciplina {
   id: string;
@@ -49,6 +50,7 @@ interface ConcursoContextType {
   setActiveConcurso: (concursoId: string) => void;
   removeConcurso: (concursoId: string) => Promise<void>;
   loadConcursos: () => Promise<void>;
+  getScheduleConfig: (concursoId: string) => Promise<ScheduleConfig | null>;
   hasAnyConcurso: boolean;
   hasActiveSchedule: boolean;
   isLoading: boolean;
@@ -73,7 +75,7 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       const rawEditais = await getEditais() as any[];
-      const mapped: Concurso[] = rawEditais.map(e => {
+      const mapped: Concurso[] = await Promise.all(rawEditais.map(async e => {
         const parsed = e.parsedData || {};
         const discs = (e.disciplinas || []).map((d: any) => ({
           id: d.id || `d-${Math.random().toString(36).slice(2)}`,
@@ -82,6 +84,16 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
           topics: Array.isArray(d.topics) ? d.topics : d.topics?.items || [],
           category: d.category,
         }));
+
+        // Restore schedule_config from AsyncStorage
+        let schedule_config: ScheduleConfig | null = null;
+        try {
+          const stored = await AsyncStorage.getItem(`${SCHEDULE_CONFIG_KEY_PREFIX}${e.id}`);
+          if (stored) schedule_config = JSON.parse(stored);
+        } catch {
+          // ignore parse errors
+        }
+
         return {
           id: e.id,
           edital: {
@@ -93,10 +105,10 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
             confidence: parsed.confidence || 0,
             disciplinas: discs,
           },
-          schedule_config: null,
+          schedule_config,
           created_at: e.updatedAt || new Date().toISOString(),
         };
-      });
+      }));
       if (!isMountedRef.current) return;
       setConcursos(mapped);
 
@@ -187,6 +199,12 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
       created_at: new Date().toISOString(),
     };
 
+    // Persist schedule config to AsyncStorage
+    await AsyncStorage.setItem(
+      `${SCHEDULE_CONFIG_KEY_PREFIX}${edital.id}`,
+      JSON.stringify(config),
+    );
+
     setConcursos(prev => {
       const exists = prev.some(c => c.id === edital.id);
       if (exists) {
@@ -202,6 +220,18 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
       prev.map(c => c.id === concursoId ? { ...c, schedule_config: config } : c)
     );
   }, []);
+
+  const getScheduleConfig = useCallback(async (concursoId: string): Promise<ScheduleConfig | null> => {
+    try {
+      const stored = await AsyncStorage.getItem(`${SCHEDULE_CONFIG_KEY_PREFIX}${concursoId}`);
+      if (stored) return JSON.parse(stored);
+    } catch {
+      // ignore parse errors
+    }
+    // Fallback to in-memory config
+    const concurso = concursos.find(c => c.id === concursoId);
+    return concurso?.schedule_config || null;
+  }, [concursos]);
 
   const setActiveConcursoFn = useCallback((concursoId: string) => {
     setActiveConcursoId(concursoId);
@@ -229,6 +259,7 @@ export function ConcursoProvider({ children }: { children: React.ReactNode }) {
         setActiveConcurso: setActiveConcursoFn,
         removeConcurso,
         loadConcursos,
+        getScheduleConfig,
         hasAnyConcurso: concursos.length > 0,
         hasActiveSchedule: activeConcurso?.schedule_config !== null,
         isLoading,

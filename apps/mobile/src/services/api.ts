@@ -306,6 +306,12 @@ export function generateSchedule(params: {
   }).then(res => res.data);
 }
 
+export function deleteFutureBlocks(editalId: string) {
+  return request<{ data: { deleted_count: number } }>(`/schedules/future/${editalId}`, {
+    method: 'DELETE',
+  }).then(res => res.data);
+}
+
 // ── Token Storage ─────────────────────────────────────
 
 export const tokenStorage = {

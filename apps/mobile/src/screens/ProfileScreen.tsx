@@ -29,7 +29,7 @@ interface ProfileScreenProps {
 export function ProfileScreen({ navigation }: ProfileScreenProps) {
   const { colors } = useTheme();
   const { user, logout, subscriptionTier } = useAuth();
-  const { concursos, activeConcurso, setActiveConcurso, removeConcurso } = useConcurso();
+  const { concursos, activeConcurso, setActiveConcurso, removeConcurso, getScheduleConfig, hasActiveSchedule } = useConcurso();
   const [notifications, setNotifications] = useState({
     studyReminder: true,
     weeklySummary: true,
@@ -134,12 +134,29 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
                 </Pressable>
               </View>
             ))}
-            <Pressable
-              style={[styles.changeButton, { marginTop: spacing.sm, alignSelf: 'flex-start' }]}
-              onPress={() => navigation.navigate('EditalImport')}
-            >
-              <Text style={styles.changeButtonText}>+ Adicionar concurso</Text>
-            </Pressable>
+            <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
+              <Pressable
+                style={[styles.changeButton, { alignSelf: 'flex-start' }]}
+                onPress={() => navigation.navigate('EditalImport')}
+              >
+                <Text style={styles.changeButtonText}>+ Adicionar concurso</Text>
+              </Pressable>
+              {hasActiveSchedule && activeConcurso && (
+                <Pressable
+                  style={[styles.changeButton, { alignSelf: 'flex-start' }]}
+                  onPress={async () => {
+                    const existingConfig = await getScheduleConfig(activeConcurso.id);
+                    navigation.navigate('ScheduleConfig', {
+                      edital: activeConcurso.edital,
+                      isEditing: true,
+                      existingConfig,
+                    });
+                  }}
+                >
+                  <Text style={styles.changeButtonText}>Editar cronograma</Text>
+                </Pressable>
+              )}
+            </View>
           </>
         )}
       </Card>

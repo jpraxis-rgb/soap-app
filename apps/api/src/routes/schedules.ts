@@ -253,6 +253,39 @@ router.put('/:id/recalculate', async (req: Request, res: Response) => {
 });
 
 /**
+ * DELETE /schedules/future/:editalId
+ * Delete all future (pending) schedule blocks for an edital, preserving completed sessions.
+ */
+router.delete('/future/:editalId', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const editalId = Array.isArray(req.params.editalId) ? req.params.editalId[0] : req.params.editalId;
+    const today = new Date().toISOString().split('T')[0];
+
+    const deleted = await db
+      .delete(scheduleBlocks)
+      .where(
+        and(
+          eq(scheduleBlocks.userId, userId),
+          eq(scheduleBlocks.editalId, editalId),
+          eq(scheduleBlocks.status, 'pending'),
+          gte(scheduleBlocks.scheduledDate, today),
+        ),
+      )
+      .returning();
+
+    res.json({ data: { deleted_count: deleted.length } });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete future schedule blocks' });
+  }
+});
+
+/**
  * DELETE /schedules/:id
  * Delete a schedule block owned by the authenticated user.
  */

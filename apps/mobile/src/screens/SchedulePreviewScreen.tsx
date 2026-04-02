@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, borderRadius, type ThemeColors } from '../theme';
 import { Card, Button } from '../components';
 import { useConcurso } from '../contexts/ConcursoContext';
+import { deleteFutureBlocks } from '../services/api';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ interface ScheduleConfig {
 
 interface SchedulePreviewScreenProps {
   navigation: { navigate: (screen: string) => void; goBack: () => void; reset: (state: any) => void };
-  route: { params: { edital: ParsedEditalData; config: ScheduleConfig } };
+  route: { params: { edital: ParsedEditalData; config: ScheduleConfig; isEditing?: boolean } };
 }
 
 // ── Constants ──────────────────────────────────────────
@@ -215,7 +216,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const { confirmEdital, setScheduleConfig } = useConcurso();
-  const { edital, config } = route.params;
+  const { edital, config, isEditing } = route.params;
   const [saving, setSaving] = useState(false);
 
   const weeksUntilExam = useMemo(() => computeWeeksUntilExam(edital.exam_date), [edital.exam_date]);
@@ -252,7 +253,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
     ));
   };
 
-  const handleConfirm = async () => {
+  const doSave = async () => {
     setSaving(true);
     try {
       // Build custom_allocations from edited values
@@ -266,6 +267,11 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
         custom_allocations: customAllocations,
       };
 
+      // If editing, delete future pending blocks before regenerating
+      if (isEditing) {
+        await deleteFutureBlocks(edital.id);
+      }
+
       await confirmEdital(edital, finalConfig);
 
       const goHome = () => {
@@ -275,15 +281,15 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
         });
       };
 
+      const successMsg = isEditing
+        ? `Seu cronograma para ${edital.orgao} - ${edital.cargo} foi atualizado com sucesso.`
+        : `Seu plano de estudos para ${edital.orgao} - ${edital.cargo} foi criado com sucesso.`;
+
       if (Platform.OS === 'web') {
-        window.alert(`Cronograma salvo!\n\nSeu plano de estudos para ${edital.orgao} - ${edital.cargo} foi criado com sucesso.`);
+        window.alert(`Cronograma salvo!\n\n${successMsg}`);
         goHome();
       } else {
-        Alert.alert(
-          'Cronograma salvo!',
-          `Seu plano de estudos para ${edital.orgao} - ${edital.cargo} foi criado com sucesso.`,
-          [{ text: 'Ir para início', onPress: goHome }],
-        );
+        Alert.alert('Cronograma salvo!', successMsg, [{ text: 'Ir para início', onPress: goHome }]);
       }
     } catch (err: any) {
       if (Platform.OS === 'web') {
@@ -293,6 +299,28 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleConfirm = () => {
+    if (isEditing) {
+      const warningMsg = 'Isso vai regenerar seu cronograma. Blocos futuros serão substituídos, mas suas sessões de estudo já registradas serão mantidas.';
+      if (Platform.OS === 'web') {
+        if (window.confirm(`Regenerar cronograma?\n\n${warningMsg}`)) {
+          doSave();
+        }
+      } else {
+        Alert.alert(
+          'Regenerar cronograma?',
+          warningMsg,
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Confirmar', onPress: doSave },
+          ],
+        );
+      }
+    } else {
+      doSave();
     }
   };
 
@@ -312,7 +340,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
           <View style={styles.headerText}>
-            <Text style={styles.title}>Prévia do cronograma</Text>
+            <Text style={styles.title}>{isEditing ? 'Prévia do novo cronograma' : 'Prévia do cronograma'}</Text>
             <Text style={styles.subtitle} numberOfLines={1}>
               {edital.orgao} - {edital.cargo}
             </Text>
@@ -472,7 +500,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <Button
-            label={saving ? 'Salvando...' : 'Confirmar cronograma'}
+            label={saving ? 'Salvando...' : isEditing ? 'Confirmar novo cronograma' : 'Confirmar cronograma'}
             onPress={handleConfirm}
             size="lg"
             disabled={saving}
