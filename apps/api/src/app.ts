@@ -38,9 +38,15 @@ app.use(generalLimiter);
 
 // Static content assets (mental-map JPEGs etc.) — public; served from src in dev,
 // from dist in prod (see build script that copies src/content → dist/content).
+// Override Helmet's default Cross-Origin-Resource-Policy so the web app on a
+// different origin (Vercel) can load these images.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 app.use(
   '/content-assets',
+  (_req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  },
   express.static(path.join(__dirname, 'content', 'disciplines'), { maxAge: '7d' }),
 );
 
