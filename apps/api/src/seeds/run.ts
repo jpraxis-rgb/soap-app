@@ -3,6 +3,7 @@ import { seedConcursos } from './concursos';
 import { seedEditalTemplates } from './edital-templates';
 import { seedContent } from './content-seed';
 import { seedDireitoAdministrativo } from './direito-admin-seed';
+import { seedAdministracaoFinanceiraOrcamentaria } from './afo-seed';
 
 async function main() {
   console.log('🌱 Running seeds...');
@@ -19,6 +20,9 @@ async function main() {
 
     const direitoAdmResult = await seedDireitoAdministrativo();
     console.log(`✅ Direito Administrativo: ${direitoAdmResult.inserted} items across ${direitoAdmResult.topics} topics`);
+
+    const afoResult = await seedAdministracaoFinanceiraOrcamentaria();
+    console.log(`✅ Administração Financeira e Orçamentária: ${afoResult.inserted} items across ${afoResult.topics} topics`);
   } catch (error) {
     console.error('❌ Seed failed:', error);
     process.exit(1);
