@@ -5,19 +5,28 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
+  Image,
   NativeSyntheticEvent,
   NativeScrollEvent,
   Dimensions,
+  type StyleProp,
+  type TextStyle,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card } from '../components';
-import { MOCK_MIND_MAPS } from '../services/api';
+import { API_ORIGIN, MOCK_MIND_MAPS } from '../services/api';
 import Svg, { Circle, Line, Text as SvgText } from 'react-native-svg';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface Section {
   heading: string;
@@ -51,6 +60,47 @@ interface MindMapBranch {
 interface MindMapBody {
   centralNode: string;
   branches: MindMapBranch[];
+  imageUrls?: string[];
+}
+
+function resolveAssetUrl(url: string): string {
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${API_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+// Inline markdown renderer: handles **bold** and *italic*. Nested <Text> inherits
+// the outer text style, so callers pass their usual style to the wrapper.
+function MarkdownText({
+  children,
+  style,
+}: {
+  children: string;
+  style?: StyleProp<TextStyle>;
+}) {
+  const parts: React.ReactNode[] = [];
+  const re = /\*\*([^*\n]+)\*\*|(?<![\*\w])\*([^*\n]+)\*(?!\w)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let key = 0;
+  while ((m = re.exec(children)) !== null) {
+    if (m.index > last) parts.push(children.slice(last, m.index));
+    if (m[1] !== undefined) {
+      parts.push(
+        <Text key={key++} style={{ fontWeight: typography.weights.bold }}>
+          {m[1]}
+        </Text>,
+      );
+    } else if (m[2] !== undefined) {
+      parts.push(
+        <Text key={key++} style={{ fontStyle: 'italic' }}>
+          {m[2]}
+        </Text>,
+      );
+    }
+    last = m.index + m[0].length;
+  }
+  if (last < children.length) parts.push(children.slice(last));
+  return <Text style={style}>{parts}</Text>;
 }
 
 export function ContentScreen() {
@@ -104,11 +154,11 @@ export function ContentScreen() {
         {/* Title */}
         <Text style={styles.title}>{item?.title || 'Conteúdo'}</Text>
 
-        {item?.professor_name && (
+        {item?.professorName && (
           <View style={styles.authorRow}>
             <Ionicons name="person-circle" size={20} color={colors.accent} />
             <Text style={styles.authorText}>
-              Revisado por {item.professor_name}
+              Revisado por {item.professorName}
             </Text>
           </View>
         )}
@@ -125,7 +175,7 @@ export function ContentScreen() {
         {sections.map((section, index) => (
           <View key={index} style={styles.section}>
             <Text style={styles.sectionHeading}>{section.heading}</Text>
-            <Text style={styles.sectionContent}>{section.content}</Text>
+            <MarkdownText style={styles.sectionContent}>{section.content}</MarkdownText>
 
             {section.keyPoints.length > 0 && (
               <Card style={styles.calloutBox}>
@@ -136,7 +186,7 @@ export function ContentScreen() {
                 {section.keyPoints.map((point, pIndex) => (
                   <View key={pIndex} style={styles.keyPointRow}>
                     <View style={styles.bullet} />
-                    <Text style={styles.keyPointText}>{point}</Text>
+                    <MarkdownText style={styles.keyPointText}>{point}</MarkdownText>
                   </View>
                 ))}
               </Card>
@@ -151,7 +201,7 @@ export function ContentScreen() {
             {keyTerms.map((term, index) => (
               <Card key={index} style={styles.termCard}>
                 <Text style={styles.termName}>{term.term}</Text>
-                <Text style={styles.termDefinition}>{term.definition}</Text>
+                <MarkdownText style={styles.termDefinition}>{term.definition}</MarkdownText>
               </Card>
             ))}
           </View>
@@ -206,10 +256,135 @@ export function ContentScreen() {
   );
 }
 
+function ZoomableImage({ uri }: { uri: string }) {
+  const { colors } = useTheme();
+  const scale = useSharedValue(1);
+  const savedScale = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const savedTranslateX = useSharedValue(0);
+  const savedTranslateY = useSharedValue(0);
+
+  const pinch = Gesture.Pinch()
+    .onUpdate((e) => {
+      scale.value = Math.max(1, Math.min(savedScale.value * e.scale, 5));
+    })
+    .onEnd(() => {
+      savedScale.value = scale.value;
+      if (scale.value === 1) {
+        translateX.value = withTiming(0);
+        translateY.value = withTiming(0);
+        savedTranslateX.value = 0;
+        savedTranslateY.value = 0;
+      }
+    });
+
+  const pan = Gesture.Pan()
+    .onUpdate((e) => {
+      translateX.value = savedTranslateX.value + e.translationX;
+      translateY.value = savedTranslateY.value + e.translationY;
+    })
+    .onEnd(() => {
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+    });
+
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd(() => {
+      scale.value = withTiming(1);
+      translateX.value = withTiming(0);
+      translateY.value = withTiming(0);
+      savedScale.value = 1;
+      savedTranslateX.value = 0;
+      savedTranslateY.value = 0;
+    });
+
+  const composed = Gesture.Simultaneous(pinch, pan, doubleTap);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
+  }));
+
+  return (
+    <View
+      style={{
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
+        overflow: 'hidden',
+        backgroundColor: colors.background,
+      }}
+    >
+      <GestureDetector gesture={composed}>
+        <Animated.View style={[{ width: '100%', height: '100%' }, animatedStyle]}>
+          <Image
+            source={{ uri }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="contain"
+          />
+        </Animated.View>
+      </GestureDetector>
+    </View>
+  );
+}
+
+function MindMapImageView({ item, body }: { item: any; body: MindMapBody }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+  const urls = (body.imageUrls ?? []).map(resolveAssetUrl);
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+        pagingEnabled={urls.length > 1}
+      >
+        {urls.map((uri, i) => (
+          <ZoomableImage key={i} uri={uri} />
+        ))}
+      </ScrollView>
+
+      {item?.professorName && (
+        <View
+          style={{
+            position: 'absolute',
+            top: spacing.sm,
+            right: spacing.md,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.xs,
+            backgroundColor: colors.card,
+            paddingHorizontal: spacing.sm,
+            paddingVertical: 4,
+            borderRadius: 12,
+            opacity: 0.9,
+          }}
+        >
+          <Ionicons name="person-circle" size={14} color={colors.accent} />
+          <Text style={{ color: colors.textSecondary, fontSize: typography.sizes.xs }}>
+            {item.professorName}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 function MindMapView({ item }: { item: any }) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const body = (item?.body || MOCK_MIND_MAPS[0].body) as MindMapBody;
+
+  if (body.imageUrls && body.imageUrls.length > 0) {
+    return <MindMapImageView item={item} body={body} />;
+  }
+
   const centerX = SCREEN_WIDTH / 2;
   const centerY = 200;
   const branchRadius = 140;
@@ -220,11 +395,11 @@ function MindMapView({ item }: { item: any }) {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>{item?.title || 'Mapa Mental'}</Text>
 
-        {item?.professor_name && (
+        {item?.professorName && (
           <View style={styles.authorRow}>
             <Ionicons name="person-circle" size={20} color={colors.accent} />
             <Text style={styles.authorText}>
-              Revisado por {item.professor_name}
+              Revisado por {item.professorName}
             </Text>
           </View>
         )}

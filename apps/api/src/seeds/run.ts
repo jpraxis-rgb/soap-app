@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { seedConcursos } from './concursos';
 import { seedEditalTemplates } from './edital-templates';
 import { seedContent } from './content-seed';
+import { seedDireitoAdministrativo } from './direito-admin-seed';
 
 async function main() {
   console.log('🌱 Running seeds...');
@@ -15,6 +16,9 @@ async function main() {
 
     const contentResult = await seedContent();
     console.log(`✅ Content: ${contentResult.inserted} inserted, ${contentResult.skipped} skipped`);
+
+    const direitoAdmResult = await seedDireitoAdministrativo();
+    console.log(`✅ Direito Administrativo: ${direitoAdmResult.inserted} items across ${direitoAdmResult.topics} topics`);
   } catch (error) {
     console.error('❌ Seed failed:', error);
     process.exit(1);

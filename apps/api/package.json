@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && mkdir -p dist/content && cp -R src/content/. dist/content/",
     "db:migrate": "drizzle-kit migrate",
     "db:generate": "drizzle-kit generate",
+    "seed": "tsx src/seeds/run.ts",
+    "seed:direito-admin": "tsx src/seeds/direito-admin-seed.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

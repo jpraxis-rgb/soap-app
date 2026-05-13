@@ -177,6 +177,13 @@ export function FlashcardScreen() {
         </View>
       </View>
 
+      {item?.professorName && (
+        <View style={styles.professorRow}>
+          <Ionicons name="person-circle" size={16} color={colors.accent} />
+          <Text style={styles.professorText}>Revisado por {item.professorName}</Text>
+        </View>
+      )}
+
       {/* Card */}
       <View style={styles.cardContainer}>
         <Pressable onPress={handleFlip} style={styles.cardPressable}>
@@ -265,6 +272,17 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.warning,
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.bold,
+  },
+  professorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  professorText: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.sm,
   },
   cardContainer: {
     flex: 1,

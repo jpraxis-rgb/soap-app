@@ -1,3 +1,5 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -33,6 +35,14 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '1mb' }));
 app.use(generalLimiter);
+
+// Static content assets (mental-map JPEGs etc.) — public; served from src in dev,
+// from dist in prod (see build script that copies src/content → dist/content).
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+app.use(
+  '/content-assets',
+  express.static(path.join(__dirname, 'content', 'disciplines'), { maxAge: '7d' }),
+);
 
 // Health check
 app.get('/health', (_req, res) => {

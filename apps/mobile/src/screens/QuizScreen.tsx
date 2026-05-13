@@ -270,6 +270,13 @@ export function QuizScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {item?.professorName && (
+          <View style={styles.professorRow}>
+            <Ionicons name="person-circle" size={16} color={colors.accent} />
+            <Text style={styles.professorText}>Revisado por {item.professorName}</Text>
+          </View>
+        )}
+
         {/* Question */}
         <Card style={styles.questionCard}>
           <Text style={styles.questionNumber}>Questão {currentIndex + 1}</Text>
@@ -395,6 +402,16 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   scrollView: {
     flex: 1,
     paddingHorizontal: spacing.md,
+  },
+  professorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingTop: spacing.md,
+  },
+  professorText: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.sm,
   },
   questionCard: {
     marginTop: spacing.lg,
