@@ -5,6 +5,7 @@ import { seedContent } from './content-seed';
 import { seedDireitoAdministrativo } from './direito-admin-seed';
 import { seedAdministracaoFinanceiraOrcamentaria } from './afo-seed';
 import { seedDireitoConstitucional } from './direito-constitucional-seed';
+import { seedLinguaPortuguesa } from './lingua-portuguesa-seed';
 
 async function main() {
   console.log('🌱 Running seeds...');
@@ -27,6 +28,9 @@ async function main() {
 
     const dcResult = await seedDireitoConstitucional();
     console.log(`✅ Direito Constitucional: ${dcResult.inserted} items across ${dcResult.topics} topics`);
+
+    const lpResult = await seedLinguaPortuguesa();
+    console.log(`✅ Língua Portuguesa: ${lpResult.inserted} items across ${lpResult.topics} topics`);
   } catch (error) {
     console.error('❌ Seed failed:', error);
     process.exit(1);

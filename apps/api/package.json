@@ -12,6 +12,7 @@
     "seed:direito-admin": "tsx src/seeds/direito-admin-seed.ts",
     "seed:afo": "tsx src/seeds/afo-seed.ts",
     "seed:direito-constitucional": "tsx src/seeds/direito-constitucional-seed.ts",
+    "seed:lingua-portuguesa": "tsx src/seeds/lingua-portuguesa-seed.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
