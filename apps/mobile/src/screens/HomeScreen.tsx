@@ -227,7 +227,7 @@ function StudyBlockCard({
               style={blockStyles.actionButton}
               onPress={() => onStartSession(block)}
             >
-              <View style={[blockStyles.gradientButton, { backgroundColor: colors.accent }]}>
+              <View style={[blockStyles.gradientButton, { backgroundColor: colors.accentSecondary }]}>
                 <Ionicons name="play" size={16} color={colors.accentForeground} />
                 <Text style={[blockStyles.actionText, { color: colors.accentForeground }]}>Iniciar sessão</Text>
               </View>
@@ -710,7 +710,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         accessibilityLabel="Registrar sessão manualmente"
         accessibilityRole="button"
       >
-        <View style={[styles.fabGradient, { backgroundColor: colors.accent }]}>
+        <View style={[styles.fabGradient, { backgroundColor: colors.accentSecondary }]}>
           <Ionicons name="add" size={28} color={colors.accentForeground} />
         </View>
       </Pressable>

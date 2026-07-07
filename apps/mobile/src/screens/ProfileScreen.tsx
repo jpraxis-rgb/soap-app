@@ -43,7 +43,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
     free: colors.textSecondary,
     registro: colors.success,
     microlearning: colors.accent,
-    mentor: colors.accentSecondary,
+    mentor: colors.chart6,
   };
 
   const handleLogout = () => {

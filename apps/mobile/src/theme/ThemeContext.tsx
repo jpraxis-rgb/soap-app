@@ -16,8 +16,8 @@ export interface ThemeContextValue {
 const STORAGE_KEY = '@soap_theme_mode';
 
 export const ThemeContext = createContext<ThemeContextValue>({
-  colors: themes.dark,
-  isDark: true,
+  colors: themes.light,
+  isDark: false,
   mode: 'system',
   setMode: () => {},
   toggleTheme: () => {},
@@ -43,11 +43,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setMode(mode === 'dark' || (mode === 'system' && systemScheme !== 'light') ? 'light' : 'dark');
+    setMode(mode === 'dark' || (mode === 'system' && systemScheme === 'dark') ? 'light' : 'dark');
   }, [mode, systemScheme, setMode]);
 
   const isDark =
-    mode === 'dark' || (mode === 'system' && systemScheme !== 'light');
+    mode === 'dark' || (mode === 'system' && systemScheme === 'dark');
   const colors = isDark ? themes.dark : themes.light;
 
   if (!loaded) {
