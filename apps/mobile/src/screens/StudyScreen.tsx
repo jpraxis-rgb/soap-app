@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
@@ -114,11 +113,11 @@ export function StudyScreen() {
             </View>
           </View>
           <View style={styles.progressBarBg}>
-            <LinearGradient
-              colors={[colors.gradientStart, colors.gradientEnd]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[styles.progressBarFill, { width: `${Math.max(percent, 2)}%` }]}
+            <View
+              style={[
+                styles.progressBarFill,
+                { width: `${Math.max(percent, 2)}%`, backgroundColor: colors.accentSecondary },
+              ]}
             />
           </View>
         </Card>
@@ -151,11 +150,11 @@ export function StudyScreen() {
         <Text style={styles.overallLabel}>Progresso geral</Text>
         <Text style={styles.overallPercent}>{overallPercent}%</Text>
         <View style={styles.overallBarBg}>
-          <LinearGradient
-            colors={[colors.gradientStart, colors.gradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[styles.overallBarFill, { width: `${Math.max(overallPercent, 2)}%` }]}
+          <View
+            style={[
+              styles.overallBarFill,
+              { width: `${Math.max(overallPercent, 2)}%`, backgroundColor: colors.accentSecondary },
+            ]}
           />
         </View>
         <Text style={styles.overallDetail}>

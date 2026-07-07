@@ -6,7 +6,6 @@ import {
   FlatList,
   Pressable,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
@@ -142,11 +141,11 @@ export function TopicDetailScreen() {
           </Text>
         </View>
         <View style={styles.progressBarBg}>
-          <LinearGradient
-            colors={[colors.gradientStart, colors.gradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[styles.progressBarFill, { width: `${Math.max(percent, 2)}%` }]}
+          <View
+            style={[
+              styles.progressBarFill,
+              { width: `${Math.max(percent, 2)}%`, backgroundColor: colors.accentSecondary },
+            ]}
           />
         </View>
       </View>

@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, borderRadius, type ThemeColors } from '../theme';
 import { Card, Button } from '../components';
@@ -349,12 +348,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
 
         {/* Summary Card */}
         <View style={styles.summaryWrapper}>
-          <LinearGradient
-            colors={[colors.gradientStart, colors.gradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.summaryCard}
-          >
+          <View style={styles.summaryCard}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryValue}>{weeksUntilExam}</Text>
               <Text style={styles.summaryLabel}>semanas</Text>
@@ -369,7 +363,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
               <Text style={styles.summaryValue}>{edital.disciplinas.length}</Text>
               <Text style={styles.summaryLabel}>disciplinas</Text>
             </View>
-          </LinearGradient>
+          </View>
         </View>
 
         {/* Per-disciplina allocation — editable */}
@@ -567,6 +561,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: spacing.md,
   },
   summaryCard: {
+    backgroundColor: colors.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
@@ -578,9 +573,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
   },
   summaryValue: {
-    color: colors.text,
+    fontFamily: typography.families.display,
+    color: colors.accentForeground,
     fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
     lineHeight: typography.sizes.xxl + 6,
   },
   summaryLabel: {

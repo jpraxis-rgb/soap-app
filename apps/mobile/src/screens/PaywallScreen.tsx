@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
@@ -91,14 +90,9 @@ export function PaywallScreen() {
             ]}
           >
             {plan.recommended && (
-              <LinearGradient
-                colors={[colors.gradientStart, colors.gradientEnd]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.recommendedBadge}
-              >
+              <View style={[styles.recommendedBadge, { backgroundColor: colors.accent }]}>
                 <Text style={styles.recommendedText}>RECOMENDADO</Text>
-              </LinearGradient>
+              </View>
             )}
 
             <Text style={styles.planName}>{plan.name}</Text>
@@ -191,7 +185,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: spacing.md,
   },
   recommendedText: {
-    color: colors.text,
+    color: colors.accentForeground,
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.bold,
     letterSpacing: 1,

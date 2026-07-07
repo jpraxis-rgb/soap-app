@@ -13,7 +13,6 @@ import {
   ActivityIndicator,
   AccessibilityInfo,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Badge, Card } from '../components';
@@ -81,12 +80,9 @@ function WeekCalendar({
               {dayLabels[d.getDay()]}
             </Text>
             {isSelected ? (
-              <LinearGradient
-                colors={[colors.gradientStart, colors.gradientEnd]}
-                style={calStyles.todayCircle}
-              >
+              <View style={[calStyles.todayCircle, { backgroundColor: colors.accent }]}>
                 <Text style={calStyles.dayNumberActive}>{d.getDate()}</Text>
-              </LinearGradient>
+              </View>
             ) : (
               <View style={[calStyles.dayCircle, isToday && { borderWidth: 1, borderColor: colors.accent }]}>
                 <Text style={[calStyles.dayNumber, isToday && { color: colors.accent }]}>{d.getDate()}</Text>
@@ -143,7 +139,7 @@ const createCalStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: typography.weights.medium,
   },
   dayNumberActive: {
-    color: colors.text,
+    color: colors.accentForeground,
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.bold,
   },
@@ -461,7 +457,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             Escolha um concurso popular ou importe seu edital para começar a estudar de forma inteligente.
           </Text>
           <Pressable onPress={() => navigation.navigate('EditalImport')}>
-            <View style={[styles.importButton, { backgroundColor: colors.accent }]}>
+            <View style={[styles.importButton, { backgroundColor: colors.accentSecondary }]}>
               <Ionicons name="add-circle-outline" size={20} color={colors.accentForeground} />
               <Text style={[styles.importButtonText, { color: colors.accentForeground }]}>Selecionar concurso</Text>
             </View>
@@ -575,12 +571,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
         {/* Exam Countdown Card */}
         <View style={styles.countdownWrapper}>
-          <LinearGradient
-            colors={[colors.gradientStart, colors.gradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.countdownCard}
-          >
+          <View style={styles.countdownCard}>
             <View style={styles.countdownLeft}>
               <Text style={styles.countdownLabel}>
                 {daysUntilExam != null ? 'Dias até a prova' : 'Resumo'}
@@ -602,7 +593,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                 <Text style={styles.countdownStatLabel}>planejado</Text>
               </View>
             </View>
-          </LinearGradient>
+          </View>
           {(hasActiveSchedule || allWeekBlocks.length > 0) && (
             <Pressable
               style={styles.editScheduleRow}
@@ -743,6 +734,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   countdownCard: {
+    backgroundColor: colors.accent,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -769,7 +761,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   countdownNumber: {
     fontFamily: typography.families.display,
-    color: colors.text,
+    color: colors.accentForeground,
     fontSize: typography.sizes.xxxl + 10,
     lineHeight: typography.sizes.xxxl + 16,
   },
@@ -781,7 +773,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   countdownStatValue: {
     fontFamily: typography.families.display,
-    color: colors.text,
+    color: colors.accentForeground,
     fontSize: typography.sizes.lg,
   },
   countdownStatLabel: {
@@ -887,7 +879,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: spacing.md,
   },
   importButtonText: {
-    color: colors.text,
+    color: colors.accentForeground,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
   },

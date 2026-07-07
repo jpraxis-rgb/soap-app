@@ -10,7 +10,6 @@ import {
   AppStateStatus,
   Alert,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, borderRadius, type ThemeColors } from '../theme';
 import { Card } from '../components';
@@ -259,11 +258,11 @@ export function StudySessionScreen({ navigation, route }: StudySessionScreenProp
 
           {/* Progress bar */}
           <View style={styles.progressBarBg}>
-            <LinearGradient
-              colors={[colors.gradientStart, colors.gradientEnd]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[styles.progressBarFill, { width: `${progress * 100}%` }]}
+            <View
+              style={[
+                styles.progressBarFill,
+                { width: `${progress * 100}%`, backgroundColor: colors.accentSecondary },
+              ]}
             />
           </View>
 

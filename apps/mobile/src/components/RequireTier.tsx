@@ -1,6 +1,5 @@
 import React, { ReactNode } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, ThemeColors } from '../theme';
 import { Button } from './Button';
@@ -37,14 +36,9 @@ export function RequireTier({ tier, children, onUpgrade }: RequireTierProps) {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[colors.gradientStart, colors.gradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.iconContainer}
-      >
-        <Ionicons name="lock-closed" size={32} color={colors.text} />
-      </LinearGradient>
+      <View style={styles.iconContainer}>
+        <Ionicons name="lock-closed" size={32} color={colors.accentForeground} />
+      </View>
 
       <Text style={styles.title}>Conteudo Premium</Text>
       <Text style={styles.description}>
@@ -73,6 +67,7 @@ const createStyles = (colors: ThemeColors) =>
       width: 80,
       height: 80,
       borderRadius: 40,
+      backgroundColor: colors.accent,
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: spacing.lg,

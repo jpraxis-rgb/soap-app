@@ -12,7 +12,6 @@ import {
   type StyleProp,
   type TextStyle,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -136,11 +135,11 @@ export function ContentScreen() {
     <View style={styles.container}>
       {/* Progress bar */}
       <View style={styles.progressBarContainer}>
-        <LinearGradient
-          colors={[colors.gradientStart, colors.gradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={[styles.progressBar, { width: `${scrollProgress * 100}%` }]}
+        <View
+          style={[
+            styles.progressBar,
+            { width: `${scrollProgress * 100}%`, backgroundColor: colors.accentSecondary },
+          ]}
         />
       </View>
 
