@@ -450,8 +450,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     return (
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.emptyContainer}>
-          <Wordmark size={34} color={colors.accent} />
-          <Text style={styles.emptyTitle}>Bem-vindo!</Text>
+          <Wordmark size={34} color={colors.accent} stacked />
           <Text style={styles.tagline}>Todo o edital. Um plano.</Text>
           <Text style={styles.emptyDescription}>
             Escolha um concurso popular ou importe seu edital para começar a estudar de forma inteligente.

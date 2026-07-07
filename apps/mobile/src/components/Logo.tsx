@@ -28,9 +28,11 @@ export function Simbolo({ size = 48, mono = false, monoColor = '#FFFFFF' }: Simb
 interface WordmarkProps {
   size?: number;
   color?: string;
+  /** Stack the símbolo above the wordmark text instead of beside it. */
+  stacked?: boolean;
 }
 
-export function Wordmark({ size = 28, color = BRAND_VIOLET }: WordmarkProps) {
+export function Wordmark({ size = 28, color = BRAND_VIOLET, stacked = false }: WordmarkProps) {
   const textStyle: TextStyle = {
     fontFamily: 'Archivo_800ExtraBold',
     fontSize: size,
@@ -38,13 +40,26 @@ export function Wordmark({ size = 28, color = BRAND_VIOLET }: WordmarkProps) {
     textTransform: 'lowercase',
   };
 
+  const text = (
+    <Text style={textStyle} maxFontSizeMultiplier={1.2}>
+      <Text style={{ color }}>estuda</Text>
+      <Text style={{ color: BRAND_ORANGE }}>tudo</Text>
+    </Text>
+  );
+
+  if (stacked) {
+    return (
+      <View style={{ alignItems: 'center', gap: size * 0.5 }}>
+        <Simbolo size={size * 1.9} />
+        {text}
+      </View>
+    );
+  }
+
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: size * 0.35 }}>
       <Simbolo size={size * 1.15} />
-      <Text style={textStyle} maxFontSizeMultiplier={1.2}>
-        <Text style={{ color }}>estuda</Text>
-        <Text style={{ color: BRAND_ORANGE }}>tudo</Text>
-      </Text>
+      {text}
     </View>
   );
 }

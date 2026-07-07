@@ -136,7 +136,7 @@ export function StudyScreen() {
   if (!activeConcurso) {
     return (
       <View style={styles.centered}>
-        <Wordmark size={32} color={colors.accent} />
+        <Wordmark size={32} color={colors.accent} stacked />
         <Text style={styles.emptyTitle}>Nenhum concurso selecionado</Text>
         <Text style={styles.emptySubtext}>Importe um edital para começar a estudar</Text>
       </View>
