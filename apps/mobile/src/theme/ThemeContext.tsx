@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useEffect, useState } from 'react';
-import { useColorScheme, View, Text } from 'react-native';
+import { useColorScheme, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Simbolo } from '../components/Logo';
 import { themes, type ThemeColors } from './colors';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
@@ -52,8 +53,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   if (!loaded) {
     return (
-      <View style={{ flex: 1, backgroundColor: themes.dark.background, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: themes.dark.accent, fontSize: 32, fontWeight: '800', letterSpacing: 2 }}>SOAP</Text>
+      <View style={{ flex: 1, backgroundColor: themes.light.background, alignItems: 'center', justifyContent: 'center' }}>
+        <Simbolo size={64} />
       </View>
     );
   }

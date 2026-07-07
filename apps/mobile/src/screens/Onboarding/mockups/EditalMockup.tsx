@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet, type DimensionValue } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, type ThemeColors } from '../../../theme';
 
@@ -44,7 +43,7 @@ export function EditalMockup() {
             <View
               style={[
                 styles.bullet,
-                { backgroundColor: index % 2 === 0 ? colors.accent : colors.accentSecondary },
+                { backgroundColor: index % 2 === 0 ? colors.accent : colors.chart6 },
               ]}
             />
             <Text style={styles.disciplineName}>{d.name}</Text>
@@ -61,18 +60,15 @@ export function EditalMockup() {
             <View key={index} style={styles.weightBarRow}>
               <Text style={styles.weightLabel}>{d.name.substring(0, 3)}</Text>
               <View style={styles.weightTrack}>
-                <View style={{ width: d.weight as DimensionValue, height: '100%' }}>
-                  <LinearGradient
-                    colors={
-                      index % 2 === 0
-                        ? [colors.gradientStart, colors.gradientEnd]
-                        : [colors.accentSecondary, colors.accentSecondary]
-                    }
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.weightFill}
-                  />
-                </View>
+                <View
+                  style={[
+                    styles.weightFill,
+                    {
+                      width: d.weight as DimensionValue,
+                      backgroundColor: index % 2 === 0 ? colors.accent : colors.chart6,
+                    },
+                  ]}
+                />
               </View>
             </View>
           ))}
@@ -202,7 +198,7 @@ const createStyles = (colors: ThemeColors) =>
       overflow: 'hidden',
     },
     weightFill: {
-      flex: 1,
+      height: '100%',
       borderRadius: 2,
     },
     badge: {

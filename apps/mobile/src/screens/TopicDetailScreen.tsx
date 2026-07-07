@@ -21,10 +21,10 @@ type FormatInfo = {
 };
 
 const FORMATS: FormatInfo[] = [
-  { key: 'summary', label: 'Resumo', icon: 'document-text', color: '#7C5CFC', screen: 'Content' },
-  { key: 'flashcard', label: 'Flash', icon: 'layers', color: '#FF6B9D', screen: 'Flashcard' },
-  { key: 'quiz', label: 'Quiz', icon: 'help-circle', color: '#FFB347', screen: 'Quiz' },
-  { key: 'mind_map', label: 'Mapa', icon: 'git-branch', color: '#00D4AA', screen: 'Content' },
+  { key: 'summary', label: 'Resumo', icon: 'document-text', color: '#6D28D9', screen: 'Content' },
+  { key: 'flashcard', label: 'Flash', icon: 'layers', color: '#DB2777', screen: 'Flashcard' },
+  { key: 'quiz', label: 'Quiz', icon: 'help-circle', color: '#D97706', screen: 'Quiz' },
+  { key: 'mind_map', label: 'Mapa', icon: 'git-branch', color: '#059669', screen: 'Content' },
 ];
 
 function StatusBadge({ status, colors }: { status: string; colors: ThemeColors }) {

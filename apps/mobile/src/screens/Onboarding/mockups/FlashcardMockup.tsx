@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, type ThemeColors } from '../../../theme';
 
@@ -40,12 +39,7 @@ export function FlashcardMockup() {
 
       {/* Flashcard with gradient top border */}
       <View style={styles.cardWrapper}>
-        <LinearGradient
-          colors={[colors.gradientStart, colors.gradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.cardBorder}
-        />
+        <View style={[styles.cardBorder, { backgroundColor: colors.accent }]} />
         <View style={styles.card}>
           <Text style={styles.categoryLabel}>Dir. Constitucional</Text>
           <Text style={styles.questionText}>
@@ -78,12 +72,7 @@ export function FlashcardMockup() {
           <Text style={styles.progressCount}>12/30</Text>
         </View>
         <View style={styles.progressTrack}>
-          <LinearGradient
-            colors={[colors.gradientStart, colors.gradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.progressFill}
-          />
+          <View style={[styles.progressFill, { backgroundColor: colors.accentSecondary }]} />
         </View>
       </View>
 

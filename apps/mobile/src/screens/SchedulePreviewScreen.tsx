@@ -43,7 +43,7 @@ interface SchedulePreviewScreenProps {
 
 // ── Constants ──────────────────────────────────────────
 
-const SUBJECT_COLORS = ['#7C5CFC', '#FF6B9D', '#00D4AA', '#FFB347', '#FF4757', '#4ECDC4'];
+const SUBJECT_COLORS = ['#6D28D9', '#EA580C', '#059669', '#D97706', '#4EADFC', '#DB2777'];
 const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
 // ── Schedule Generation Helpers ────────────────────────
