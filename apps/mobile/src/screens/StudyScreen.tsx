@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
-import { Card } from '../components';
+import { Card, Wordmark } from '../components';
 import { useConcurso } from '../contexts/ConcursoContext';
 import { fetchContentForEdital, DisciplineContent, EditalContentMap } from '../services/api';
 
@@ -136,7 +136,7 @@ export function StudyScreen() {
   if (!activeConcurso) {
     return (
       <View style={styles.centered}>
-        <Ionicons name="school-outline" size={64} color={colors.surface} />
+        <Wordmark size={32} color={colors.accent} />
         <Text style={styles.emptyTitle}>Nenhum concurso selecionado</Text>
         <Text style={styles.emptySubtext}>Importe um edital para começar a estudar</Text>
       </View>
