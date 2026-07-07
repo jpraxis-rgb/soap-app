@@ -160,9 +160,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: spacing.xl,
   },
   headerTitle: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xxxl,
-    fontWeight: typography.weights.bold,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
@@ -208,9 +208,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: spacing.lg,
   },
   planPrice: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xxxl,
-    fontWeight: typography.weights.bold,
   },
   planPeriod: {
     color: colors.textSecondary,

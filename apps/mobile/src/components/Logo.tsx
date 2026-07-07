@@ -32,8 +32,8 @@ interface WordmarkProps {
 
 export function Wordmark({ size = 28, color = BRAND_VIOLET }: WordmarkProps) {
   const textStyle: TextStyle = {
+    fontFamily: 'Archivo_800ExtraBold',
     fontSize: size,
-    fontWeight: '800',
     letterSpacing: -0.5,
     textTransform: 'lowercase',
   };

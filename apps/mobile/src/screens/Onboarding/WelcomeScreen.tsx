@@ -293,8 +293,8 @@ const createStyles = (colors: ThemeColors, width: number) => StyleSheet.create({
     width: '100%',
   },
   title: {
+    fontFamily: typography.families.display,
     fontSize: 24,
-    fontWeight: '700',
     color: colors.text,
     textAlign: 'center',
     marginTop: spacing.md,

@@ -82,9 +82,9 @@ const createDonutStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
   },
   percentText: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
   },
   percentLabel: {
     color: colors.textSecondary,
@@ -310,9 +310,9 @@ const createStatStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: spacing.xs,
   },
   value: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
   },
   label: {
     color: colors.textSecondary,

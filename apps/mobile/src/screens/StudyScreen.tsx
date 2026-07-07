@@ -220,9 +220,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: typography.weights.medium,
   },
   overallPercent: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xxxl,
-    fontWeight: typography.weights.bold,
     marginTop: spacing.xs,
   },
   overallBarBg: {

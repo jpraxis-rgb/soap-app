@@ -729,9 +729,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   greetingText: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
   },
   greetingSubtext: {
     color: colors.textSecondary,
@@ -768,9 +768,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: typography.weights.medium,
   },
   countdownNumber: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xxxl + 10,
-    fontWeight: typography.weights.bold,
     lineHeight: typography.sizes.xxxl + 16,
   },
   countdownRight: {
@@ -780,9 +780,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'flex-end',
   },
   countdownStatValue: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
   },
   countdownStatLabel: {
     color: 'rgba(255,255,255,0.7)',
@@ -857,9 +857,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: spacing.md,
   },
   emptyTitle: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
     textAlign: 'center',
   },
   tagline: {

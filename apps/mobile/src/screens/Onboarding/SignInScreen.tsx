@@ -243,8 +243,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: spacing.md,
   },
   title: {
+    fontFamily: typography.families.display,
     fontSize: typography.sizes.xxxl,
-    fontWeight: typography.weights.bold,
     color: colors.text,
     marginBottom: spacing.sm,
   },

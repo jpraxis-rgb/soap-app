@@ -178,9 +178,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: spacing.sm,
   },
   headerPercent: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
   },
   headerDetail: {
     color: colors.textSecondary,

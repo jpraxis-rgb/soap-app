@@ -1,6 +1,14 @@
 import React from 'react';
 import { Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
+import { Archivo_800ExtraBold } from '@expo-google-fonts/archivo';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -26,10 +34,10 @@ function AppInner() {
       notification: colors.accentSecondary,
     },
     fonts: {
-      regular: { fontFamily: 'System', fontWeight: '400' as const },
-      medium: { fontFamily: 'System', fontWeight: '500' as const },
-      bold: { fontFamily: 'System', fontWeight: '700' as const },
-      heavy: { fontFamily: 'System', fontWeight: '900' as const },
+      regular: { fontFamily: 'Inter_400Regular', fontWeight: '400' as const },
+      medium: { fontFamily: 'Inter_500Medium', fontWeight: '500' as const },
+      bold: { fontFamily: 'Inter_700Bold', fontWeight: '700' as const },
+      heavy: { fontFamily: 'Archivo_800ExtraBold', fontWeight: '800' as const },
     },
   };
 
@@ -42,6 +50,19 @@ function AppInner() {
 }
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    Archivo_800ExtraBold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
+  // Keep the native splash on screen until the brand fonts are ready
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>

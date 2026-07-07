@@ -512,18 +512,18 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: spacing.lg,
   },
   scorePercentage: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xxxl,
-    fontWeight: typography.weights.bold,
   },
   scoreLabel: {
     color: colors.textSecondary,
     fontSize: typography.sizes.sm,
   },
   resultsTitle: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
     marginBottom: spacing.lg,
   },
   resultsSummary: {

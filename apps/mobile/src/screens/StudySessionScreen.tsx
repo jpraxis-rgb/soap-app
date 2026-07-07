@@ -517,9 +517,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: spacing.xl,
   },
   timerText: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: 64,
-    fontWeight: typography.weights.bold,
     fontVariant: ['tabular-nums'],
   },
   timerTarget: {
@@ -565,9 +565,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: spacing.xl,
   },
   completedTitle: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xxxl,
-    fontWeight: typography.weights.bold,
   },
   completedSubtitle: {
     color: colors.textSecondary,
