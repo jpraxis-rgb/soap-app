@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
-import { Badge, Card } from '../components';
+import { Badge, Card, Wordmark } from '../components';
 import { getTodayScheduleBlocks, ScheduleBlockData, getUpcomingScheduleBlocks, getStudySessions, StudySessionData } from '../services/api';
 import { useConcurso } from '../contexts/ConcursoContext';
 
@@ -450,8 +450,8 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     return (
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.emptyContainer}>
-          <Ionicons name="school-outline" size={80} color={colors.surface} />
-          <Text style={styles.emptyTitle}>Bem-vindo ao Estuda Tudo!</Text>
+          <Wordmark size={34} color={colors.accent} />
+          <Text style={styles.emptyTitle}>Bem-vindo!</Text>
           <Text style={styles.tagline}>Todo o edital. Um plano.</Text>
           <Text style={styles.emptyDescription}>
             Escolha um concurso popular ou importe seu edital para começar a estudar de forma inteligente.
