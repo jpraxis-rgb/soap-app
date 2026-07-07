@@ -13,7 +13,6 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, spacing, typography, type ThemeColors } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
@@ -217,14 +216,14 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
 
               return (
                 <Animated.View key={index} style={{ opacity: dotOpacity }}>
-                  <Animated.View style={{ overflow: 'hidden', borderRadius: 4, width: dotWidth, height: 8 }}>
-                    <LinearGradient
-                      colors={[colors.gradientStart, colors.gradientEnd]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={{ flex: 1 }}
-                    />
-                  </Animated.View>
+                  <Animated.View
+                    style={{
+                      backgroundColor: colors.accent,
+                      borderRadius: 4,
+                      width: dotWidth,
+                      height: 8,
+                    }}
+                  />
                 </Animated.View>
               );
             })}
@@ -293,8 +292,8 @@ const createStyles = (colors: ThemeColors, width: number) => StyleSheet.create({
     width: '100%',
   },
   title: {
+    fontFamily: typography.families.display,
     fontSize: 24,
-    fontWeight: '700',
     color: colors.text,
     textAlign: 'center',
     marginTop: spacing.md,

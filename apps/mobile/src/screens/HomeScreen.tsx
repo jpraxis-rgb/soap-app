@@ -13,7 +13,6 @@ import {
   ActivityIndicator,
   AccessibilityInfo,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Badge, Card } from '../components';
@@ -81,12 +80,9 @@ function WeekCalendar({
               {dayLabels[d.getDay()]}
             </Text>
             {isSelected ? (
-              <LinearGradient
-                colors={[colors.gradientStart, colors.gradientEnd]}
-                style={calStyles.todayCircle}
-              >
+              <View style={[calStyles.todayCircle, { backgroundColor: colors.accent }]}>
                 <Text style={calStyles.dayNumberActive}>{d.getDate()}</Text>
-              </LinearGradient>
+              </View>
             ) : (
               <View style={[calStyles.dayCircle, isToday && { borderWidth: 1, borderColor: colors.accent }]}>
                 <Text style={[calStyles.dayNumber, isToday && { color: colors.accent }]}>{d.getDate()}</Text>
@@ -143,7 +139,7 @@ const createCalStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: typography.weights.medium,
   },
   dayNumberActive: {
-    color: colors.text,
+    color: colors.accentForeground,
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.bold,
   },
@@ -227,7 +223,7 @@ function StudyBlockCard({
               style={blockStyles.actionButton}
               onPress={() => onStartSession(block)}
             >
-              <View style={[blockStyles.gradientButton, { backgroundColor: colors.accent }]}>
+              <View style={[blockStyles.gradientButton, { backgroundColor: colors.accentSecondary }]}>
                 <Ionicons name="play" size={16} color={colors.accentForeground} />
                 <Text style={[blockStyles.actionText, { color: colors.accentForeground }]}>Iniciar sessão</Text>
               </View>
@@ -455,13 +451,13 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.emptyContainer}>
           <Ionicons name="school-outline" size={80} color={colors.surface} />
-          <Text style={styles.emptyTitle}>Bem-vindo ao SOAP!</Text>
-          <Text style={styles.tagline}>Sistema Operacional do Aprovado</Text>
+          <Text style={styles.emptyTitle}>Bem-vindo ao Estuda Tudo!</Text>
+          <Text style={styles.tagline}>Todo o edital. Um plano.</Text>
           <Text style={styles.emptyDescription}>
             Escolha um concurso popular ou importe seu edital para começar a estudar de forma inteligente.
           </Text>
           <Pressable onPress={() => navigation.navigate('EditalImport')}>
-            <View style={[styles.importButton, { backgroundColor: colors.accent }]}>
+            <View style={[styles.importButton, { backgroundColor: colors.accentSecondary }]}>
               <Ionicons name="add-circle-outline" size={20} color={colors.accentForeground} />
               <Text style={[styles.importButtonText, { color: colors.accentForeground }]}>Selecionar concurso</Text>
             </View>
@@ -575,12 +571,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
         {/* Exam Countdown Card */}
         <View style={styles.countdownWrapper}>
-          <LinearGradient
-            colors={[colors.gradientStart, colors.gradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.countdownCard}
-          >
+          <View style={styles.countdownCard}>
             <View style={styles.countdownLeft}>
               <Text style={styles.countdownLabel}>
                 {daysUntilExam != null ? 'Dias até a prova' : 'Resumo'}
@@ -602,7 +593,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                 <Text style={styles.countdownStatLabel}>planejado</Text>
               </View>
             </View>
-          </LinearGradient>
+          </View>
           {(hasActiveSchedule || allWeekBlocks.length > 0) && (
             <Pressable
               style={styles.editScheduleRow}
@@ -710,7 +701,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         accessibilityLabel="Registrar sessão manualmente"
         accessibilityRole="button"
       >
-        <View style={[styles.fabGradient, { backgroundColor: colors.accent }]}>
+        <View style={[styles.fabGradient, { backgroundColor: colors.accentSecondary }]}>
           <Ionicons name="add" size={28} color={colors.accentForeground} />
         </View>
       </Pressable>
@@ -729,9 +720,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   greetingText: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
   },
   greetingSubtext: {
     color: colors.textSecondary,
@@ -743,6 +734,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   countdownCard: {
+    backgroundColor: colors.accent,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -768,9 +760,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: typography.weights.medium,
   },
   countdownNumber: {
-    color: colors.text,
+    fontFamily: typography.families.display,
+    color: colors.accentForeground,
     fontSize: typography.sizes.xxxl + 10,
-    fontWeight: typography.weights.bold,
     lineHeight: typography.sizes.xxxl + 16,
   },
   countdownRight: {
@@ -780,9 +772,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'flex-end',
   },
   countdownStatValue: {
-    color: colors.text,
+    fontFamily: typography.families.display,
+    color: colors.accentForeground,
     fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
   },
   countdownStatLabel: {
     color: 'rgba(255,255,255,0.7)',
@@ -857,9 +849,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: spacing.md,
   },
   emptyTitle: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
     textAlign: 'center',
   },
   tagline: {
@@ -887,7 +879,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: spacing.md,
   },
   importButtonText: {
-    color: colors.text,
+    color: colors.accentForeground,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
   },

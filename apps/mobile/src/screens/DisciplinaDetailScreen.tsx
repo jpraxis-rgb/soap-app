@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Badge } from '../components';
 import {
@@ -224,12 +223,7 @@ export function DisciplinaDetailScreen() {
     >
       {/* Header Card */}
       <View style={styles.headerCard}>
-        <LinearGradient
-          colors={[colors.gradientStart, colors.gradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerGradient}
-        >
+        <View style={styles.headerGradient}>
           <Text style={styles.headerTitle}>{disciplinaName}</Text>
           <View style={styles.headerStats}>
             <View style={styles.headerStat}>
@@ -247,7 +241,7 @@ export function DisciplinaDetailScreen() {
               <Text style={styles.headerStatLabel}>sessões</Text>
             </View>
           </View>
-        </LinearGradient>
+        </View>
       </View>
 
       {/* Info Row */}
@@ -359,10 +353,11 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     overflow: 'hidden',
   },
   headerGradient: {
+    backgroundColor: colors.accent,
     padding: spacing.lg,
   },
   headerTitle: {
-    color: colors.text,
+    color: colors.accentForeground,
     fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
     marginBottom: spacing.md,
@@ -375,18 +370,18 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
   },
   headerStatValue: {
-    color: colors.text,
+    fontFamily: typography.families.display,
+    color: colors.accentForeground,
     fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
   },
   headerStatLabel: {
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.7)',
     fontSize: typography.sizes.xs,
     marginTop: 2,
   },
   headerDivider: {
     width: 1,
-    backgroundColor: colors.border,
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   infoRow: {
     flexDirection: 'row',
@@ -416,7 +411,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   progressBarInner: {
     height: '100%',
-    backgroundColor: colors.accent,
+    backgroundColor: colors.accentSecondary,
     borderRadius: 5,
   },
   progressLabels: {

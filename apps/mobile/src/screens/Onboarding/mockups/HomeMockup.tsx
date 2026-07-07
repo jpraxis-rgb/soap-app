@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, type ThemeColors } from '../../../theme';
 
@@ -18,19 +17,14 @@ export function HomeMockup() {
 
   const getAccentColor = (accent: string) => {
     if (accent === 'primary') return colors.accent;
-    if (accent === 'secondary') return colors.accentSecondary;
+    if (accent === 'secondary') return colors.chart6;
     return colors.success;
   };
 
   return (
     <View style={styles.container}>
       {/* Countdown card at top */}
-      <LinearGradient
-        colors={[colors.gradientStart, colors.gradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.countdownCard}
-      >
+      <View style={[styles.countdownCard, { backgroundColor: colors.accent }]}>
         <View style={styles.countdownLeft}>
           <Ionicons name="calendar-outline" size={12} color="#FFFFFFCC" />
           <Text style={styles.countdownText}>
@@ -40,7 +34,7 @@ export function HomeMockup() {
         <View style={styles.percentBadge}>
           <Text style={styles.percentText}>76%</Text>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* Week calendar strip */}
       <View style={styles.weekStrip}>

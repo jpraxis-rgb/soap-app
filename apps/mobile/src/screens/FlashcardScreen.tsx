@@ -14,7 +14,6 @@ import Animated, {
   interpolate,
   Easing,
 } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
@@ -154,13 +153,13 @@ export function FlashcardScreen() {
       {/* Progress bar */}
       <View style={styles.progressContainer}>
         <View style={styles.progressBackground}>
-          <LinearGradient
-            colors={[colors.gradientStart, colors.gradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+          <View
             style={[
               styles.progressFill,
-              { width: `${((currentIndex) / cards.length) * 100}%` },
+              {
+                width: `${((currentIndex) / cards.length) * 100}%`,
+                backgroundColor: colors.accentSecondary,
+              },
             ]}
           />
         </View>
@@ -393,9 +392,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: spacing.md,
   },
   completedTitle: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xxxl,
-    fontWeight: typography.weights.bold,
   },
   completedSubtext: {
     color: colors.textSecondary,

@@ -7,7 +7,6 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Button } from '../components';
@@ -19,7 +18,6 @@ interface PlanInfo {
   price: string;
   description: string;
   features: string[];
-  gradientColors: [string, string];
   recommended?: boolean;
 }
 
@@ -40,7 +38,6 @@ export function SubscriptionScreen() {
         'Cronograma básico',
         'Acompanhamento de progresso',
       ],
-      gradientColors: [colors.textSecondary, '#666688'],
     },
     {
       tier: 'registro',
@@ -53,7 +50,6 @@ export function SubscriptionScreen() {
         'Relatórios detalhados',
         'Suporte prioritário',
       ],
-      gradientColors: [colors.success, '#009977'],
     },
     {
       tier: 'microlearning',
@@ -67,7 +63,6 @@ export function SubscriptionScreen() {
         'Quizzes adaptativos',
         'Conteúdo offline',
       ],
-      gradientColors: [colors.accent, '#4A3ACD'],
       recommended: true,
     },
     {
@@ -82,7 +77,6 @@ export function SubscriptionScreen() {
         'Simulados exclusivos',
         'Acesso antecipado a novidades',
       ],
-      gradientColors: [colors.accentSecondary, '#CC4477'],
     },
   ];
 
@@ -149,14 +143,9 @@ export function SubscriptionScreen() {
             ]}
           >
             {plan.recommended && (
-              <LinearGradient
-                colors={plan.gradientColors}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.recommendedBadge}
-              >
+              <View style={[styles.recommendedBadge, { backgroundColor: colors.accent }]}>
                 <Text style={styles.recommendedText}>Recomendado</Text>
-              </LinearGradient>
+              </View>
             )}
 
             <View style={styles.planHeader}>
@@ -179,7 +168,7 @@ export function SubscriptionScreen() {
                   <Ionicons
                     name="checkmark-circle"
                     size={18}
-                    color={isCurrent ? colors.success : plan.gradientColors[0]}
+                    color={isCurrent ? colors.success : colors.accent}
                   />
                   <Text style={styles.featureText}>{feature}</Text>
                 </View>
@@ -219,8 +208,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingBottom: spacing.xxl,
   },
   title: {
+    fontFamily: typography.families.display,
     fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
     color: colors.text,
     marginBottom: spacing.xs,
   },
@@ -246,7 +235,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderBottomLeftRadius: 12,
   },
   recommendedText: {
-    color: colors.text,
+    color: colors.accentForeground,
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.bold,
   },
@@ -262,8 +251,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.text,
   },
   planPrice: {
+    fontFamily: typography.families.display,
     fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
     color: colors.accent,
     marginTop: spacing.xs,
   },
@@ -274,7 +263,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: 8,
   },
   currentBadgeText: {
-    color: colors.text,
+    color: colors.accentForeground,
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.bold,
   },

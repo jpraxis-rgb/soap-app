@@ -7,7 +7,6 @@ import {
   SectionList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Badge } from '../components';
 
@@ -188,12 +187,7 @@ export function ScheduleDetailScreen() {
           <>
             {/* Overview Card */}
             <View style={styles.overviewWrapper}>
-              <LinearGradient
-                colors={[colors.gradientStart, colors.gradientEnd]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.overviewCard}
-              >
+              <View style={styles.overviewCard}>
                 <Text style={styles.examName}>{MOCK_EXAM.name}</Text>
                 <View style={styles.overviewStats}>
                   <View style={styles.overviewStat}>
@@ -213,7 +207,7 @@ export function ScheduleDetailScreen() {
                     <Text style={styles.overviewLabel}>blocos</Text>
                   </View>
                 </View>
-              </LinearGradient>
+              </View>
             </View>
           </>
         }
@@ -246,11 +240,12 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   overviewCard: {
+    backgroundColor: colors.accent,
     borderRadius: 16,
     padding: spacing.lg,
   },
   examName: {
-    color: colors.text,
+    color: colors.accentForeground,
     fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
     marginBottom: spacing.md,
@@ -263,18 +258,18 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
   },
   overviewValue: {
-    color: colors.text,
+    fontFamily: typography.families.display,
+    color: colors.accentForeground,
     fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
   },
   overviewLabel: {
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.7)',
     fontSize: typography.sizes.xs,
     marginTop: 2,
   },
   overviewDivider: {
     width: 1,
-    backgroundColor: colors.border,
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   sectionHeader: {
     paddingHorizontal: spacing.md,

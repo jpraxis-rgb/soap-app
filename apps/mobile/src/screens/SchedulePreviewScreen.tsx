@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, borderRadius, type ThemeColors } from '../theme';
 import { Card, Button } from '../components';
@@ -44,7 +43,7 @@ interface SchedulePreviewScreenProps {
 
 // ── Constants ──────────────────────────────────────────
 
-const SUBJECT_COLORS = ['#7C5CFC', '#FF6B9D', '#00D4AA', '#FFB347', '#FF4757', '#4ECDC4'];
+const SUBJECT_COLORS = ['#6D28D9', '#EA580C', '#059669', '#D97706', '#4EADFC', '#DB2777'];
 const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
 // ── Schedule Generation Helpers ────────────────────────
@@ -349,12 +348,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
 
         {/* Summary Card */}
         <View style={styles.summaryWrapper}>
-          <LinearGradient
-            colors={[colors.gradientStart, colors.gradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.summaryCard}
-          >
+          <View style={styles.summaryCard}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryValue}>{weeksUntilExam}</Text>
               <Text style={styles.summaryLabel}>semanas</Text>
@@ -369,7 +363,7 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
               <Text style={styles.summaryValue}>{edital.disciplinas.length}</Text>
               <Text style={styles.summaryLabel}>disciplinas</Text>
             </View>
-          </LinearGradient>
+          </View>
         </View>
 
         {/* Per-disciplina allocation — editable */}
@@ -567,6 +561,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: spacing.md,
   },
   summaryCard: {
+    backgroundColor: colors.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
@@ -578,9 +573,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
   },
   summaryValue: {
-    color: colors.text,
+    fontFamily: typography.families.display,
+    color: colors.accentForeground,
     fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
     lineHeight: typography.sizes.xxl + 6,
   },
   summaryLabel: {

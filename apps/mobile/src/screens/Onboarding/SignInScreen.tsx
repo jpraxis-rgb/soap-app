@@ -10,7 +10,6 @@ import {
   Alert,
   Pressable,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors } from '../../theme';
 import { Button } from '../../components';
@@ -96,13 +95,8 @@ export function SignInScreen({ navigation }: SignInScreenProps) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      {/* Accent gradient bar */}
-      <LinearGradient
-        colors={[colors.gradientStart, colors.gradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.gradientBar}
-      />
+      {/* Accent brand bar */}
+      <View style={[styles.gradientBar, { backgroundColor: colors.accent }]} />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -243,8 +237,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: spacing.md,
   },
   title: {
+    fontFamily: typography.families.display,
     fontSize: typography.sizes.xxxl,
-    fontWeight: typography.weights.bold,
     color: colors.text,
     marginBottom: spacing.sm,
   },

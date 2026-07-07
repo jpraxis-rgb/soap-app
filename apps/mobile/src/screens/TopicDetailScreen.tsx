@@ -6,7 +6,6 @@ import {
   FlatList,
   Pressable,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
@@ -22,10 +21,10 @@ type FormatInfo = {
 };
 
 const FORMATS: FormatInfo[] = [
-  { key: 'summary', label: 'Resumo', icon: 'document-text', color: '#7C5CFC', screen: 'Content' },
-  { key: 'flashcard', label: 'Flash', icon: 'layers', color: '#FF6B9D', screen: 'Flashcard' },
-  { key: 'quiz', label: 'Quiz', icon: 'help-circle', color: '#FFB347', screen: 'Quiz' },
-  { key: 'mind_map', label: 'Mapa', icon: 'git-branch', color: '#00D4AA', screen: 'Content' },
+  { key: 'summary', label: 'Resumo', icon: 'document-text', color: '#6D28D9', screen: 'Content' },
+  { key: 'flashcard', label: 'Flash', icon: 'layers', color: '#DB2777', screen: 'Flashcard' },
+  { key: 'quiz', label: 'Quiz', icon: 'help-circle', color: '#D97706', screen: 'Quiz' },
+  { key: 'mind_map', label: 'Mapa', icon: 'git-branch', color: '#059669', screen: 'Content' },
 ];
 
 function StatusBadge({ status, colors }: { status: string; colors: ThemeColors }) {
@@ -142,11 +141,11 @@ export function TopicDetailScreen() {
           </Text>
         </View>
         <View style={styles.progressBarBg}>
-          <LinearGradient
-            colors={[colors.gradientStart, colors.gradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[styles.progressBarFill, { width: `${Math.max(percent, 2)}%` }]}
+          <View
+            style={[
+              styles.progressBarFill,
+              { width: `${Math.max(percent, 2)}%`, backgroundColor: colors.accentSecondary },
+            ]}
           />
         </View>
       </View>
@@ -178,9 +177,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: spacing.sm,
   },
   headerPercent: {
+    fontFamily: typography.families.display,
     color: colors.text,
     fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
   },
   headerDetail: {
     color: colors.textSecondary,

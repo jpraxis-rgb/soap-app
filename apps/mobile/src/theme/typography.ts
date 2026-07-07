@@ -1,4 +1,11 @@
 export const typography = {
+  families: {
+    display: 'Archivo_800ExtraBold',
+    body: 'Inter_400Regular',
+    bodyMedium: 'Inter_500Medium',
+    bodySemibold: 'Inter_600SemiBold',
+    bodyBold: 'Inter_700Bold',
+  },
   sizes: {
     xs: 12,
     sm: 14,

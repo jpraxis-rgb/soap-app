@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "SOAP",
-    "slug": "soap",
+    "name": "Estuda Tudo",
+    "slug": "estudatudo",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "soap",
@@ -14,7 +14,7 @@
     "android": {
       "package": "com.soap.app",
       "adaptiveIcon": {
-        "backgroundColor": "#111119"
+        "backgroundColor": "#6D28D9"
       }
     },
     "web": {

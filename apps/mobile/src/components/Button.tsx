@@ -70,7 +70,7 @@ export function Button({
       style={[
         styles.base,
         { paddingVertical, paddingHorizontal },
-        isFilled && { backgroundColor: colors.accent },
+        isFilled && { backgroundColor: colors.accentSecondary },
         !isFilled && styles.outlined,
         style,
         (loading || disabled) && { opacity: 0.5 },

@@ -32,7 +32,7 @@ export function CurationScreen() {
   const FORMAT_COLORS: Record<string, string> = {
     summary: colors.accent,
     flashcard: colors.warning,
-    quiz: colors.accentSecondary,
+    quiz: colors.chart6,
     mind_map: colors.success,
   };
 
