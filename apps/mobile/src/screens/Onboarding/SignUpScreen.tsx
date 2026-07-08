@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   Pressable,
   Linking,
 } from 'react-native';
@@ -15,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors } from '../../theme';
 import { Button } from '../../components';
 import { useAuth } from '../../contexts/AuthContext';
+import { showAlert } from '../../utils/alert';
 
 interface SignUpScreenProps {
   navigation: { navigate: (screen: string) => void; goBack: () => void };
@@ -65,11 +65,7 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
         if (error?.code === statusCodes.SIGN_IN_CANCELLED) return;
       }
       const message = error instanceof Error ? error.message : 'Erro ao entrar com Google.';
-      if (Platform.OS === 'web') {
-        window.alert(message);
-      } else {
-        Alert.alert('Erro', message);
-      }
+      showAlert('Erro', message);
     } finally {
       setGoogleLoading(false);
     }
@@ -91,7 +87,7 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
       await register(email.trim(), password, name.trim());
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao criar conta.';
-      Alert.alert('Erro', message);
+      showAlert('Erro', message);
     } finally {
       setLoading(false);
     }
@@ -211,14 +207,14 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
             Ao continuar, você concorda com nossos{' '}
             <Text
               style={styles.termsLink}
-              onPress={() => Alert.alert('Termos', 'Link dos Termos de Uso em breve.')}
+              onPress={() => showAlert('Termos', 'Link dos Termos de Uso em breve.')}
             >
               Termos
             </Text>
             {' '}e{' '}
             <Text
               style={styles.termsLink}
-              onPress={() => Alert.alert('Privacidade', 'Link da Política de Privacidade em breve.')}
+              onPress={() => showAlert('Privacidade', 'Link da Política de Privacidade em breve.')}
             >
               Política de Privacidade
             </Text>

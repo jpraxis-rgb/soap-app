@@ -5,12 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Button } from '../components';
 import { useAuth } from '../contexts/AuthContext';
+import { showAlert, showConfirm } from '../utils/alert';
 
 interface PlanInfo {
   tier: string;
@@ -83,45 +83,25 @@ export function SubscriptionScreen() {
   const handleSelectPlan = async (tier: string) => {
     if (tier === subscriptionTier) return;
 
+    // NOTE: subscription billing is not yet wired up (subscriptionsApi is never
+    // called). Until it is, be honest with the user via a web-visible message
+    // instead of silently doing nothing.
     if (tier === 'free') {
-      Alert.alert(
+      showConfirm(
         'Downgrade',
-        'Deseja cancelar sua assinatura? Você manterá acesso até o fim do período.',
+        'O cancelamento de assinatura estará disponível em breve.',
         [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Confirmar',
-            onPress: async () => {
-              setLoading(tier);
-              try {
-                // In a real app, call subscriptionsApi.cancel()
-                Alert.alert('Sucesso', 'Assinatura cancelada.');
-                await refreshUser();
-              } catch {
-                Alert.alert('Erro', 'Não foi possível cancelar.');
-              } finally {
-                setLoading(null);
-              }
-            },
-          },
+          { text: 'Fechar', style: 'cancel' },
+          { text: 'OK' },
         ],
       );
       return;
     }
 
-    setLoading(tier);
-    try {
-      // In a real app, initiate payment flow then call subscriptionsApi.create(tier)
-      Alert.alert(
-        'Pagamento',
-        'Integração com pagamento em breve. O plano será ativado após confirmação.',
-      );
-      await refreshUser();
-    } catch {
-      Alert.alert('Erro', 'Não foi possível processar.');
-    } finally {
-      setLoading(null);
-    }
+    showAlert(
+      'Pagamento em breve',
+      'A contratação de planos ainda não está disponível nesta versão beta. Em breve você poderá assinar por aqui.',
+    );
   };
 
   return (

@@ -4,21 +4,29 @@
     "slug": "estudatudo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "soap",
+    "icon": "./assets/icon.png",
+    "scheme": "estudatudo",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6D28D9"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.soap.app"
+      "bundleIdentifier": "com.estudatudo.app"
     },
     "android": {
-      "package": "com.soap.app",
+      "package": "com.estudatudo.app",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#6D28D9"
       }
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "@react-native-community/datetimepicker",

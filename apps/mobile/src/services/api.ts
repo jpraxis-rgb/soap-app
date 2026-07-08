@@ -13,6 +13,20 @@ const REFRESH_TOKEN_KEY = '@soap/refresh_token';
 // Set this to true to use mock data instead of real API calls
 const USE_MOCK = false;
 
+// ── Unauthorized handler ──────────────────────────────
+// Called when a request definitively fails auth (refresh token invalid/expired).
+// AuthContext registers a handler that clears state and returns the user to auth.
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler;
+}
+
+async function handleUnauthorized() {
+  await tokenStorage.clearTokens();
+  unauthorizedHandler?.();
+}
+
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const token = await AsyncStorage.getItem(TOKEN_KEY);
   if (token) {
@@ -24,6 +38,7 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 async function request<T>(
   endpoint: string,
   options: RequestInit = {},
+  opts: { skipUnauthorizedHandler?: boolean } = {},
 ): Promise<T> {
   const authHeaders = await getAuthHeaders();
 
@@ -60,12 +75,20 @@ async function request<T>(
       }
 
       if (!retryResponse.ok) {
+        if (retryResponse.status === 401 && !opts.skipUnauthorizedHandler) {
+          await handleUnauthorized();
+        }
         const error = await retryResponse.json().catch(() => ({ error: 'Request failed' }));
         throw new Error(error.error || 'Request failed');
       }
       return retryResponse.json();
     }
 
+    // Refresh failed: this is a definitive 401. Log the user out so they aren't
+    // stranded in a logged-in-but-broken state.
+    if (!opts.skipUnauthorizedHandler) {
+      await handleUnauthorized();
+    }
     throw new Error('Authentication required');
   }
 
@@ -121,7 +144,7 @@ export const authApi = {
     const res = await request<{ data: AuthResponse }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, name }),
-    });
+    }, { skipUnauthorizedHandler: true });
     return res.data;
   },
 
@@ -129,7 +152,7 @@ export const authApi = {
     const res = await request<{ data: AuthResponse }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
-    });
+    }, { skipUnauthorizedHandler: true });
     return res.data;
   },
 
@@ -137,7 +160,7 @@ export const authApi = {
     const res = await request<{ data: AuthResponse }>('/auth/google', {
       method: 'POST',
       body: JSON.stringify({ token }),
-    });
+    }, { skipUnauthorizedHandler: true });
     return res.data;
   },
 
@@ -145,7 +168,7 @@ export const authApi = {
     const res = await request<{ data: AuthResponse }>('/auth/apple', {
       method: 'POST',
       body: JSON.stringify({ token }),
-    });
+    }, { skipUnauthorizedHandler: true });
     return res.data;
   },
 

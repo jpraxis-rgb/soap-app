@@ -5,15 +5,30 @@ import { eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import * as schema from '../../db/schema.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-change-me';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
-if (!process.env.JWT_SECRET) {
-  console.warn('[AUTH] WARNING: JWT_SECRET not set, using insecure default. Set JWT_SECRET in production.');
+/**
+ * Resolve a required secret. In production a missing secret is fatal — we throw
+ * on boot rather than silently falling back to a value that is public in source
+ * (which would allow anyone to forge tokens). In non-production we allow a clearly
+ * labelled dev fallback so local development still works.
+ */
+function requireSecret(name: 'JWT_SECRET' | 'JWT_REFRESH_SECRET', devFallback: string): string {
+  const value = process.env[name];
+  if (value && value.length > 0) return value;
+  if (IS_PRODUCTION) {
+    throw new Error(`[AUTH] ${name} is not set. Refusing to start in production without it.`);
+  }
+  console.warn(`[AUTH] WARNING: ${name} not set, using insecure dev fallback. Set ${name} before deploying.`);
+  return devFallback;
 }
-if (!process.env.JWT_REFRESH_SECRET) {
-  console.warn('[AUTH] WARNING: JWT_REFRESH_SECRET not set, using insecure default. Set JWT_REFRESH_SECRET in production.');
-}
+
+const JWT_SECRET = requireSecret('JWT_SECRET', 'dev-secret-change-me');
+const JWT_REFRESH_SECRET = requireSecret('JWT_REFRESH_SECRET', 'dev-refresh-secret-change-me');
+
+// Pin the signing algorithm so a token can never be verified under an unexpected
+// algorithm (defense-in-depth against algorithm-confusion attacks).
+const JWT_ALGORITHM = 'HS256' as const;
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -26,8 +41,10 @@ if (!GOOGLE_CLIENT_SECRET) {
 const GOOGLE_REDIRECT_URI = `${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1'}/auth/google/callback`;
 const googleOAuth2Client = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI);
 
-// Use seconds: 7 days = 604800, 30 days = 2592000
-const JWT_EXPIRES_IN = 604800;
+// Use seconds: access token 1 day = 86400, refresh 30 days = 2592000.
+// A shorter access-token lifetime limits the blast radius of a leaked token;
+// the client transparently refreshes via the 30-day refresh token.
+const JWT_EXPIRES_IN = 86400;
 const JWT_REFRESH_EXPIRES_IN = 2592000;
 
 interface TokenPayload {
@@ -36,19 +53,19 @@ interface TokenPayload {
 }
 
 function signToken(payload: TokenPayload, expiresIn: number = JWT_EXPIRES_IN): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn, algorithm: JWT_ALGORITHM });
 }
 
 function signRefreshToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN });
+  return jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN, algorithm: JWT_ALGORITHM });
 }
 
 export function verifyToken(token: string): TokenPayload {
-  return jwt.verify(token, JWT_SECRET) as TokenPayload;
+  return jwt.verify(token, JWT_SECRET, { algorithms: [JWT_ALGORITHM] }) as TokenPayload;
 }
 
 export function verifyRefreshToken(token: string): TokenPayload {
-  return jwt.verify(token, JWT_REFRESH_SECRET) as TokenPayload;
+  return jwt.verify(token, JWT_REFRESH_SECRET, { algorithms: [JWT_ALGORITHM] }) as TokenPayload;
 }
 
 export async function registerUser(email: string, password: string, name: string) {
@@ -129,9 +146,24 @@ export async function googleAuth(googleToken: string) {
     // Not a valid ID token — try as an OAuth2 access token (web flow)
   }
 
-  // Fallback: treat as an OAuth2 access token and fetch user info
+  // Fallback: treat as an OAuth2 access token (web flow). Before trusting the
+  // email, verify the token was issued for *our* client via the tokeninfo
+  // endpoint — otherwise an access token minted by any other Google OAuth app
+  // could be replayed here to impersonate its owner (confused-deputy).
   if (!email) {
     try {
+      const tokenInfoRes = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(googleToken)}`,
+      );
+      if (!tokenInfoRes.ok) {
+        throw new Error('Failed to verify Google token');
+      }
+      const tokenInfo = await tokenInfoRes.json() as { aud?: string; azp?: string };
+      const audience = tokenInfo.aud || tokenInfo.azp;
+      if (audience !== GOOGLE_CLIENT_ID) {
+        throw new Error('Google token was not issued for this application');
+      }
+
       const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${googleToken}` },
       });
@@ -149,7 +181,7 @@ export async function googleAuth(googleToken: string) {
       picture = userInfo.picture;
       email_verified = userInfo.email_verified;
     } catch (fetchErr) {
-      throw new Error('Invalid Google token');
+      throw new Error(fetchErr instanceof Error ? fetchErr.message : 'Invalid Google token');
     }
   }
 
@@ -257,29 +289,15 @@ export async function googleAuthCallback(code: string) {
   };
 }
 
-export async function appleAuth(appleToken: string) {
-  // Stub: In production, verify appleToken with Apple's API
-  const mockEmail = `apple_${appleToken.substring(0, 8)}@example.com`;
-  const mockName = 'Apple User';
+/** Raised by appleAuth so the route can translate it to HTTP 501. */
+export class NotImplementedError extends Error {}
 
-  let [user] = await db.select().from(schema.users).where(eq(schema.users.email, mockEmail)).limit(1);
-
-  if (!user) {
-    [user] = await db.insert(schema.users).values({
-      email: mockEmail,
-      name: mockName,
-      authProvider: 'apple',
-    }).returning();
-  }
-
-  const token = signToken({ id: user.id, email: user.email });
-  const refreshTokenValue = signRefreshToken({ id: user.id, email: user.email });
-
-  return {
-    user: sanitizeUser(user),
-    token,
-    refreshToken: refreshTokenValue,
-  };
+export async function appleAuth(_appleToken: string): Promise<never> {
+  // Apple Sign-In requires verifying the identity token against Apple's public
+  // JWKS (signature, aud, iss, exp, nonce). Until that is implemented we must NOT
+  // issue sessions — the previous stub granted a valid session for any string,
+  // which is a full authentication bypass.
+  throw new NotImplementedError('Apple sign-in is not available yet.');
 }
 
 export async function refreshToken(token: string) {

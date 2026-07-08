@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock pdf-parse module
-vi.mock('pdf-parse', () => {
+// Mock pdf-parse module (the internal entry that pdf-extract imports)
+vi.mock('pdf-parse/lib/pdf-parse.js', () => {
   return {
     default: vi.fn(),
   };
 });
 
-import pdf from 'pdf-parse';
+import pdf from 'pdf-parse/lib/pdf-parse.js';
 import { extractTextFromPdf } from '../services/pdf-extract.js';
 
 const mockPdf = vi.mocked(pdf);

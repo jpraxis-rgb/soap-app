@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   TextInput,
-  Alert,
   ActivityIndicator,
   Platform,
 } from 'react-native';
@@ -15,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme, spacing, typography, borderRadius, type ThemeColors } from '../theme';
 import { Card } from '../components';
+import { showAlert, showConfirm } from '../utils/alert';
 import { useConcurso } from '../contexts/ConcursoContext';
 import {
   logStudySession,
@@ -127,11 +127,7 @@ export function ManualSessionScreen() {
       navigation.goBack();
     } catch (e: any) {
       const msg = e.message || 'Não foi possível salvar a sessão.';
-      if (Platform.OS === 'web') {
-        window.alert(msg);
-      } else {
-        Alert.alert('Erro', msg);
-      }
+      showAlert('Erro', msg);
     } finally {
       setSubmitting(false);
     }
@@ -139,37 +135,21 @@ export function ManualSessionScreen() {
 
   const handleDelete = async () => {
     if (!session) return;
-    if (Platform.OS === 'web') {
-      if (!window.confirm('Tem certeza que deseja excluir esta sessão de estudo?')) return;
+    const doDelete = async () => {
       setSubmitting(true);
       try {
         await deleteStudySession(session.id);
         navigation.goBack();
       } catch (e: any) {
-        window.alert(e.message || 'Não foi possível excluir a sessão.');
+        showAlert('Erro', e.message || 'Não foi possível excluir a sessão.');
       } finally {
         setSubmitting(false);
       }
-    } else {
-      Alert.alert('Excluir sessão', 'Tem certeza que deseja excluir esta sessão de estudo?', [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
-            setSubmitting(true);
-            try {
-              await deleteStudySession(session.id);
-              navigation.goBack();
-            } catch (e: any) {
-              Alert.alert('Erro', e.message || 'Não foi possível excluir a sessão.');
-            } finally {
-              setSubmitting(false);
-            }
-          },
-        },
-      ]);
-    }
+    };
+    showConfirm('Excluir sessão', 'Tem certeza que deseja excluir esta sessão de estudo?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Excluir', style: 'destructive', onPress: doDelete },
+    ]);
   };
 
   const formatDuration = (minutes: number) => {

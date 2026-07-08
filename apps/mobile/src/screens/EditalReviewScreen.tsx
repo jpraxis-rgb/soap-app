@@ -266,7 +266,7 @@ export function EditalReviewScreen() {
             {especificos.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Conhecimentos Espec\u00edficos</Text>
+                  <Text style={styles.sectionTitle}>Conhecimentos Específicos</Text>
                   <Text style={styles.sectionCount}>{especificos.length}</Text>
                 </View>
                 {especificos.map(renderDisciplina)}

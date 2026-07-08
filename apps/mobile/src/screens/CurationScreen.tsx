@@ -5,12 +5,12 @@ import {
   StyleSheet,
   FlatList,
   Pressable,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Badge, Button } from '../components';
+import { showAlert, showConfirm } from '../utils/alert';
 import {
   fetchCurationQueue,
   approveContent,
@@ -65,12 +65,12 @@ export function CurationScreen() {
         setItems((prev) => prev.filter((item) => item.id !== id));
       }
     } catch {
-      Alert.alert('Erro', 'Não foi possível aprovar o conteúdo.');
+      showAlert('Erro', 'Não foi possível aprovar o conteúdo.');
     }
   }
 
   function handleReject(id: string) {
-    Alert.alert(
+    showConfirm(
       'Rejeitar conteúdo',
       'Tem certeza que deseja rejeitar este conteúdo?',
       [
@@ -85,7 +85,7 @@ export function CurationScreen() {
                 setItems((prev) => prev.filter((item) => item.id !== id));
               }
             } catch {
-              Alert.alert('Erro', 'Não foi possível rejeitar o conteúdo.');
+              showAlert('Erro', 'Não foi possível rejeitar o conteúdo.');
             }
           },
         },

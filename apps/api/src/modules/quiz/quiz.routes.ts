@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { generateQuizForTopic, submitQuiz, getQuizResults } from './quiz.service.js';
+import { aiLimiter } from '../../middleware/rate-limit.js';
 
 const router = Router();
 
 // POST /quiz/generate — creates quiz questions for a topic
-router.post('/generate', async (req: Request, res: Response) => {
+router.post('/generate', aiLimiter, async (req: Request, res: Response) => {
   try {
     const { topic, disciplinaId } = req.body;
 
@@ -44,7 +45,7 @@ router.post('/submit', async (req: Request, res: Response) => {
 router.get('/results/:attemptId', async (req: Request, res: Response) => {
   try {
     const attemptId = String(req.params.attemptId);
-    const results = await getQuizResults(attemptId);
+    const results = await getQuizResults(attemptId, req.user!.id);
 
     if (!results) {
       res.status(404).json({ error: 'Attempt not found' });

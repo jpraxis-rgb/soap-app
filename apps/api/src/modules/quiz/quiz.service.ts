@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import * as schema from '../../db/schema.js';
 import { generateQuiz } from '../../services/gemini.js';
@@ -82,11 +82,16 @@ export async function submitQuiz(
   return attempt;
 }
 
-export async function getQuizResults(attemptId: string) {
+export async function getQuizResults(attemptId: string, userId: string) {
+  // Scope to the requesting user — quiz attempts (answers, score) must not be
+  // readable by another user who guesses/enumerates an attempt id.
   const [attempt] = await db
     .select()
     .from(schema.quizAttempts)
-    .where(eq(schema.quizAttempts.id, attemptId));
+    .where(and(
+      eq(schema.quizAttempts.id, attemptId),
+      eq(schema.quizAttempts.userId, userId),
+    ));
 
   if (!attempt) {
     return null;

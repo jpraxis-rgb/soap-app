@@ -6,13 +6,13 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Badge } from '../components';
 import { createEditalFromTemplate } from '../services/api';
+import { showAlert } from '../utils/alert';
 import type { ParsedEditalData } from '../contexts/ConcursoContext';
 
 interface Disciplina {
@@ -80,7 +80,7 @@ export function CargoSelectScreen() {
         };
         navigation.navigate('EditalReview', { edital });
       } catch (err: any) {
-        Alert.alert('Erro', err?.message || 'Falha ao criar edital.');
+        showAlert('Erro', err?.message || 'Falha ao criar edital.');
       } finally {
         setLoadingCargo(null);
       }

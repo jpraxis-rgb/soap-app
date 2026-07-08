@@ -5,11 +5,19 @@ import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
 import { SubscriptionTier } from '@soap/shared';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
-if (!process.env.JWT_SECRET) {
-  console.warn('[AUTH] WARNING: JWT_SECRET not set, using insecure default. Set JWT_SECRET in production.');
-}
+const JWT_SECRET = (() => {
+  const value = process.env.JWT_SECRET;
+  if (value && value.length > 0) return value;
+  if (IS_PRODUCTION) {
+    throw new Error('[AUTH] JWT_SECRET is not set. Refusing to start in production without it.');
+  }
+  console.warn('[AUTH] WARNING: JWT_SECRET not set, using insecure dev fallback. Set JWT_SECRET before deploying.');
+  return 'dev-secret-change-me';
+})();
+
+const JWT_ALGORITHM = 'HS256' as const;
 
 declare global {
   namespace Express {
@@ -22,9 +30,11 @@ declare global {
 // Dev-mode demo user ID (stable UUID so DB relations work across restarts)
 const DEV_USER_ID = '00000000-0000-0000-0000-000000000001';
 const DEV_USER_EMAIL = 'demo@soap-app.dev';
-const IS_DEV = process.env.NODE_ENV !== 'production' && (
-  !process.env.JWT_SECRET || process.env.JWT_SECRET.includes('dev-secret')
-);
+// The demo-user auth shortcut must be opted into EXPLICITLY and can never be on
+// in production. Previously this keyed off the *absence* of a strong JWT_SECRET,
+// which meant one misconfigured deploy would silently disable authentication for
+// the entire API.
+const IS_DEV = process.env.ENABLE_DEV_AUTH === 'true' && !IS_PRODUCTION;
 
 /** Ensure a demo user row exists in the DB (idempotent). */
 let devUserEnsured = false;
@@ -77,7 +87,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
   const token = authHeader.split(' ')[1];
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as { id?: string; email?: string };
+    const payload = jwt.verify(token, JWT_SECRET, { algorithms: [JWT_ALGORITHM] }) as { id?: string; email?: string };
 
     if (!payload || !payload.id || !payload.email) {
       res.status(401).json({ error: 'Invalid token' });
@@ -91,11 +101,14 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
   }
 }
 
+// Ordering derived from the canonical SubscriptionTier enum in @soap/shared.
+// Keep this in lockstep with that enum — divergent tier names previously caused
+// paying users to be treated as free for gated features.
 const TIER_HIERARCHY: Record<string, number> = {
-  free: 0,
-  premium: 1,
-  pro: 2,
-  mentor: 3,
+  [SubscriptionTier.FREE]: 0,
+  [SubscriptionTier.REGISTRO]: 1,
+  [SubscriptionTier.MICROLEARNING]: 2,
+  [SubscriptionTier.MENTOR]: 3,
 };
 
 /**

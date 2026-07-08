@@ -17,7 +17,6 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
-import { MOCK_FLASHCARDS } from '../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -31,8 +30,8 @@ export function FlashcardScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
   const route = useRoute<any>();
-  const item = route.params?.item || MOCK_FLASHCARDS[0];
-  const cards: FlashcardData[] = (item.body as any)?.cards || [];
+  const item = route.params?.item;
+  const cards: FlashcardData[] = (item?.body as any)?.cards || [];
 
   const styles = createStyles(colors);
 

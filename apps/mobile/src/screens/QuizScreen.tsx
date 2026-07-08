@@ -10,7 +10,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Button } from '../components';
-import { MOCK_QUIZZES } from '../services/api';
 
 interface Alternative {
   label: string;
@@ -35,8 +34,8 @@ export function QuizScreen() {
   const { colors } = useTheme();
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const item = route.params?.item || MOCK_QUIZZES[0];
-  const questions: Question[] = ((item.body as QuizBody)?.questions) || [];
+  const item = route.params?.item;
+  const questions: Question[] = ((item?.body as QuizBody)?.questions) || [];
 
   const styles = createStyles(colors);
 

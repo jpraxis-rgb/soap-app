@@ -5,14 +5,13 @@ import {
   StyleSheet,
   ScrollView,
   Switch,
-  Alert,
   Pressable,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors, type ThemeMode } from '../theme';
 import { Card } from '../components';
 import { useAuth } from '../contexts/AuthContext';
+import { showAlert, showConfirm } from '../utils/alert';
 
 export function SettingsScreen() {
   const { colors, mode, setMode } = useTheme();
@@ -31,26 +30,20 @@ export function SettingsScreen() {
   });
 
   const handleDeleteAccount = () => {
-    if (Platform.OS === 'web') {
-      if (window.confirm('Excluir conta — Tem certeza? Esta ação não pode ser desfeita.')) {
-        window.alert('Funcionalidade em breve');
-      }
-    } else {
-      Alert.alert(
-        'Excluir conta',
-        'Tem certeza? Esta ação não pode ser desfeita.',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Excluir',
-            style: 'destructive',
-            onPress: () => {
-              Alert.alert('Info', 'Funcionalidade em breve');
-            },
+    showConfirm(
+      'Excluir conta',
+      'Tem certeza? Esta ação não pode ser desfeita.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () => {
+            showAlert('Info', 'Funcionalidade em breve');
           },
-        ],
-      );
-    }
+        },
+      ],
+    );
   };
 
   const styles = createStyles(colors);
@@ -145,7 +138,7 @@ export function SettingsScreen() {
       <Card header="Conta" style={styles.section}>
         <Pressable
           style={styles.menuRow}
-          onPress={() => Alert.alert('Info', 'Funcionalidade em breve')}
+          onPress={() => showAlert('Alterar senha', 'Funcionalidade em breve.')}
         >
           <Ionicons name="key-outline" size={20} color={colors.text} />
           <View style={styles.menuContent}>
@@ -156,7 +149,7 @@ export function SettingsScreen() {
 
         <Pressable
           style={styles.menuRow}
-          onPress={() => Alert.alert('Info', 'Funcionalidade em breve')}
+          onPress={() => showAlert('Exportar dados', 'Funcionalidade em breve.')}
         >
           <Ionicons name="download-outline" size={20} color={colors.text} />
           <View style={styles.menuContent}>
@@ -181,14 +174,10 @@ export function SettingsScreen() {
       <Pressable
         style={styles.logoutButton}
         onPress={() => {
-          if (Platform.OS === 'web') {
-            if (window.confirm('Sair — Tem certeza?')) logout();
-          } else {
-            Alert.alert('Sair', 'Tem certeza?', [
-              { text: 'Cancelar', style: 'cancel' },
-              { text: 'Sair', style: 'destructive', onPress: () => logout() },
-            ]);
-          }
+          showConfirm('Sair', 'Tem certeza?', [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Sair', style: 'destructive', onPress: () => logout() },
+          ]);
         }}
       >
         <Ionicons name="log-out-outline" size={20} color={colors.error} />

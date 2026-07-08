@@ -6,14 +6,13 @@ import {
   ScrollView,
   Switch,
   Pressable,
-  Alert,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Badge, BrandHeader } from '../components';
 import { useAuth } from '../contexts/AuthContext';
 import { useConcurso } from '../contexts/ConcursoContext';
+import { showAlert, showConfirm } from '../utils/alert';
 
 const TIER_LABELS: Record<string, string> = {
   free: 'Gratuito',
@@ -47,18 +46,14 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
   };
 
   const handleLogout = () => {
-    if (Platform.OS === 'web') {
-      if (window.confirm('Sair — Tem certeza que deseja sair?')) logout();
-    } else {
-      Alert.alert(
-        'Sair',
-        'Tem certeza que deseja sair?',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Sair', style: 'destructive', onPress: () => logout() },
-        ],
-      );
-    }
+    showConfirm(
+      'Sair',
+      'Tem certeza que deseja sair?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sair', style: 'destructive', onPress: () => logout() },
+      ],
+    );
   };
 
   const tierLabel = TIER_LABELS[subscriptionTier] || 'Gratuito';
@@ -120,14 +115,10 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
                 <Pressable
                   onPress={() => {
                     const name = c.edital?.orgao || (c as any).parsedData?.orgao || 'este concurso';
-                    if (Platform.OS === 'web') {
-                      if (window.confirm(`Remover concurso — Remover ${name}?`)) removeConcurso(c.id);
-                    } else {
-                      Alert.alert('Remover concurso', `Remover ${name}?`, [
-                        { text: 'Cancelar', style: 'cancel' },
-                        { text: 'Remover', style: 'destructive', onPress: () => removeConcurso(c.id) },
-                      ]);
-                    }
+                    showConfirm('Remover concurso', `Remover ${name}?`, [
+                      { text: 'Cancelar', style: 'cancel' },
+                      { text: 'Remover', style: 'destructive', onPress: () => removeConcurso(c.id) },
+                    ]);
                   }}
                   accessibilityLabel="Remover concurso"
                   accessibilityRole="button"
@@ -212,17 +203,17 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
       <Card header="Sobre" style={styles.section}>
         <MenuRow
           label="Termos de uso"
-          onPress={() => Alert.alert('Termos', 'Em breve')}
+          onPress={() => showAlert('Termos', 'Em breve')}
           colors={colors}
         />
         <MenuRow
           label="Política de privacidade"
-          onPress={() => Alert.alert('Privacidade', 'Em breve')}
+          onPress={() => showAlert('Privacidade', 'Em breve')}
           colors={colors}
         />
         <MenuRow
           label="Ajuda e suporte"
-          onPress={() => Alert.alert('Ajuda', 'Em breve')}
+          onPress={() => showAlert('Ajuda', 'Em breve')}
           colors={colors}
         />
         <View style={styles.versionRow}>

@@ -8,7 +8,6 @@ import {
   googleAuth,
   getGoogleRedirectUrl,
   googleAuthCallback,
-  appleAuth,
   refreshToken as refreshTokenService,
   getMe,
 } from '../modules/auth/index.js';
@@ -18,7 +17,7 @@ const router = Router();
 
 const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(8, 'A senha deve ter pelo menos 8 caracteres'),
   name: z.string().min(1),
 });
 
@@ -98,21 +97,10 @@ router.get('/google/callback', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/apple', async (req: Request, res: Response) => {
-  try {
-    const { token } = req.body;
-
-    if (!token) {
-      res.status(400).json({ error: 'Apple token is required' });
-      return;
-    }
-
-    const result = await appleAuth(token);
-    res.json({ data: result });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Apple auth failed';
-    res.status(500).json({ error: message });
-  }
+router.post('/apple', async (_req: Request, res: Response) => {
+  // Apple sign-in is not implemented (see appleAuth). Returning 501 rather than
+  // minting an unverified session.
+  res.status(501).json({ error: 'Apple sign-in is not available yet.' });
 });
 
 router.post('/refresh', async (req: Request, res: Response) => {

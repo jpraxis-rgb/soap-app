@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { Platform } from 'react-native';
-import { authApi, tokenStorage } from '../services/api';
+import { authApi, tokenStorage, setUnauthorizedHandler } from '../services/api';
 
 interface AuthUser {
   id: string;
@@ -85,6 +85,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     loadUser();
   }, [loadUser]);
+
+  // Let the api layer force a logout when a request definitively fails auth
+  // (refresh token expired/invalid). The api has already cleared stored tokens;
+  // here we just clear in-memory user state so navigation returns to auth.
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      if (isMountedRef.current) setUser(null);
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await authApi.login(email, password);

@@ -351,6 +351,13 @@ const createBlockStyles = (colors: ThemeColors) => StyleSheet.create({
 
 // ── Main Home Screen ───────────────────────────────────
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Bom dia!';
+  if (hour < 18) return 'Boa tarde!';
+  return 'Boa noite!';
+}
+
 interface HomeScreenProps {
   navigation: { navigate: (screen: string, params?: any) => void };
 }
@@ -564,7 +571,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
         {/* Greeting */}
         <View style={styles.greeting}>
-          <Text style={styles.greetingText}>Bom dia!</Text>
+          <Text style={styles.greetingText}>{getGreeting()}</Text>
           <Text style={styles.greetingSubtext}>
             {pendingCount} blocos pendentes hoje
           </Text>

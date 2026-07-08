@@ -5,13 +5,13 @@ import {
   TextInput,
   StyleSheet,
   Pressable,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { BottomSheet } from '../components';
 import { logStudySession, ScheduleBlockData } from '../services/api';
+import { showAlert } from '../utils/alert';
 
 interface SessionLogSheetProps {
   isVisible: boolean;
@@ -59,7 +59,7 @@ export function SessionLogSheet({
       });
       onSessionLogged();
     } catch (err) {
-      Alert.alert('Erro', 'Não foi possível registrar a sessão. Tente novamente.');
+      showAlert('Erro', 'Não foi possível registrar a sessão. Tente novamente.');
     } finally {
       setLoading(false);
     }

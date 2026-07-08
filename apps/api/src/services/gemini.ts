@@ -1,4 +1,59 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import dns from 'node:dns/promises';
+import net from 'node:net';
+
+// ── SSRF guard ──────────────────────────────────────────
+// Before the server fetches a user-supplied edital URL, ensure it points at a
+// public host. Otherwise an attacker could make the server request internal
+// services or the cloud metadata endpoint (169.254.169.254) and surface the
+// response back through the parser.
+function isPrivateIp(ip: string): boolean {
+  if (net.isIPv4(ip)) {
+    const [a, b] = ip.split('.').map(Number);
+    if (a === 10) return true;
+    if (a === 127) return true; // loopback
+    if (a === 0) return true;
+    if (a === 169 && b === 254) return true; // link-local / cloud metadata
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+    return false;
+  }
+  const lower = ip.toLowerCase();
+  if (lower === '::1' || lower === '::') return true; // loopback / unspecified
+  if (lower.startsWith('fe80')) return true; // link-local
+  if (lower.startsWith('fc') || lower.startsWith('fd')) return true; // unique-local
+  // IPv4-mapped IPv6 (::ffff:a.b.c.d)
+  const mapped = lower.match(/::ffff:(\d+\.\d+\.\d+\.\d+)/);
+  if (mapped) return isPrivateIp(mapped[1]);
+  return false;
+}
+
+export async function assertPublicHttpUrl(rawUrl: string): Promise<void> {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error('Invalid URL');
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Only http(s) URLs are allowed');
+  }
+  const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
+  if (net.isIP(hostname)) {
+    if (isPrivateIp(hostname)) throw new Error('URL resolves to a non-public address');
+    return;
+  }
+  if (hostname === 'localhost' || hostname.endsWith('.localhost')) {
+    throw new Error('URL resolves to a non-public address');
+  }
+  // Resolve DNS and reject if ANY resolved address is private.
+  const results = await dns.lookup(hostname, { all: true });
+  if (results.length === 0) throw new Error('Could not resolve URL host');
+  for (const { address } of results) {
+    if (isPrivateIp(address)) throw new Error('URL resolves to a non-public address');
+  }
+}
 
 // ── Edital Parser (Agent 1) ─────────────────────────────
 
@@ -176,9 +231,11 @@ export class GeminiService {
   }
 
   async parseEditalFromUrl(url: string): Promise<GeminiParseResult> {
+    // Guard against SSRF before making any server-side request to the URL.
+    await assertPublicHttpUrl(url);
     // First, try to fetch the URL content via HTTP
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { redirect: 'error' });
       if (response.ok) {
         const contentType = response.headers.get('content-type') || '';
         // If it's a PDF, extract text with pdf-parse

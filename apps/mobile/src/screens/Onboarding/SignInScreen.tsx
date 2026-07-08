@@ -7,13 +7,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors } from '../../theme';
 import { Button } from '../../components';
 import { useAuth } from '../../contexts/AuthContext';
+import { showAlert } from '../../utils/alert';
 
 interface SignInScreenProps {
   navigation: { navigate: (screen: string) => void; goBack: () => void };
@@ -58,18 +58,14 @@ export function SignInScreen({ navigation }: SignInScreenProps) {
         if (error?.code === statusCodes.SIGN_IN_CANCELLED) return;
       }
       const message = error instanceof Error ? error.message : 'Erro ao entrar com Google.';
-      if (Platform.OS === 'web') {
-        window.alert(message);
-      } else {
-        Alert.alert('Erro', message);
-      }
+      showAlert('Erro', message);
     } finally {
       setGoogleLoading(false);
     }
   };
 
   const handleForgotPassword = () => {
-    Alert.alert('Recuperar senha', 'Enviaremos um link para seu e-mail.');
+    showAlert('Recuperar senha', 'Enviaremos um link para seu e-mail.');
   };
 
   const handleSignIn = async () => {
@@ -84,7 +80,7 @@ export function SignInScreen({ navigation }: SignInScreenProps) {
       await login(email.trim(), password);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Email ou senha incorretos.';
-      Alert.alert('Erro', message);
+      showAlert('Erro', message);
     } finally {
       setLoading(false);
     }
@@ -191,14 +187,14 @@ export function SignInScreen({ navigation }: SignInScreenProps) {
             Ao continuar, você concorda com nossos{' '}
             <Text
               style={styles.termsLink}
-              onPress={() => Alert.alert('Termos', 'Link dos Termos de Uso em breve.')}
+              onPress={() => showAlert('Termos', 'Link dos Termos de Uso em breve.')}
             >
               Termos
             </Text>
             {' '}e{' '}
             <Text
               style={styles.termsLink}
-              onPress={() => Alert.alert('Privacidade', 'Link da Política de Privacidade em breve.')}
+              onPress={() => showAlert('Privacidade', 'Link da Política de Privacidade em breve.')}
             >
               Política de Privacidade
             </Text>

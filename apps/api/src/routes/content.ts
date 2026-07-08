@@ -5,6 +5,7 @@ import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
 import { validateBody } from '../middleware/validate.js';
 import { requireTier } from '../middleware/auth.js';
+import { aiLimiter } from '../middleware/rate-limit.js';
 import {
   generateContentBatch,
   getContentByTopic,
@@ -32,6 +33,13 @@ const generateContentSchema = z.object({
 router.get('/for-edital/:editalId', async (req: Request, res: Response) => {
   try {
     const editalId = String(req.params.editalId);
+    // Ownership check before returning edital structure (disciplina names/weights/topics).
+    const [edital] = await db.select({ userId: schema.editais.userId })
+      .from(schema.editais).where(eq(schema.editais.id, editalId));
+    if (!edital || edital.userId !== req.user!.id) {
+      res.status(404).json({ error: 'Edital not found' });
+      return;
+    }
     const result = await getContentForEdital(editalId);
     if (!result) {
       res.status(404).json({ error: 'Edital not found' });
@@ -65,12 +73,18 @@ router.get('/for-topic', async (req: Request, res: Response) => {
 });
 
 // POST /content/seed-for-edital/:editalId — generate content for all topics in a custom edital
-router.post('/seed-for-edital/:editalId', async (req: Request, res: Response) => {
+router.post('/seed-for-edital/:editalId', aiLimiter, async (req: Request, res: Response) => {
   try {
     const editalId = String(req.params.editalId);
     // Get edital and its disciplinas
     const [edital] = await db.select().from(schema.editais).where(eq(schema.editais.id, editalId));
     if (!edital) {
+      res.status(404).json({ error: 'Edital not found' });
+      return;
+    }
+    // Ownership check: only the edital's owner may trigger (expensive) generation
+    // for it. Prevents IDOR + running up the Gemini bill on someone else's edital.
+    if (edital.userId !== req.user!.id) {
       res.status(404).json({ error: 'Edital not found' });
       return;
     }
@@ -134,7 +148,7 @@ router.get('/topic/:topicId', async (req: Request, res: Response) => {
 });
 
 // POST /content/generate — triggers content generation for a topic (all formats)
-router.post('/generate', validateBody(generateContentSchema), async (req: Request, res: Response) => {
+router.post('/generate', aiLimiter, validateBody(generateContentSchema), async (req: Request, res: Response) => {
   try {
     const { topic, disciplinaId, disciplinaName } = req.body;
 

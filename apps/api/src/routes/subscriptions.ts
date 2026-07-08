@@ -1,28 +1,18 @@
 import { Router, Request, Response } from 'express';
-import { z } from 'zod';
-import { validateBody } from '../middleware/validate.js';
-import { SubscriptionTier } from '@soap/shared';
 import {
-  createSubscription,
   cancelSubscription,
   getCurrentSubscription,
 } from '../modules/subscriptions/index.js';
 
 const router = Router();
 
-const createSubscriptionSchema = z.object({
-  tier: z.enum(['free', 'premium', 'pro']),
-});
-
-router.post('/create', validateBody(createSubscriptionSchema), async (req: Request, res: Response) => {
-  try {
-    const { tier } = req.body;
-    const subscription = await createSubscription(req.user!.id, tier as SubscriptionTier);
-    res.status(201).json({ data: subscription });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to create subscription';
-    res.status(500).json({ error: message });
-  }
+// Client-driven subscription creation is DISABLED for beta. There is no payment
+// integration yet, so the previous endpoint let any user grant themselves a paid
+// tier for free. Everyone stays on the free tier until real billing + verified
+// provider webhooks are wired up (webhook endpoint lives in app.ts). Re-enable a
+// payment-gated flow here — never trust a client-supplied tier.
+router.post('/create', async (_req: Request, res: Response) => {
+  res.status(501).json({ error: 'Subscriptions are not available during the beta.' });
 });
 
 router.post('/cancel', async (req: Request, res: Response) => {

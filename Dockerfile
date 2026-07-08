@@ -1,5 +1,9 @@
 FROM node:20-slim
 
+# Run in production mode: enables the strict auth paths (required JWT secrets, no
+# dev-auth shortcut) and suppresses Express stack-trace leakage.
+ENV NODE_ENV=production
+
 WORKDIR /app
 
 # Copy package files
