@@ -500,6 +500,11 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Brand header */}
+        <View style={styles.brandHeader}>
+          <Wordmark size={18} color={colors.accent} />
+        </View>
+
         {/* Concurso Selector (multi-concurso) */}
         {concursos.length > 1 && (
           <View style={styles.concursoSelectorWrapper}>
@@ -712,6 +717,11 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  brandHeader: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
   },
   greeting: {
     paddingHorizontal: spacing.md,
