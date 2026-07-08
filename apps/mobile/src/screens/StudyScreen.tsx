@@ -13,7 +13,7 @@ import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/nativ
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Wordmark, BrandHeader } from '../components';
 import { useConcurso } from '../contexts/ConcursoContext';
-import { fetchContentForEdital, getProgressOverview, DisciplineContent, EditalContentMap, ProgressOverviewData } from '../services/api';
+import { fetchContentForEdital, getProgressOverview, getProgressByDisciplina, DisciplineContent, EditalContentMap, ProgressOverviewData, DisciplinaProgressData } from '../services/api';
 
 export function StudyScreen() {
   const { colors } = useTheme();
@@ -22,6 +22,7 @@ export function StudyScreen() {
   const { activeConcurso } = useConcurso();
   const [contentMap, setContentMap] = useState<EditalContentMap | null>(null);
   const [overview, setOverview] = useState<ProgressOverviewData | null>(null);
+  const [disciplinaProgress, setDisciplinaProgress] = useState<DisciplinaProgressData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,12 +37,14 @@ export function StudyScreen() {
     }
     try {
       setError(null);
-      const [data, ov] = await Promise.all([
+      const [data, ov, byDisc] = await Promise.all([
         fetchContentForEdital(activeConcurso.id),
         getProgressOverview().catch(() => null),
+        getProgressByDisciplina().catch(() => []),
       ]);
       setContentMap(data);
       setOverview(ov);
+      setDisciplinaProgress(byDisc);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.warn('[StudyScreen] fetch error:', msg);
@@ -97,12 +100,23 @@ export function StudyScreen() {
   const completedBlocks = overview?.completed_blocks ?? 0;
   const totalBlocks = overview?.total_blocks ?? 0;
 
+  // Map real per-disciplina study progress by normalized name (content disciplines
+  // and scheduled disciplinas can differ in casing/whitespace).
+  const progressByName = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const d of disciplinaProgress) {
+      map.set(d.disciplina_name.trim().toLowerCase(), d.progress_percent);
+    }
+    return map;
+  }, [disciplinaProgress]);
+
   function handleDisciplinePress(discipline: DisciplineContent) {
     navigation.navigate('TopicDetail', { discipline });
   }
 
   function renderDiscipline({ item }: { item: DisciplineContent }) {
-    const percent = item.topicCount > 0 ? Math.round((item.completedCount / item.topicCount) * 100) : 0;
+    // Real study progress (completed schedule blocks) for this disciplina; 0 if not scheduled/studied.
+    const percent = progressByName.get(item.name.trim().toLowerCase()) ?? 0;
 
     return (
       <Pressable onPress={() => handleDisciplinePress(item)}>
