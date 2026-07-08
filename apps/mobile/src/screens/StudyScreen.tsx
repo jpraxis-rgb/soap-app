@@ -13,7 +13,7 @@ import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/nativ
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card, Wordmark, BrandHeader } from '../components';
 import { useConcurso } from '../contexts/ConcursoContext';
-import { fetchContentForEdital, DisciplineContent, EditalContentMap } from '../services/api';
+import { fetchContentForEdital, getProgressOverview, DisciplineContent, EditalContentMap, ProgressOverviewData } from '../services/api';
 
 export function StudyScreen() {
   const { colors } = useTheme();
@@ -21,6 +21,7 @@ export function StudyScreen() {
   const route = useRoute<any>();
   const { activeConcurso } = useConcurso();
   const [contentMap, setContentMap] = useState<EditalContentMap | null>(null);
+  const [overview, setOverview] = useState<ProgressOverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +36,12 @@ export function StudyScreen() {
     }
     try {
       setError(null);
-      const data = await fetchContentForEdital(activeConcurso.id);
+      const [data, ov] = await Promise.all([
+        fetchContentForEdital(activeConcurso.id),
+        getProgressOverview().catch(() => null),
+      ]);
       setContentMap(data);
+      setOverview(ov);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.warn('[StudyScreen] fetch error:', msg);
@@ -86,9 +91,11 @@ export function StudyScreen() {
     }
   }, [route.params?.focusDiscipline, displayMap]);
 
-  const totalTopics = displayMap?.disciplines.reduce((s, d) => s + d.topicCount, 0) ?? 0;
-  const completedTopics = displayMap?.disciplines.reduce((s, d) => s + d.completedCount, 0) ?? 0;
-  const overallPercent = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+  // Real study progress from completed schedule blocks (same source as the Progresso tab),
+  // NOT content availability. See getProgressOverview / progress/overview.
+  const coveragePercent = overview?.coverage_percent ?? 0;
+  const completedBlocks = overview?.completed_blocks ?? 0;
+  const totalBlocks = overview?.total_blocks ?? 0;
 
   function handleDisciplinePress(discipline: DisciplineContent) {
     navigation.navigate('TopicDetail', { discipline });
@@ -147,20 +154,22 @@ export function StudyScreen() {
     <View style={styles.container}>
       <BrandHeader />
 
-      {/* Overall progress */}
+      {/* Overall progress — real study progress (completed schedule blocks) */}
       <View style={styles.overallContainer}>
         <Text style={styles.overallLabel}>Progresso geral</Text>
-        <Text style={styles.overallPercent}>{overallPercent}%</Text>
+        <Text style={styles.overallPercent}>{coveragePercent}%</Text>
         <View style={styles.overallBarBg}>
           <View
             style={[
               styles.overallBarFill,
-              { width: `${Math.max(overallPercent, 2)}%`, backgroundColor: colors.accentSecondary },
+              { width: `${Math.max(coveragePercent, 2)}%`, backgroundColor: colors.accentSecondary },
             ]}
           />
         </View>
         <Text style={styles.overallDetail}>
-          {completedTopics} de {totalTopics} tópicos completos
+          {totalBlocks > 0
+            ? `${completedBlocks} de ${totalBlocks} blocos concluídos`
+            : 'Monte seu cronograma para acompanhar o progresso'}
         </Text>
       </View>
 
