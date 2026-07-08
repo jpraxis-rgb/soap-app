@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
-import { Card, Badge } from '../components';
+import { Card, Badge, BrandHeader } from '../components';
 import { useAuth } from '../contexts/AuthContext';
 import { useConcurso } from '../contexts/ConcursoContext';
 
@@ -69,6 +69,8 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <BrandHeader />
+
       {/* User Info Card */}
       <Card style={styles.profileCard}>
         <View style={styles.avatarRow}>

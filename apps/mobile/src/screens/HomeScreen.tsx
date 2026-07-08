@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
-import { Badge, Card, Wordmark } from '../components';
+import { Badge, Card, Wordmark, BrandHeader } from '../components';
 import { getTodayScheduleBlocks, ScheduleBlockData, getUpcomingScheduleBlocks, getStudySessions, StudySessionData } from '../services/api';
 import { useConcurso } from '../contexts/ConcursoContext';
 
@@ -500,10 +500,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Brand header */}
-        <View style={styles.brandHeader}>
-          <Wordmark size={18} color={colors.accent} />
-        </View>
+        <BrandHeader />
 
         {/* Concurso Selector (multi-concurso) */}
         {concursos.length > 1 && (
@@ -717,11 +714,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  brandHeader: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xs,
   },
   greeting: {
     paddingHorizontal: spacing.md,

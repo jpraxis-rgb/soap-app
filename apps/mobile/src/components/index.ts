@@ -4,6 +4,7 @@ export { Badge } from './Badge';
 export { BottomSheet } from './BottomSheet';
 export { GradientText } from './GradientText';
 export { Simbolo, Wordmark } from './Logo';
+export { BrandHeader } from './BrandHeader';
 export { RequireTier } from './RequireTier';
 export { AnimatedSplash } from './AnimatedSplash';
 export { PhoneFrame } from './PhoneFrame';

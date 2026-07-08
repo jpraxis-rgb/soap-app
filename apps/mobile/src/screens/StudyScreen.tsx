@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
-import { Card, Wordmark } from '../components';
+import { Card, Wordmark, BrandHeader } from '../components';
 import { useConcurso } from '../contexts/ConcursoContext';
 import { fetchContentForEdital, DisciplineContent, EditalContentMap } from '../services/api';
 
@@ -145,6 +145,8 @@ export function StudyScreen() {
 
   return (
     <View style={styles.container}>
+      <BrandHeader />
+
       {/* Overall progress */}
       <View style={styles.overallContainer}>
         <Text style={styles.overallLabel}>Progresso geral</Text>

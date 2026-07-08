@@ -10,7 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
-import { Card } from '../components';
+import { Card, BrandHeader } from '../components';
 import {
   getProgressOverview,
   getProgressByDisciplina,
@@ -390,6 +390,8 @@ export function ProgressScreen() {
       style={styles.container}
       showsVerticalScrollIndicator={false}
     >
+      <BrandHeader />
+
       {/* Stats Row */}
       <View style={styles.statsRow}>
         <StatCard
