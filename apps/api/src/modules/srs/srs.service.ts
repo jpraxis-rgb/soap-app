@@ -1,4 +1,4 @@
-import { eq, and, lte } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import * as schema from '../../db/schema.js';
 
@@ -126,30 +126,34 @@ export async function getDueFlashcards(userId: string) {
       )
     );
 
-  // Get reviews for this user that are due
-  const dueReviews = await db
-    .select()
+  // Consider only the LATEST review per content item. recordReview inserts a
+  // new row on every review, so matching ANY past row with nextReviewAt <= now
+  // would resurface cards that have already been advanced into the future.
+  const latestReviews = await db
+    .select({
+      contentItemId: sql<string>`DISTINCT ON (${schema.flashcardReviews.contentItemId}) ${schema.flashcardReviews.contentItemId}`,
+      nextReviewAt: schema.flashcardReviews.nextReviewAt,
+    })
     .from(schema.flashcardReviews)
-    .where(
-      and(
-        eq(schema.flashcardReviews.userId, userId),
-        lte(schema.flashcardReviews.nextReviewAt, now)
-      )
+    .where(eq(schema.flashcardReviews.userId, userId))
+    .orderBy(
+      schema.flashcardReviews.contentItemId,
+      sql`${schema.flashcardReviews.reviewedAt} DESC`,
     );
 
-  const reviewedItemIds = new Set(dueReviews.map(r => r.contentItemId));
+  // Cards whose latest review is due (nextReviewAt <= now).
+  const dueReviewedIds = new Set(
+    latestReviews
+      .filter((r) => r.nextReviewAt != null && new Date(r.nextReviewAt) <= now)
+      .map((r) => r.contentItemId),
+  );
 
-  // Also get items never reviewed by this user
-  const allUserReviews = await db
-    .select()
-    .from(schema.flashcardReviews)
-    .where(eq(schema.flashcardReviews.userId, userId));
+  // Every card this user has ever reviewed (by latest row).
+  const allReviewedIds = new Set(latestReviews.map((r) => r.contentItemId));
 
-  const allReviewedIds = new Set(allUserReviews.map(r => r.contentItemId));
-
-  // Combine: due for review + never reviewed
+  // Combine: latest review due + never reviewed.
   const dueItems = flashcardItems.filter(
-    item => reviewedItemIds.has(item.id) || !allReviewedIds.has(item.id)
+    item => dueReviewedIds.has(item.id) || !allReviewedIds.has(item.id)
   );
 
   return dueItems;

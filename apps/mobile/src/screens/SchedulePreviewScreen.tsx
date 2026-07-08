@@ -5,15 +5,14 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Alert,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, borderRadius, type ThemeColors } from '../theme';
 import { Card, Button } from '../components';
 import { useConcurso } from '../contexts/ConcursoContext';
 import { deleteFutureBlocks } from '../services/api';
+import { showAlert, showConfirm } from '../utils/alert';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -284,18 +283,9 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
         ? `Seu cronograma para ${edital.orgao} - ${edital.cargo} foi atualizado com sucesso.`
         : `Seu plano de estudos para ${edital.orgao} - ${edital.cargo} foi criado com sucesso.`;
 
-      if (Platform.OS === 'web') {
-        window.alert(`Cronograma salvo!\n\n${successMsg}`);
-        goHome();
-      } else {
-        Alert.alert('Cronograma salvo!', successMsg, [{ text: 'Ir para início', onPress: goHome }]);
-      }
+      showAlert('Cronograma salvo!', successMsg, [{ text: 'Ir para início', onPress: goHome }]);
     } catch (err: any) {
-      if (Platform.OS === 'web') {
-        window.alert(err?.message || 'Não foi possível salvar o cronograma.');
-      } else {
-        Alert.alert('Erro', err?.message || 'Não foi possível salvar o cronograma.');
-      }
+      showAlert('Erro', err?.message || 'Não foi possível salvar o cronograma.');
     } finally {
       setSaving(false);
     }
@@ -304,20 +294,14 @@ export function SchedulePreviewScreen({ navigation, route }: SchedulePreviewScre
   const handleConfirm = () => {
     if (isEditing) {
       const warningMsg = 'Isso vai regenerar seu cronograma. Blocos futuros serão substituídos, mas suas sessões de estudo já registradas serão mantidas.';
-      if (Platform.OS === 'web') {
-        if (window.confirm(`Regenerar cronograma?\n\n${warningMsg}`)) {
-          doSave();
-        }
-      } else {
-        Alert.alert(
-          'Regenerar cronograma?',
-          warningMsg,
-          [
-            { text: 'Cancelar', style: 'cancel' },
-            { text: 'Confirmar', onPress: doSave },
-          ],
-        );
-      }
+      showConfirm(
+        'Regenerar cronograma?',
+        warningMsg,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Confirmar', onPress: doSave },
+        ],
+      );
     } else {
       doSave();
     }

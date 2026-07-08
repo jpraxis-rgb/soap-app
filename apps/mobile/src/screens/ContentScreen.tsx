@@ -22,7 +22,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useTheme, spacing, typography, type ThemeColors } from '../theme';
 import { Card } from '../components';
-import { API_ORIGIN, MOCK_MIND_MAPS } from '../services/api';
+import { API_ORIGIN } from '../services/api';
 import Svg, { Circle, Line, Text as SvgText } from 'react-native-svg';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -378,10 +378,21 @@ function MindMapImageView({ item, body }: { item: any; body: MindMapBody }) {
 function MindMapView({ item }: { item: any }) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
-  const body = (item?.body || MOCK_MIND_MAPS[0].body) as MindMapBody;
+  const body = item?.body as MindMapBody | undefined;
 
-  if (body.imageUrls && body.imageUrls.length > 0) {
+  if (body?.imageUrls && body.imageUrls.length > 0) {
     return <MindMapImageView item={item} body={body} />;
+  }
+
+  if (!body || !body.branches || body.branches.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.emptyState}>
+          <Ionicons name="git-network-outline" size={48} color={colors.textSecondary} />
+          <Text style={styles.emptyText}>Mapa mental ainda não disponível</Text>
+        </View>
+      </View>
+    );
   }
 
   const centerX = SCREEN_WIDTH / 2;

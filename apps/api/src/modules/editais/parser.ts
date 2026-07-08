@@ -78,8 +78,25 @@ export async function parseEdital(
     }
   }
 
-  // Determine status based on confidence
-  const status = parseResult.disciplinas.length > 0
+  // Determine which disciplinas to persist. Gemini returns shared disciplinas
+  // at the top level and per-cargo disciplinas under cargos[]. When there are
+  // no shared disciplinas but a cargo was extracted/selected, flatten that
+  // cargo's disciplinas into rows (mirroring createEditalFromTemplate),
+  // otherwise generateSchedule later fails with "No disciplinas found".
+  let disciplinasToInsert = parseResult.disciplinas;
+  if (disciplinasToInsert.length === 0 && parseResult.cargos.length > 0) {
+    const selectedCargo =
+      (parseResult.cargo
+        ? parseResult.cargos.find((c) => c.name === parseResult.cargo)
+        : undefined) ?? parseResult.cargos[0];
+    disciplinasToInsert = [
+      ...parseResult.disciplinas,
+      ...selectedCargo.disciplinas,
+    ];
+  }
+
+  // Determine status based on whether we actually have disciplinas to persist
+  const status = disciplinasToInsert.length > 0
     ? EditalStatus.PARSED
     : EditalStatus.PENDING;
 
@@ -108,8 +125,8 @@ export async function parseEdital(
 
   // Insert disciplinas
   const insertedDisciplinas = [];
-  for (let i = 0; i < parseResult.disciplinas.length; i++) {
-    const d = parseResult.disciplinas[i];
+  for (let i = 0; i < disciplinasToInsert.length; i++) {
+    const d = disciplinasToInsert[i];
     const [inserted] = await db
       .insert(disciplinas)
       .values({

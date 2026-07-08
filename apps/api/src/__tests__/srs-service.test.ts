@@ -142,7 +142,7 @@ describe('SM-2 Algorithm — Interval Cap', () => {
   });
 
   it('repeated easy reviews do not exceed 180 days', () => {
-    let card: SrsCard = newCard();
+    const card: SrsCard = newCard();
     // Graduate from learning
     let result = reviewCard(card, 'good', fixedNow);
     result = reviewCard({ ...result, phase: result.phase }, 'good', fixedNow);
@@ -176,7 +176,7 @@ describe('SM-2 Algorithm — Graduation', () => {
   });
 
   it('progresses through learning steps before graduating', () => {
-    let card: SrsCard = newCard();
+    const card: SrsCard = newCard();
 
     // Step 0 → 1 (interval should be the first learning step)
     const step1 = reviewCard(card, 'good', fixedNow);
@@ -204,7 +204,7 @@ describe('SM-2 Algorithm — Graduation', () => {
   });
 
   it('easy rating during learning graduates with longer interval', () => {
-    let card: SrsCard = newCard();
+    const card: SrsCard = newCard();
 
     // Go through learning steps
     let result = reviewCard(card, 'good', fixedNow);
@@ -232,7 +232,7 @@ describe('SM-2 Algorithm — Graduation', () => {
   });
 
   it('again during learning resets to step 0', () => {
-    let card: SrsCard = newCard();
+    const card: SrsCard = newCard();
     // Advance one step
     const step1 = reviewCard(card, 'good', fixedNow);
     expect(step1.repetitions).toBe(1);

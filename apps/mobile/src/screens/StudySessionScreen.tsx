@@ -8,12 +8,12 @@ import {
   ScrollView,
   AppState,
   AppStateStatus,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography, borderRadius, type ThemeColors } from '../theme';
 import { Card } from '../components';
 import { logStudySession, type ScheduleBlockData } from '../services/api';
+import { showAlert } from '../utils/alert';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -145,7 +145,7 @@ export function StudySessionScreen({ navigation, route }: StudySessionScreenProp
 
   const handleSaveSession = async () => {
     if (rating === null) {
-      Alert.alert('Avaliação', 'Selecione como foi a sessão.');
+      showAlert('Avaliação', 'Selecione como foi a sessão.');
       return;
     }
 
@@ -163,18 +163,17 @@ export function StudySessionScreen({ navigation, route }: StudySessionScreenProp
         completed_at: new Date().toISOString(),
       });
 
-      Alert.alert(
+      // Show success feedback, then navigate back UNCONDITIONALLY. On web
+      // window.alert callbacks fire synchronously, but we must never rely on an
+      // alert callback to escape this screen (it has no back button and gestures
+      // are disabled), so goBack() runs regardless of platform.
+      showAlert(
         'Sessão salva!',
         `${durationMinutes} minutos de ${block.disciplina_name} registrados.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ],
       );
+      navigation.goBack();
     } catch (err: any) {
-      Alert.alert('Erro', err?.message || 'Não foi possível salvar a sessão.');
+      showAlert('Erro', err?.message || 'Não foi possível salvar a sessão.');
     } finally {
       setSaving(false);
     }

@@ -7,6 +7,7 @@ import { validateBody } from '../middleware/validate.js';
 import { parseEdital, getEditalWithDisciplinas, updateEdital, createEditalFromTemplate } from '../modules/editais/parser.js';
 import { uploadPdf } from '../middleware/upload.js';
 import { extractTextFromPdf } from '../services/pdf-extract.js';
+import { aiLimiter } from '../middleware/rate-limit.js';
 
 const router = Router();
 
@@ -202,7 +203,7 @@ router.get('/', async (req: Request, res: Response) => {
  * POST /editais/parse
  * Parse an edital from a URL or uploaded content.
  */
-router.post('/parse', validateBody(parseEditalSchema), async (req: Request, res: Response) => {
+router.post('/parse', aiLimiter, validateBody(parseEditalSchema), async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -231,7 +232,7 @@ router.post('/parse', validateBody(parseEditalSchema), async (req: Request, res:
  * POST /editais/parse-pdf
  * Parse an edital from an uploaded PDF file.
  */
-router.post('/parse-pdf', uploadPdf, async (req: Request, res: Response) => {
+router.post('/parse-pdf', aiLimiter, uploadPdf, async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {

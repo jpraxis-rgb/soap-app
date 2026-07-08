@@ -43,6 +43,13 @@
       "when": 1773351555863,
       "tag": "0005_cuddly_zarda",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783544963417,
+      "tag": "0006_fearless_night_thrasher",
+      "breakpoints": true
     }
   ]
 }

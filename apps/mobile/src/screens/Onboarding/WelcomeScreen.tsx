@@ -10,12 +10,12 @@ import {
   Pressable,
   AccessibilityInfo,
   Platform,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, spacing, typography, type ThemeColors } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
+import { showAlert } from '../../utils/alert';
 import { Button, PhoneFrame } from '../../components';
 import { EditalMockup } from './mockups/EditalMockup';
 import { HomeMockup } from './mockups/HomeMockup';
@@ -91,11 +91,7 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
         if (error?.code === statusCodes.SIGN_IN_CANCELLED) return;
       }
       const message = error instanceof Error ? error.message : 'Erro ao entrar com Google.';
-      if (Platform.OS === 'web') {
-        window.alert(message);
-      } else {
-        Alert.alert('Erro', message);
-      }
+      showAlert('Erro', message);
     } finally {
       setGoogleLoading(false);
     }

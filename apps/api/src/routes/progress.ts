@@ -5,6 +5,21 @@ import { eq, and, gte, desc, sql } from 'drizzle-orm';
 
 const router = Router();
 
+// All day bucketing is done in the user's local timezone (Brazil).
+const APP_TIMEZONE = 'America/Sao_Paulo';
+
+// Format a Date as 'YYYY-MM-DD' in the app timezone.
+function spDateStr(date: Date): string {
+  return date.toLocaleDateString('en-CA', { timeZone: APP_TIMEZONE });
+}
+
+// Shift a 'YYYY-MM-DD' string by a number of days (calendar-safe, UTC-based).
+function shiftDateStr(dateStr: string, deltaDays: number): string {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + deltaDays);
+  return d.toISOString().slice(0, 10);
+}
+
 // GET /progress/overview — total coverage %, hours studied vs planned
 router.get('/overview', async (req: Request, res: Response) => {
   try {
@@ -51,28 +66,24 @@ router.get('/overview', async (req: Request, res: Response) => {
     const completedBlocks = Number(completedResult[0]?.count ?? 0);
     const coveragePercent = totalBlocks > 0 ? Math.round((completedBlocks / totalBlocks) * 100) : 0;
 
-    // Calculate streak (consecutive days with sessions)
+    // Calculate streak (consecutive days with sessions), bucketed in the
+    // user's local timezone (Brazil, America/Sao_Paulo) so evening sessions
+    // are not pushed into the next UTC day and do not break streaks.
     const recentSessions = await db
       .select({
-        sessionDate: sql<string>`DATE(${schema.studySessions.startedAt})`.as('session_date'),
+        sessionDate: sql<string>`TO_CHAR(${schema.studySessions.startedAt} AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD')`.as('session_date'),
       })
       .from(schema.studySessions)
       .where(eq(schema.studySessions.userId, userId))
-      .groupBy(sql`DATE(${schema.studySessions.startedAt})`)
-      .orderBy(sql`DATE(${schema.studySessions.startedAt}) DESC`);
+      .groupBy(sql`TO_CHAR(${schema.studySessions.startedAt} AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD')`)
+      .orderBy(sql`TO_CHAR(${schema.studySessions.startedAt} AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD') DESC`);
 
     let streak = 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = spDateStr(new Date());
 
     for (let i = 0; i < recentSessions.length; i++) {
-      const sessionDate = new Date(recentSessions[i].sessionDate);
-      sessionDate.setHours(0, 0, 0, 0);
-
-      const expectedDate = new Date(today);
-      expectedDate.setDate(expectedDate.getDate() - i);
-
-      if (sessionDate.getTime() === expectedDate.getTime()) {
+      const expectedDate = shiftDateStr(today, -i);
+      if (recentSessions[i].sessionDate === expectedDate) {
         streak++;
       } else {
         break;
@@ -294,13 +305,14 @@ router.get('/weekly', async (req: Request, res: Response) => {
       return;
     }
 
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
+    // Last 7 calendar days (including today) in the app timezone.
+    const todayStr = spDateStr(new Date());
+    const sevenDaysAgoStr = shiftDateStr(todayStr, -6);
+    const sessionDateExpr = sql<string>`TO_CHAR(${schema.studySessions.startedAt} AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD')`;
 
     const dailyData = await db
       .select({
-        date: sql<string>`DATE(${schema.studySessions.startedAt})`.as('session_date'),
+        date: sessionDateExpr.as('session_date'),
         totalMinutes: sql<number>`COALESCE(SUM(${schema.studySessions.durationMinutes}), 0)`.as('total_minutes'),
         sessionCount: sql<number>`COUNT(${schema.studySessions.id})`.as('session_count'),
       })
@@ -308,11 +320,11 @@ router.get('/weekly', async (req: Request, res: Response) => {
       .where(
         and(
           eq(schema.studySessions.userId, userId),
-          gte(schema.studySessions.startedAt, sevenDaysAgo),
+          gte(sessionDateExpr, sevenDaysAgoStr),
         ),
       )
-      .groupBy(sql`DATE(${schema.studySessions.startedAt})`)
-      .orderBy(sql`DATE(${schema.studySessions.startedAt})`);
+      .groupBy(sessionDateExpr)
+      .orderBy(sessionDateExpr);
 
     // Build full 7-day array (including days with no sessions)
     const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -320,14 +332,15 @@ router.get('/weekly', async (req: Request, res: Response) => {
 
     const histogram = [];
     for (let i = 0; i < 7; i++) {
-      const date = new Date(sevenDaysAgo);
-      date.setDate(date.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = shiftDateStr(sevenDaysAgoStr, i);
+      // Day-of-week for the label, computed from the date itself (noon UTC
+      // avoids any offset rollover).
+      const dayOfWeek = new Date(dateStr + 'T12:00:00Z').getUTCDay();
       const entry = dataMap.get(dateStr);
 
       histogram.push({
         date: dateStr,
-        day_name: dayNames[date.getDay()],
+        day_name: dayNames[dayOfWeek],
         hours: entry ? Math.round((Number(entry.totalMinutes) / 60) * 10) / 10 : 0,
         sessions: entry ? Number(entry.sessionCount) : 0,
       });

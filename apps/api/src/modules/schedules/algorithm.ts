@@ -52,6 +52,7 @@ const MAX_BLOCK_MINUTES = 90;
 export function generateScheduleBlocks(
   disciplinas: DisciplinaInput[],
   config: ScheduleConfig,
+  precomputedAllocations?: Map<string, number>,
 ): GeneratedBlock[] {
   if (disciplinas.length === 0) return [];
 
@@ -76,7 +77,15 @@ export function generateScheduleBlocks(
   const totalAvailableMinutes = totalWeeks * config.hoursPerWeek * 60;
 
   // 1. ALLOCATE — compute minutes per discipline
-  const allocations = computeAllocations(disciplinas, totalAvailableMinutes, config.customAllocations);
+  const allocations = precomputedAllocations
+    ?? computeAllocations(disciplinas, totalAvailableMinutes, config.customAllocations);
+
+  // If nothing can be allocated (e.g. all weights are 0), produce no blocks.
+  const totalAlloc = [...allocations.values()].reduce(
+    (sum, v) => sum + (Number.isFinite(v) && v > 0 ? v : 0),
+    0,
+  );
+  if (totalAlloc <= 0) return [];
 
   // 2. BUILD TOPIC QUEUES
   const topicQueues = buildTopicQueues(disciplinas, allocations);
@@ -94,6 +103,10 @@ export function generateScheduleBlocks(
   let rosterPointer = 0;
   const blocks: GeneratedBlock[] = [];
 
+  // Carry accumulates sub-minimum daily shares so a low-weight disciplina
+  // eventually earns a full block instead of being dropped every day.
+  const shareCarry = new Map<string, number>();
+
   // 5. SCHEDULE DAYS
   for (const date of availableDates) {
     const dayOfWeek = date.getDay();
@@ -110,7 +123,7 @@ export function generateScheduleBlocks(
 
     // Split daily minutes proportionally among picked disciplines
     const pickedTotalAlloc = pickedDisciplinas.reduce(
-      (sum, d) => sum + (allocations.get(d.id) || 1),
+      (sum, d) => sum + (allocations.get(d.id) ?? 0),
       0,
     );
 
@@ -121,14 +134,21 @@ export function generateScheduleBlocks(
       const queue = topicQueues.get(disciplina.id);
       if (!queue || queue.length === 0) continue;
 
-      const share = pickedTotalAlloc > 0
-        ? Math.round((dailyMinutes * (allocations.get(disciplina.id) || 1)) / pickedTotalAlloc)
-        : Math.round(dailyMinutes / disciplinesPerDay);
+      const rawShare = pickedTotalAlloc > 0
+        ? (dailyMinutes * (allocations.get(disciplina.id) ?? 0)) / pickedTotalAlloc
+        : dailyMinutes / disciplinesPerDay;
 
-      if (share < MIN_BLOCK_MINUTES) continue;
+      // Accumulate this day's share; a disciplina whose proportional share is
+      // below the minimum block size carries it forward until it reaches one.
+      const carried = (shareCarry.get(disciplina.id) ?? 0) + rawShare;
+      if (carried < MIN_BLOCK_MINUTES) {
+        shareCarry.set(disciplina.id, carried);
+        continue;
+      }
+      shareCarry.set(disciplina.id, 0);
 
       // Create blocks from the topic queue
-      let remaining = share;
+      let remaining = Math.round(carried);
       while (remaining >= MIN_BLOCK_MINUTES && queue.length > 0) {
         const topicEntry = queue[0];
         const blockDuration = Math.min(remaining, MAX_BLOCK_MINUTES, topicEntry.remainingMinutes);
@@ -175,6 +195,11 @@ export function generateScheduleBlocks(
         remaining -= blockDuration;
 
         if (currentHour >= 22) break;
+      }
+
+      // Preserve any unspent budget (< one block) for a future day.
+      if (remaining > 0 && queue.length > 0) {
+        shareCarry.set(disciplina.id, (shareCarry.get(disciplina.id) ?? 0) + remaining);
       }
     }
   }
@@ -229,6 +254,13 @@ function computeAllocations(
   } else {
     // Weight-proportional (null weight treated as 1)
     const totalWeight = disciplinas.reduce((sum, d) => sum + (d.weight ?? 1), 0);
+    if (totalWeight <= 0) {
+      // All weights are 0 (or negative) — nothing to allocate.
+      for (const d of disciplinas) {
+        allocations.set(d.id, 0);
+      }
+      return allocations;
+    }
     for (const d of disciplinas) {
       const w = d.weight ?? 1;
       allocations.set(d.id, Math.round((w / totalWeight) * totalMinutes));
@@ -336,22 +368,27 @@ export function recalculateSchedule(
     ? disciplinas.length
     : disciplinas.reduce((sum, d) => sum + (d.weight ?? 1), 0);
 
+  if (totalWeight <= 0) return [];
+
   const adjustedDisciplinas: DisciplinaInput[] = [];
+  // Absolute remaining minutes per disciplina, used both as the proportional
+  // weight AND as a hard cap so completing sessions can never increase a
+  // disciplina's remaining scheduled minutes.
+  const explicitAllocations = new Map<string, number>();
 
   for (const disciplina of disciplinas) {
     const w = allNullWeights ? 1 : (disciplina.weight ?? 1);
     const targetMinutes = Math.round((w / totalWeight) * totalAvailableMinutes);
     const completedMinutes = disciplinaCompletedMap.get(disciplina.id) || 0;
-    const remainingMinutes = Math.max(0, targetMinutes - completedMinutes);
+    let remainingMinutes = Math.max(0, targetMinutes - completedMinutes);
+
+    // Proficiency shaping is applied to the absolute remaining budget.
+    const rating = performanceData?.get(disciplina.id);
+    if (rating !== undefined) {
+      remainingMinutes = remainingMinutes * performanceMultiplier(rating);
+    }
 
     if (remainingMinutes >= MIN_BLOCK_MINUTES) {
-      let effectiveWeight = w * (remainingMinutes / targetMinutes);
-
-      const rating = performanceData?.get(disciplina.id);
-      if (rating !== undefined) {
-        effectiveWeight *= performanceMultiplier(rating);
-      }
-
       // Filter out fully-covered topics
       const remainingTopics = disciplina.topics.filter((topic) => {
         const key = `${disciplina.id}::${topic}`;
@@ -362,9 +399,10 @@ export function recalculateSchedule(
 
       adjustedDisciplinas.push({
         ...disciplina,
-        weight: effectiveWeight > 0 ? effectiveWeight : 0.1,
+        weight: w,
         topics: remainingTopics.length > 0 ? remainingTopics : disciplina.topics,
       });
+      explicitAllocations.set(disciplina.id, remainingMinutes);
     }
   }
 
@@ -375,7 +413,7 @@ export function recalculateSchedule(
     startDate: new Date(),
   };
 
-  return generateScheduleBlocks(adjustedDisciplinas, newConfig);
+  return generateScheduleBlocks(adjustedDisciplinas, newConfig, explicitAllocations);
 }
 
 // ── Helper functions ──────────────────────────────────
