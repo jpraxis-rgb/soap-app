@@ -5,6 +5,7 @@ export {
   getGoogleRedirectUrl,
   googleAuthCallback,
   appleAuth,
+  NotConfiguredError,
   refreshToken,
   getMe,
   updateProfile,
