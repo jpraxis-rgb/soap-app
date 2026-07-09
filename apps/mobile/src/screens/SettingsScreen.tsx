@@ -12,10 +12,12 @@ import { useTheme, spacing, typography, type ThemeColors, type ThemeMode } from 
 import { Card } from '../components';
 import { useAuth } from '../contexts/AuthContext';
 import { showAlert, showConfirm } from '../utils/alert';
+import { usersApi } from '../services/api';
 
 export function SettingsScreen() {
   const { colors, mode, setMode } = useTheme();
   const { logout } = useAuth();
+  const [deleting, setDeleting] = useState(false);
 
   const [notifications, setNotifications] = useState({
     studyReminder: true,
@@ -30,16 +32,28 @@ export function SettingsScreen() {
   });
 
   const handleDeleteAccount = () => {
+    if (deleting) return;
     showConfirm(
       'Excluir conta',
-      'Tem certeza? Esta ação não pode ser desfeita.',
+      'Tem certeza? Sua conta e todos os seus dados (editais, cronogramas, sessões e progresso) serão apagados permanentemente. Esta ação não pode ser desfeita.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Excluir',
           style: 'destructive',
-          onPress: () => {
-            showAlert('Info', 'Funcionalidade em breve');
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await usersApi.deleteAccount();
+              // Clear the local session; the user (and their data) no longer exist.
+              await logout();
+            } catch (err) {
+              setDeleting(false);
+              showAlert(
+                'Erro',
+                err instanceof Error ? err.message : 'Não foi possível excluir a conta. Tente novamente.',
+              );
+            }
           },
         },
       ],
@@ -159,12 +173,15 @@ export function SettingsScreen() {
         </Pressable>
 
         <Pressable
-          style={[styles.menuRow, { borderBottomWidth: 0 }]}
+          style={[styles.menuRow, { borderBottomWidth: 0, opacity: deleting ? 0.5 : 1 }]}
           onPress={handleDeleteAccount}
+          disabled={deleting}
         >
           <Ionicons name="trash-outline" size={20} color={colors.error} />
           <View style={styles.menuContent}>
-            <Text style={[styles.menuLabel, { color: colors.error }]}>Excluir conta</Text>
+            <Text style={[styles.menuLabel, { color: colors.error }]}>
+              {deleting ? 'Excluindo...' : 'Excluir conta'}
+            </Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color={colors.error} />
         </Pressable>

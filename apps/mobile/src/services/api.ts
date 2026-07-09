@@ -198,6 +198,13 @@ export const usersApi = {
       method: 'PUT',
       body: JSON.stringify({ concurso_id: concursoId }),
     }),
+
+  // Permanently delete the account and all associated data (editais, schedules,
+  // sessions, quiz attempts, flashcard reviews, subscriptions cascade server-side).
+  deleteAccount: () =>
+    request<unknown>('/users/me', {
+      method: 'DELETE',
+    }),
 };
 
 // ── Subscriptions API ─────────────────────────────────

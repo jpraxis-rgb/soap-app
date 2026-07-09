@@ -8,6 +8,8 @@ import {
   googleAuth,
   getGoogleRedirectUrl,
   googleAuthCallback,
+  appleAuth,
+  NotConfiguredError,
   refreshToken as refreshTokenService,
   getMe,
 } from '../modules/auth/index.js';
@@ -97,10 +99,23 @@ router.get('/google/callback', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/apple', async (_req: Request, res: Response) => {
-  // Apple sign-in is not implemented (see appleAuth). Returning 501 rather than
-  // minting an unverified session.
-  res.status(501).json({ error: 'Apple sign-in is not available yet.' });
+router.post('/apple', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.body;
+    if (!token || typeof token !== 'string') {
+      res.status(400).json({ error: 'Apple identity token is required' });
+      return;
+    }
+    const result = await appleAuth(token);
+    res.json({ data: result });
+  } catch (error) {
+    if (error instanceof NotConfiguredError) {
+      res.status(503).json({ error: error.message });
+      return;
+    }
+    const message = error instanceof Error ? error.message : 'Apple auth failed';
+    res.status(401).json({ error: message });
+  }
 });
 
 router.post('/refresh', async (req: Request, res: Response) => {

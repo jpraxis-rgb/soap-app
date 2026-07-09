@@ -7,3 +7,6 @@ dist/
 .DS_Store
 *.log
 coverage/
+
+# Play Store submit key (never commit)
+apps/mobile/play-service-account.json

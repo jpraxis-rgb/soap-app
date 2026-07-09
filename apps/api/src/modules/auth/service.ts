@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'node:crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
@@ -29,6 +30,18 @@ const JWT_REFRESH_SECRET = requireSecret('JWT_REFRESH_SECRET', 'dev-refresh-secr
 // Pin the signing algorithm so a token can never be verified under an unexpected
 // algorithm (defense-in-depth against algorithm-confusion attacks).
 const JWT_ALGORITHM = 'HS256' as const;
+
+// Apple: the token audience is the app's bundle id (native) and/or the Services
+// ID (web). Accept a comma-separated list so both native and web sign-in work.
+const APPLE_CLIENT_IDS = (process.env.APPLE_CLIENT_ID || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+const APPLE_ISSUER = 'https://appleid.apple.com';
+const APPLE_JWKS_URL = 'https://appleid.apple.com/auth/keys';
+if (APPLE_CLIENT_IDS.length === 0) {
+  console.warn('[AUTH] APPLE_CLIENT_ID not set. Apple sign-in will return "not configured".');
+}
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -289,15 +302,102 @@ export async function googleAuthCallback(code: string) {
   };
 }
 
-/** Raised by appleAuth so the route can translate it to HTTP 501. */
-export class NotImplementedError extends Error {}
+/** Thrown when Apple sign-in is called but APPLE_CLIENT_ID is not configured. */
+export class NotConfiguredError extends Error {}
 
-export async function appleAuth(_appleToken: string): Promise<never> {
-  // Apple Sign-In requires verifying the identity token against Apple's public
-  // JWKS (signature, aud, iss, exp, nonce). Until that is implemented we must NOT
-  // issue sessions — the previous stub granted a valid session for any string,
-  // which is a full authentication bypass.
-  throw new NotImplementedError('Apple sign-in is not available yet.');
+interface AppleJwk {
+  kty: string;
+  kid: string;
+  use: string;
+  alg: string;
+  n: string;
+  e: string;
+}
+
+// Cache Apple's public keys briefly — they rotate, so don't cache forever.
+let appleJwksCache: { keys: AppleJwk[]; fetchedAt: number } | null = null;
+const APPLE_JWKS_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+async function getApplePublicKey(kid: string): Promise<crypto.KeyObject> {
+  const now = Date.now();
+  if (!appleJwksCache || now - appleJwksCache.fetchedAt > APPLE_JWKS_TTL_MS) {
+    const res = await fetch(APPLE_JWKS_URL);
+    if (!res.ok) throw new Error('Failed to fetch Apple public keys');
+    const body = await res.json() as { keys: AppleJwk[] };
+    appleJwksCache = { keys: body.keys, fetchedAt: now };
+  }
+  let jwk = appleJwksCache.keys.find((k) => k.kid === kid);
+  if (!jwk) {
+    // Key id not found — force a refresh once in case Apple rotated keys.
+    const res = await fetch(APPLE_JWKS_URL);
+    if (!res.ok) throw new Error('Failed to fetch Apple public keys');
+    const body = await res.json() as { keys: AppleJwk[] };
+    appleJwksCache = { keys: body.keys, fetchedAt: now };
+    jwk = appleJwksCache.keys.find((k) => k.kid === kid);
+  }
+  if (!jwk) throw new Error('No matching Apple public key');
+  return crypto.createPublicKey({ key: jwk, format: 'jwk' });
+}
+
+/**
+ * Verify an Apple identity token (the JWT returned by Sign in with Apple) and
+ * sign the user in. Validates the RS256 signature against Apple's published
+ * public keys plus issuer, audience, and expiry. Keyed by the token's verified
+ * `email` claim, consistent with how Google sign-in works here.
+ */
+export async function appleAuth(identityToken: string) {
+  if (APPLE_CLIENT_IDS.length === 0) {
+    throw new NotConfiguredError('Apple sign-in is not configured');
+  }
+
+  const decoded = jwt.decode(identityToken, { complete: true });
+  if (!decoded || typeof decoded === 'string' || !decoded.header?.kid) {
+    throw new Error('Invalid Apple token');
+  }
+
+  const publicKey = await getApplePublicKey(decoded.header.kid);
+
+  let payload: jwt.JwtPayload;
+  try {
+    payload = jwt.verify(identityToken, publicKey, {
+      algorithms: ['RS256'],
+      issuer: APPLE_ISSUER,
+      audience: APPLE_CLIENT_IDS as [string, ...string[]], // validated non-empty above
+    }) as jwt.JwtPayload;
+  } catch {
+    throw new Error('Invalid Apple token');
+  }
+
+  const email = typeof payload.email === 'string' ? payload.email : undefined;
+  if (!email) {
+    // Apple omits the email claim if the user revoked email scope after first
+    // sign-in. Keying by email (like Google) requires it to be present.
+    throw new Error('Apple token did not include an email');
+  }
+  // Apple sends email_verified as a boolean or the string "true".
+  const emailVerified = payload.email_verified === true || payload.email_verified === 'true';
+  if (!emailVerified) {
+    throw new Error('Apple email not verified');
+  }
+
+  let [user] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
+
+  if (!user) {
+    [user] = await db.insert(schema.users).values({
+      email,
+      name: email.split('@')[0],
+      authProvider: 'apple',
+    }).returning();
+  }
+
+  const token = signToken({ id: user.id, email: user.email });
+  const refreshTokenValue = signRefreshToken({ id: user.id, email: user.email });
+
+  return {
+    user: sanitizeUser(user),
+    token,
+    refreshToken: refreshTokenValue,
+  };
 }
 
 export async function refreshToken(token: string) {

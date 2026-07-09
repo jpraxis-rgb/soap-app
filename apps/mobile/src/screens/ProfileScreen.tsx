@@ -13,6 +13,7 @@ import { Card, Badge, BrandHeader } from '../components';
 import { useAuth } from '../contexts/AuthContext';
 import { useConcurso } from '../contexts/ConcursoContext';
 import { showAlert, showConfirm } from '../utils/alert';
+import { PRIVACY_URL, TERMS_URL, SUPPORT_EMAIL, openUrl } from '../utils/links';
 
 const TIER_LABELS: Record<string, string> = {
   free: 'Gratuito',
@@ -203,17 +204,20 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
       <Card header="Sobre" style={styles.section}>
         <MenuRow
           label="Termos de uso"
-          onPress={() => showAlert('Termos', 'Em breve')}
+          onPress={() => openUrl(TERMS_URL())}
           colors={colors}
         />
         <MenuRow
           label="Política de privacidade"
-          onPress={() => showAlert('Privacidade', 'Em breve')}
+          onPress={() => openUrl(PRIVACY_URL())}
           colors={colors}
         />
         <MenuRow
           label="Ajuda e suporte"
-          onPress={() => showAlert('Ajuda', 'Em breve')}
+          onPress={async () => {
+            const ok = await openUrl(`mailto:${SUPPORT_EMAIL}`);
+            if (!ok) showAlert('Ajuda e suporte', `Entre em contato: ${SUPPORT_EMAIL}`);
+          }}
           colors={colors}
         />
         <View style={styles.versionRow}>

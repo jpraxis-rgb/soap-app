@@ -15,10 +15,13 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.estudatudo.app"
+      "bundleIdentifier": "com.estudatudo.app",
+      "buildNumber": "1",
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.estudatudo.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#6D28D9"
